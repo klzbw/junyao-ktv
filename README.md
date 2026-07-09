@@ -67,15 +67,6 @@ appcenter-cli install-fpk junyao-ktv.fpk
 | `VAAPI_DEVICE` | `/dev/dri/renderD128` | 核显硬件转码渲染节点路径 |
 | `HLS_CACHE_MAX_AGE_DAYS` | `3` | HLS 缓存最长保留天数，超过自动清理，不影响源 MV 文件 |
 
-## 更新日志
 
-### 1.0.8
-- 新增 `.mpg` 格式曲库支持
-- 新增 HLS 转码缓存每日自动清理机制（孤儿缓存 + 过期缓存）
 
-### 1.0.7
-- （此前版本变更见历史提交）
 
-## 许可证
-
-TODO：在此补充你希望使用的开源许可证（如 MIT / Apache-2.0），或注明"仅限内部使用，不开源"。
