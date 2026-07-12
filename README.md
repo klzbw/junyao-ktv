@@ -66,6 +66,16 @@ appcenter-cli install-fpk junyao-ktv.fpk
 |---|---|---|
 | `VAAPI_DEVICE` | `/dev/dri/renderD128` | 核显硬件转码渲染节点路径 |
 | `HLS_CACHE_MAX_AGE_DAYS` | `3` | HLS 缓存最长保留天数，超过自动清理，不影响源 MV 文件 |
+<img width="1920" height="919" alt="image" src="https://github.com/user-attachments/assets/5aa93b2c-0911-49ed-8710-6039eae27041" />
+<img width="1920" height="919" alt="image" src="https://github.com/user-attachments/assets/b4f95eb3-d98a-41df-97f3-c5a6d7721b96" />
+<img width="1920" height="919" alt="image" src="https://github.com/user-attachments/assets/e5c98caf-b7bf-4279-ba70-d576f7d14f55" />
+<img width="1920" height="919" alt="image" src="https://github.com/user-attachments/assets/fcee82e3-101e-4947-a81e-3037c4b39f9b" />
+<img width="1920" height="919" alt="image" src="https://github.com/user-attachments/assets/7bd9ca0f-2d80-4dc9-a07f-47e4b43461d3" />
+
+
+
+
+
 
 
 
