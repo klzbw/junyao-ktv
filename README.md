@@ -74,9 +74,85 @@ appcenter-cli install-fpk junyao-ktv.fpk
 
 
 
+NVIDIA 显卡硬件转码compose 写法：（需要宿主机已装好 NVIDIA 驱动 + [nvidia-container-toolkit](https://github.com/NVIDIA/nvidia-container-toolkit)，没有实测，不保证可用）
 
+```
+services:
+  junyao-ktv:
+    image: ma303973022/junyao-ktv:1.0.20   
+    container_name: junyao-ktv
+    restart: unless-stopped
+    runtime: nvidia      # 关键：让容器能用到 nvidia-container-toolkit   
+    ports:
+      - "8083:8080"
+    environment:
+      - TZ=Asia/Shanghai
+      - PORT=8080
+      - DATA_DIR=/data
+      - MV_DIR=/mv
+      - HLS_CACHE_MAX_AGE_DAYS=3
+      # NVENC 硬件转码需要的两个环境变量：
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
+    volumes:
+      - /你的路径/data:/data
+      - /你的路径/mv:/mv
+```
 
+前提条件（缺一不可）：
 
+1. **宿主机已装好 NVIDIA 官方驱动**（`nvidia-smi` 能正常输出）。
+2. **装了 [nvidia-container-toolkit](https://github.com/NVIDIA/nvidia-container-toolkit)**，并执行过：
+
+bash
+
+```bash
+   sudo nvidia-ctk runtime configure --runtime=docker
+   sudo systemctl restart docker
+```
+
+核显compose写法：
+```
+services:
+  junyao-ktv:
+    image: ma303973022/junyao-ktv:latest
+    container_name: junyao-ktv
+    restart: unless-stopped
+
+    # 访问端口，默认 8083。要改端口的话直接改这一行左边的数字即可。
+    ports:
+      - "8083:8080"
+
+    environment:
+      - TZ=Asia/Shanghai
+      - PORT=8080
+      - DATA_DIR=/data
+      - MV_DIR=/mv
+      # VAAPI 硬件转码设备路径。宿主机没有核显/独显、或者没有启用下面的
+      # devices 直通时，容器探测不到这个设备，会自动回退到 libx264 软件
+      # 编码，不影响正常使用，只是转码速度/CPU 占用有差别。
+      - VAAPI_DEVICE=/dev/dri/renderD128
+      # HLS 缓存每日清理：距上次转码完成超过这个天数、且最近未被重新点唱
+      # 的缓存会被自动清理释放磁盘空间，源 MV 文件不受影响，下次点唱会
+      # 自动重新生成缓存。
+      - HLS_CACHE_MAX_AGE_DAYS=3
+
+    # 应用数据（数据库、封面等）和 MV 曲库的持久化存储路径，默认落在这份
+    # 文件所在目录下的 ./data、./mv，`docker compose up -d` 会自动建好这
+    # 两个目录，不需要提前手动创建。
+    # 想换成别的路径（比如 NAS 上单独的共享文件夹）：直接把下面两行冒号
+    # 前面的 ./data、./mv 改成你想用的绝对路径就行。
+    volumes:
+      - ./data:/data
+      - ./mv:/mv
+
+    # 硬件转码（可选）：宿主机有 Intel/AMD 核显或独显、且已安装好对应驱动
+    # 时，取消下面两行的注释，把宿主机的 /dev/dri 设备直通进容器即可启用
+    # VAAPI 硬件转码。没有核显/独显、或者不确定的话，保持注释即可，容器会
+    # 自动使用 libx264 软件编码，只是转码速度会慢一些、更吃 CPU。
+    devices:
+      - /dev/dri:/dev/dri
+```
 
 
 
