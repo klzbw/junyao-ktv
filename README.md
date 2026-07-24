@@ -75,11 +75,22 @@ appcenter-cli install-fpk junyao-ktv.fpk
 
 
 NVIDIA 显卡硬件转码compose 写法：（需要宿主机已装好 NVIDIA 驱动 + [nvidia-container-toolkit](https://github.com/NVIDIA/nvidia-container-toolkit)，没有实测，不保证可用）
+前提条件（缺一不可）：
+
+1. **宿主机已装好 NVIDIA 官方驱动**（`nvidia-smi` 能正常输出）。
+2. **装了 [nvidia-container-toolkit](https://github.com/NVIDIA/nvidia-container-toolkit)**，并执行过：
+
+bash
+
+```bash
+   sudo nvidia-ctk runtime configure --runtime=docker
+   sudo systemctl restart docker
+```
 
 ```
 services:
   junyao-ktv:
-    image: ma303973022/junyao-ktv:1.0.20   
+    image: ma303973022/junyao-ktv:latest  
     container_name: junyao-ktv
     restart: unless-stopped
     runtime: nvidia      # 关键：让容器能用到 nvidia-container-toolkit   
@@ -99,17 +110,7 @@ services:
       - /你的路径/mv:/mv
 ```
 
-前提条件（缺一不可）：
 
-1. **宿主机已装好 NVIDIA 官方驱动**（`nvidia-smi` 能正常输出）。
-2. **装了 [nvidia-container-toolkit](https://github.com/NVIDIA/nvidia-container-toolkit)**，并执行过：
-
-bash
-
-```bash
-   sudo nvidia-ctk runtime configure --runtime=docker
-   sudo systemctl restart docker
-```
 
 核显compose写法：
 ```
