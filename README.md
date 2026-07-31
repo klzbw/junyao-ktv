@@ -106,8 +106,9 @@ services:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
     volumes:
-      - /你的路径/data:/data
-      - /你的路径/mv:/mv
+      - /你的路径/data:/data        #数据文件\HLS缓存文件
+      - /你的路径/mv:/mv            #ktv曲库，首荐双音轨文件、其次单音轨双声道也可
+      - /你的路径/singer:/singer    #歌手图像，文件名命中即可显示头像
 ```
 
 
@@ -146,6 +147,7 @@ services:
     volumes:
       - ./data:/data
       - ./mv:/mv
+      - ./singer:/singer
 
     # 硬件转码（可选）：宿主机有 Intel/AMD 核显或独显、且已安装好对应驱动
     # 时，取消下面两行的注释，把宿主机的 /dev/dri 设备直通进容器即可启用
