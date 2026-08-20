@@ -19,30 +19,33 @@
 ```yaml
 services:
   junyao-ktv:
-    image: ma303973022/junyao-ktv:1.1.2
+    image: ma303973022/junyao-ktv:1.2.0
     container_name: junyao-ktv
     restart: unless-stopped
     ports:
-      - "8083:8080"
+      - "8083:8080"          # 访问端口：http://局域网IP:8083
     environment:
       - TZ=Asia/Shanghai
       - PORT=8080
       - DATA_DIR=/data
-      - SINGER_DIR=/singer
-      - VAAPI_DEVICE=/dev/dri/renderD128
-      - HLS_CACHE_MAX_AGE_DAYS=3
+      - ADMIN_PASSWORD=admin888          # 管理后台("/admin")登录密码，建议改掉
+      - VAAPI_DEVICE=/dev/dri/renderD128 # 核显硬件转码用，没有核显就删掉这行
+      - HLS_CACHE_MAX_AGE_DAYS=3         # 转码缓存超过几天没人点就自动清理
+      # 用 NVIDIA 显卡转码(NVENC)就取消下面两行注释，同时取消最下面 runtime: nvidia 的注释
+      # - NVIDIA_VISIBLE_DEVICES=all
+      # - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
     volumes:
-      - /path/to/junyao-ktv/data:/data
-      - /path/to/junyao-ktv/mv:/mv
-      - /path/to/junyao-ktv/mv-net:/mv-net
-      - /path/to/junyao-ktv/singer:/singer
-    devices:
-      - /dev/dri:/dev/dri   # 没有核显/独显就把这两行删掉
-```
+      - /path/to/your/data:/data                 # 应用数据(数据库、封面等)，必须挂载
 
-```bash
-mkdir -p /path/to/junyao-ktv/{data,mv,mv-net,singer}
-docker compose up -d
+      # 曲库挂载：按需增删，本地曲库挂到 /mv/<自定义名>，网盘曲库挂到 /mv-net/<自定义名>
+      - /path/to/local/library1:/mv/library1
+      - /path/to/local/library2:/mv/library2
+      - /path/to/netdisk/library:/mv-net/netdisk1
+      - /path/to/singer/avatars:/singer           # 歌手头像目录，图片名对应歌手名，如 周杰伦.jpg
+      # 挂载完成后，还需要去后台「曲库管理→曲库来源」里把新目录逐个启用，才会真正参与扫描
+    devices:
+      - /dev/dri:/dev/dri     # 核显硬件转码用，没有核显就删掉这行
+    # runtime: nvidia         # 用 NVIDIA 显卡转码时取消注释(同时打开上面两行 NVIDIA 环境变量)
 ```
 
 启动后访问 `http://宿主机IP:8083` 即为导航页，包含 TV 播放端、曲库管理后台、手机点歌二维码入口。曲库管理后台首次打开会提示设置管理员密码，之后每次登录都需要输入。
