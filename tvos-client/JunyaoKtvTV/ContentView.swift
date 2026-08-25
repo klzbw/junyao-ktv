@@ -578,15 +578,15 @@ struct ContentView: View {
                 api.toggleVoice()
                 showToast(playerManager.isOriginalVoice ? "原唱" : "伴唱")
             }
-            MVButton(icon: playerManager.isPlaying ? "pause.fill" : "play.fill",
-                    title: playerManager.isPlaying ? "暂停" : "播放", isCenter: true) {
-                playerManager.togglePlayPause()
-                isPlaying = playerManager.isPlaying
-            }
             MVButton(icon: "speaker.minus", title: "音量-") {
                 volume = max(0, volume - 0.1)
                 playerManager.setVolume(volume)
                 showToast("音量: \(Int(volume * 100))%")
+            }
+            MVButton(icon: playerManager.isPlaying ? "pause.fill" : "play.fill",
+                    title: playerManager.isPlaying ? "暂停" : "播放", isCenter: true) {
+                playerManager.togglePlayPause()
+                isPlaying = playerManager.isPlaying
             }
             MVButton(icon: "speaker.plus", title: "音量+") {
                 volume = min(1, volume + 0.1)

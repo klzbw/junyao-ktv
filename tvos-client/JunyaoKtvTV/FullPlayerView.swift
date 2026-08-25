@@ -75,12 +75,14 @@ struct FullPlayerView: View {
                             }
                             .buttonStyle(.card)
 
-                            Button(action: { playerManager.restart() }) {
+                            Button(action: { playerManager.restart(); api.restartSong() }) {
                                 controlContent(icon: "gobackward", title: "重唱")
                             }
                             .buttonStyle(.card)
 
-                            Button(action: { playerManager.togglePlayPause() }) {
+                            Button(action: {
+                                playerManager.togglePlayPause()
+                            }) {
                                 controlContent(
                                     icon: playerManager.isPlaying ? "pause.fill" : "play.fill",
                                     title: playerManager.isPlaying ? "暂停" : "播放"
