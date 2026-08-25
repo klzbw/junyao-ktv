@@ -196,29 +196,6 @@ struct FullPlayerView: View {
         resetHideTimer()
         hasAutoExited = false
         voiceMode = playerManager.isOriginalVoice ? .original : .accompaniment
-        // Set playback end callback: auto-play next if available, else exit
-        playerManager.onPlaybackEnd = {
-            DispatchQueue.main.async {
-                let currentSongId = api.queue.first(where: { $0.isPlaying })?.song_id
-                let hasMore = api.queue.contains(where: { !$0.isPlaying })
-                if hasMore {
-                    api.nextSong()
-                    // Check after delay if song actually changed
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                        let newSongId = api.queue.first(where: { $0.isPlaying })?.song_id
-                        if newSongId == currentSongId || newSongId == nil {
-                            if !hasAutoExited {
-                                hasAutoExited = true
-                                onClose()
-                            }
-                        }
-                    }
-                } else if !hasAutoExited {
-                    hasAutoExited = true
-                    onClose()
-                }
-            }
-        }
     }
 
     // MARK: - Queue Panel
@@ -361,7 +338,6 @@ struct FullPlayerView: View {
     private func cleanup() {
         hideTimer?.invalidate()
         hideTimer = nil
-        playerManager.onPlaybackEnd = nil
     }
 
     private func toggleVoice() {

@@ -36,6 +36,10 @@ struct ContentView: View {
                 SetupView(serverAddress: $serverAddress, onSave: {
                     api.updateBaseURL(serverAddress)
                     showingSetup = false
+                    api.fetchAll()
+                    api.connectWebSocket()
+                    setupControlHandler()
+                    setupPlaybackEndHandler()
                 })
             } else if let page = activePage {
                 pageView(page)
@@ -54,6 +58,7 @@ struct ContentView: View {
                 api.fetchAll()
                 api.connectWebSocket()
                 setupControlHandler()
+                setupPlaybackEndHandler()
             } else {
                 showingSetup = true
             }
@@ -489,6 +494,20 @@ struct ContentView: View {
                 api.nextSong()
             default:
                 break
+            }
+        }
+    }
+
+    private func setupPlaybackEndHandler() {
+        playerManager.onPlaybackEnd = { [weak self] in
+            guard let self = self else { return }
+            DispatchQueue.main.async {
+                let hasMore = self.api.queue.contains(where: { !$0.isPlaying })
+                if hasMore {
+                    self.api.nextSong()
+                } else if self.showingPlayer {
+                    self.showingPlayer = false
+                }
             }
         }
     }
