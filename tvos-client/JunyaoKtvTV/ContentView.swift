@@ -1030,7 +1030,7 @@ struct OrderSongsPage: View {
         .background(WebColors.bg.ignoresSafeArea())
         .onAppear {
             if api.songs.isEmpty {
-                api.fetchSongs { _ in buildCache() }
+                api.fetchSongs { buildCache() }
             } else {
                 buildCache()
             }
