@@ -16,7 +16,6 @@ struct FullPlayerView: View {
     @State private var showQueue = false
     @State private var showQR = false
     @FocusState private var playButtonFocused: Bool
-    @FocusState private var videoFocused: Bool
 
     enum VoiceMode {
         case original, accompaniment
@@ -126,6 +125,21 @@ struct FullPlayerView: View {
                 }
             }
 
+            // Transparent button to receive select button when controls are hidden
+            if !showControls && !showQueue && !showQR {
+                Button(action: {
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        showControls = true
+                    }
+                    resetHideTimer()
+                }) {
+                    Color.clear
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .ignoresSafeArea()
+            }
+
             // Queue panel overlay
             if showQueue {
                 queuePanel
@@ -140,24 +154,8 @@ struct FullPlayerView: View {
                     .zIndex(3)
             }
         }
-        .contentShape(Rectangle())
-        .focusable(true)
-        .focused($videoFocused)
-        .onTapGesture {
-            // If QR or queue panel is open, close it first
-            if showQR { showQR = false; return }
-            if showQueue { showQueue = false; return }
-            // Select button: toggle controls visibility
-            withAnimation(.easeOut(duration: 0.2)) {
-                showControls.toggle()
-            }
-            if showControls { resetHideTimer() }
-        }
         .onChange(of: showControls) { showing in
-            if showing {
-                videoFocused = false
-            } else {
-                videoFocused = true
+            if !showing {
                 playButtonFocused = false
             }
         }
@@ -198,7 +196,6 @@ struct FullPlayerView: View {
         resetHideTimer()
         hasAutoExited = false
         voiceMode = playerManager.isOriginalVoice ? .original : .accompaniment
-        videoFocused = false
         // Set playback end callback to auto-exit
         playerManager.onPlaybackEnd = {
             DispatchQueue.main.async {
