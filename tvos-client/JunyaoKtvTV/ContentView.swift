@@ -1,4 +1,4 @@
-﻿import SwiftUI
+import SwiftUI
 import AVKit
 import CoreImage
 
@@ -881,7 +881,13 @@ struct OrderSongsPage: View {
                             .font(.system(size: 22, weight: .bold))
                             .foregroundColor(.white)
                         Spacer()
-                        Text(inputLetters.isEmpty ? "全部" : inputLetters)
+                        Group {
+                            if inputLetters.isEmpty {
+                                Text("全部")
+                            } else {
+                                Text(inputLetters)
+                            }
+                        }
                             .font(.system(size: 18, weight: .bold))
                             .foregroundColor(.white)
                             .padding(.horizontal, 14).padding(.vertical: 6)
