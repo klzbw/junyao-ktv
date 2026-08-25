@@ -3,7 +3,7 @@ import UIKit
 
 /// Shared player manager - holds a single AVPlayer and AVPlayerLayer.
 /// The layer moves between small preview and fullscreen views via currentHostView.
-class PlayerManager: NSObject, ObservableObject {
+class PlayerManager: ObservableObject {
     static let shared = PlayerManager()
 
     @Published var currentTime: Double = 0
@@ -22,7 +22,7 @@ class PlayerManager: NSObject, ObservableObject {
     private var statusObserver: NSKeyValueObservation?
     private var endObserver: NSObjectProtocol?
 
-    private override init() {}
+    private init() {}
 
     func setupPlayer(for url: URL) {
         if let existingURL = (player?.currentItem?.asset as? AVURLAsset)?.url,
@@ -169,7 +169,6 @@ class PlayerManager: NSObject, ObservableObject {
 
         // Build new URL with track parameter
         var urlString = asset.url.absoluteString
-        // Remove existing track parameter
         if let range = urlString.range(of: "?track=") {
             urlString = String(urlString[..<range.lowerBound])
         }
@@ -180,28 +179,33 @@ class PlayerManager: NSObject, ObservableObject {
         let newItem = AVPlayerItem(url: newURL)
         player.replaceCurrentItem(with: newItem)
 
-        // Seek to previous position after loading
-        newItem.addObserver(self, forKeyPath: "status", options: [.new], context: nil)
-        pendingSeekTime = currentTime
-        pendingWasPlaying = wasPlaying
-    }
-
-    private var pendingSeekTime: CMTime?
-    private var pendingWasPlaying: Bool = false
-
-    override func observeValue(forKeyPath keyPath: String?, of object: Any?,
-                               change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
-        if keyPath == "status", let item = object as? AVPlayerItem, item.status == .readyToPlay {
-            if let seekTime = pendingSeekTime {
-                player?.seek(to: seekTime) { [weak self] _ in
-                    if self?.pendingWasPlaying == true {
-                        self?.player?.play()
-                    }
-                    self?.pendingSeekTime = nil
-                    self?.pendingWasPlaying = false
+        // Wait for item to be ready, then seek and play
+        var observer: NSObjectProtocol?
+        observer = NotificationCenter.default.addObserver(
+            forName: .AVPlayerItemNewAccessLogEntry,
+            object: newItem,
+            queue: .main
+        ) { _ in
+            if wasPlaying {
+                player.seek(to: currentTime) { _ in
+                    player.play()
                 }
             }
-            item.removeObserver(self, forKeyPath: "status")
+            if let obs = observer {
+                NotificationCenter.default.removeObserver(obs)
+            }
+        }
+
+        // Fallback: after 2 seconds, seek and play anyway
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            if wasPlaying && player.rate == 0 {
+                player.seek(to: currentTime) { _ in
+                    player.play()
+                }
+            }
+            if let obs = observer {
+                NotificationCenter.default.removeObserver(obs)
+            }
         }
     }
 

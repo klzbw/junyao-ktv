@@ -181,10 +181,20 @@ struct ArtistsPage: View {
     let onBack: () -> Void
     let onArtistSelect: (String) -> Void
     @State private var currentPage = 1
-    @State private var searchInput = ""
-    private let pageSize = 20
+    @State private var selectedLetter: String? = nil
+    @State private var artistLetters: [String: String] = [:] // key: artist name, value: first letter
+    @State private var isCacheReady = false
+    private let pageSize = 18
+    private let letterRows: [[String]] = [
+        ["A","B","C","D","E"],
+        ["F","G","H","I","J"],
+        ["K","L","M","N","O"],
+        ["P","Q","R","S","T"],
+        ["U","V","W","X","Y"],
+        ["Z","DEL"]
+    ]
 
-    private func firstLetter(of text: String) -> String {
+    private func computeFirstLetter(_ text: String) -> String {
         guard let first = text.first else { return "#" }
         if first.isLetter && first.isASCII {
             return String(first).uppercased()
@@ -199,13 +209,21 @@ struct ArtistsPage: View {
         return "#"
     }
 
-    var filteredArtists: [Artist] {
-        if searchInput.isEmpty { return api.artists }
-        return api.artists.filter { artist in
-            // Match by first letter or name contains
-            firstLetter(of: artist.displayName) == searchInput.uppercased() ||
-            artist.displayName.localizedCaseInsensitiveContains(searchInput)
+    private func buildCache() {
+        var cache: [String: String] = [:]
+        for artist in api.artists {
+            cache[artist.artist] = computeFirstLetter(artist.displayName)
         }
+        artistLetters = cache
+        isCacheReady = true
+    }
+
+    var filteredArtists: [Artist] {
+        guard isCacheReady else { return [] }
+        if let letter = selectedLetter {
+            return api.artists.filter { artistLetters[$0.artist] == letter }
+        }
+        return api.artists
     }
 
     var pagedArtists: [Artist] {
@@ -214,41 +232,196 @@ struct ArtistsPage: View {
         return start < filteredArtists.count ? Array(filteredArtists[start..<end]) : []
     }
 
-    var body: some View {
-        FullPageContainer(title: "🎙 歌星", onBack: onBack,
-                         showPagination: true, currentPage: currentPage,
-                         totalPages: max(1, (filteredArtists.count + pageSize - 1) / pageSize),
-                         onPageChange: { currentPage = $0 }) {
-            HStack(spacing: 0) {
-                // Alpha panel (exact .alpha-panel, width 345px)
-                AlphaKeyboard(input: $searchInput)
-                    .frame(width: 300)
-                    .background(Color.black.opacity(0.3))
+    var totalPages: Int { max(1, (filteredArtists.count + pageSize - 1) / pageSize) }
 
-                // Artist grid (exact .ag)
+    // Gradient colors for artist avatars (cycle through)
+    private let avatarGradients: [LinearGradient] = [
+        LinearGradient(colors: [Color(hex: 0xf97316), Color(hex: 0xea580c)], startPoint: .top, endPoint: .bottom),
+        LinearGradient(colors: [Color(hex: 0xa855f7), Color(hex: 0x7c3aed)], startPoint: .top, endPoint: .bottom),
+        LinearGradient(colors: [Color(hex: 0x06b6d4), Color(hex: 0x0891b2)], startPoint: .top, endPoint: .bottom),
+        LinearGradient(colors: [Color(hex: 0xec4899), Color(hex: 0xdb2777)], startPoint: .top, endPoint: .bottom),
+        LinearGradient(colors: [Color(hex: 0x22c55e), Color(hex: 0x16a34a)], startPoint: .top, endPoint: .bottom),
+        LinearGradient(colors: [Color(hex: 0xf59e0b), Color(hex: 0xd97706)], startPoint: .top, endPoint: .bottom)
+    ]
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header
+            HStack {
+                HStack(spacing: 8) {
+                    Image(systemName: "music.mic")
+                        .font(.system(size: 24))
+                        .foregroundColor(WebColors.ac2)
+                    Text("歌星")
+                        .font(.system(size: 26, weight: .bold))
+                        .foregroundColor(.white)
+                }
+                Spacer()
+                Button(action: onBack) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "chevron.left")
+                        Text("返回")
+                    }
+                    .font(.system(size: 18, weight: .medium))
+                    .padding(.horizontal, 20).padding(.vertical, 8)
+                    .foregroundColor(.white)
+                    .background(Color.white.opacity(0.1))
+                    .cornerRadius(999)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 24).padding(.vertical, 14)
+            .background(WebColors.topbarBg)
+
+            // Main: left artist grid + right alphabet panel
+            HStack(spacing: 0) {
+                // Left: artist grid (6 cols)
                 ScrollView {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 160), spacing: 20)], spacing: 20) {
-                        ForEach(pagedArtists) { artist in
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 16), count: 6),
+                              spacing: 20) {
+                        ForEach(Array(pagedArtists.enumerated()), id: \.element.artist) { idx, artist in
                             Button(action: { onArtistSelect(artist.artist) }) {
-                                VStack(spacing: 10) {
-                                    Circle()
-                                        .fill(LinearGradient.g3)
-                                        .frame(width: 100, height: 100)
-                                        .overlay(Text(String(artist.displayName.prefix(1)))
-                                            .font(.system(size: 40, weight: .bold)).foregroundColor(.white))
-                                    Text(artist.displayName).font(.system(size: 20, weight: .medium)).foregroundColor(.white).lineLimit(1)
-                                    Text("\(artist.count)首").font(.system(size: 16)).foregroundColor(WebColors.sub)
+                                VStack(spacing: 8) {
+                                    ZStack {
+                                        Circle()
+                                            .fill(avatarGradients[idx % avatarGradients.count])
+                                            .frame(width: 90, height: 90)
+                                        Text(String(artist.displayName.prefix(1)))
+                                            .font(.system(size: 36, weight: .bold))
+                                            .foregroundColor(.white)
+                                    }
+                                    Text(artist.displayName)
+                                        .font(.system(size: 17, weight: .medium))
+                                        .foregroundColor(.white)
+                                        .lineLimit(1)
+                                        .frame(maxWidth: .infinity)
+                                    Text("\(artist.count)首")
+                                        .font(.system(size: 14))
+                                        .foregroundColor(WebColors.sub)
                                 }
-                            }.buttonStyle(.plain)
+                                .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
-                    .padding()
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 16)
                 }
+                .frame(maxWidth: .infinity)
+
+                // Right: alphabet search panel
+                VStack(spacing: 0) {
+                    HStack {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 20))
+                            .foregroundColor(WebColors.sub)
+                        Text("歌星搜索")
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundColor(.white)
+                        Spacer()
+                        Text("\(filteredArtists.count)")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 12).padding(.vertical, 4)
+                            .background(Color.white.opacity(0.15))
+                            .cornerRadius(999)
+                    }
+                    .padding(.horizontal, 16).padding(.vertical, 14)
+
+                    // Alphabet grid
+                    VStack(spacing: 10) {
+                        ForEach(letterRows, id: \.self) { row in
+                            HStack(spacing: 10) {
+                                ForEach(row, id: \.self) { letter in
+                                    Button(action: {
+                                        if letter == "DEL" {
+                                            selectedLetter = nil
+                                        } else {
+                                            selectedLetter = (selectedLetter == letter) ? nil : letter
+                                        }
+                                        currentPage = 1
+                                    }) {
+                                        if letter == "DEL" {
+                                            HStack(spacing: 6) {
+                                                Image(systemName: "delete.left")
+                                                    .font(.system(size: 20, weight: .bold))
+                                                Text("删除")
+                                                    .font(.system(size: 20, weight: .bold))
+                                            }
+                                            .foregroundColor(.white)
+                                            .frame(maxWidth: .infinity)
+                                            .frame(height: 56)
+                                            .background(selectedLetter == nil ? Color(hex: 0xb91c5c).opacity(0.8) : Color(hex: 0x2a2a3a))
+                                            .cornerRadius(10)
+                                        } else {
+                                            Text(letter)
+                                                .font(.system(size: 24, weight: .bold))
+                                                .foregroundColor(.white)
+                                                .frame(maxWidth: .infinity)
+                                                .frame(height: 56)
+                                                .background(selectedLetter == letter ? Color(hex: 0xb91c5c).opacity(0.9) : Color(hex: 0x2a2a3a))
+                                                .cornerRadius(10)
+                                        }
+                                    }
+                                    .buttonStyle(.plain)
+                                    if letter == "Z" {
+                                        Spacer().frame(maxWidth: .infinity)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 16)
+
+                    Spacer()
+                }
+                .frame(width: 340)
+                .background(Color(hex: 0x15151f))
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            // Pagination footer
+            HStack(spacing: 20) {
+                Button(action: { if currentPage > 1 { currentPage -= 1 } }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "chevron.left")
+                        Text("上一页")
+                    }
+                    .font(.system(size: 18, weight: .medium))
+                    .padding(.horizontal, 20).padding(.vertical, 8)
+                    .foregroundColor(currentPage > 1 ? .white : WebColors.sub)
+                    .background(currentPage > 1 ? Color.white.opacity(0.12) : Color.clear)
+                    .cornerRadius(999)
+                }
+                .buttonStyle(.plain)
+                .disabled(currentPage == 1)
+
+                Text("第 \(currentPage)/\(totalPages) (共\(filteredArtists.count)位)")
+                    .font(.system(size: 18))
+                    .foregroundColor(.white)
+
+                Button(action: { if currentPage < totalPages { currentPage += 1 } }) {
+                    HStack(spacing: 6) {
+                        Text("下一页")
+                        Image(systemName: "chevron.right")
+                    }
+                    .font(.system(size: 18, weight: .medium))
+                    .padding(.horizontal, 20).padding(.vertical, 8)
+                    .foregroundColor(currentPage < totalPages ? .white : WebColors.sub)
+                    .background(currentPage < totalPages ? Color.white.opacity(0.12) : Color.clear)
+                    .cornerRadius(999)
+                }
+                .buttonStyle(.plain)
+                .disabled(currentPage >= totalPages)
+            }
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity)
+            .background(WebColors.topbarBg)
         }
+        .background(WebColors.bg.ignoresSafeArea())
         .onAppear { api.fetchArtists() }
-        .onChange(of: searchInput) { _ in currentPage = 1 }
+        .onChange(of: api.artists.count) { _ in buildCache() }
     }
 }
 

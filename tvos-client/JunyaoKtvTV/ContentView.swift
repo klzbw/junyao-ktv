@@ -758,50 +758,56 @@ struct ContentView: View {
     }
 }
 
-// MARK: - Order Songs Page (歌名点歌 full page)
+// MARK: - Order Songs Page (歌名点歌 - left list + right alphabet panel)
 struct OrderSongsPage: View {
     let api: KTVAPIClient
     let onBack: () -> Void
     let onAdd: (Song) -> Void
-    @State private var searchText = ""
     @State private var currentPage = 0
     @State private var selectedLetter: String? = nil
-    @State private var letterCache: [Int: String] = [:]
-    private let pageSize = 50
-    private let letters = ["#","A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"]
+    @State private var songLetters: [Int: String] = [:] // Precomputed first letter cache
+    @State private var isCacheReady = false
+    private let pageSize = 32
+    // 5 cols x 6 rows alphabet layout (matches reference)
+    private let letterRows: [[String]] = [
+        ["A","B","C","D","E"],
+        ["F","G","H","I","J"],
+        ["K","L","M","N","O"],
+        ["P","Q","R","S","T"],
+        ["U","V","W","X","Y"],
+        ["Z","DEL"]
+    ]
 
-    private func firstLetter(of song: Song) -> String {
-        if let cached = letterCache[song.id] { return cached }
-        let text = song.displayTitle
-        guard let first = text.first else { letterCache[song.id] = "#"; return "#" }
-        var result = "#"
+    private func computeFirstLetter(_ text: String) -> String {
+        guard let first = text.first else { return "#" }
         if first.isLetter && first.isASCII {
-            result = String(first).uppercased()
-        } else {
-            let mutable = NSMutableString(string: String(first)) as CFMutableString
-            CFStringTransform(mutable, nil, kCFStringTransformToLatin, false)
-            CFStringTransform(mutable, nil, kCFStringTransformStripDiacritics, false)
-            let pinyin = mutable as String
-            if let pinyinFirst = pinyin.first, pinyinFirst.isLetter {
-                result = String(pinyinFirst).uppercased()
-            }
+            return String(first).uppercased()
         }
-        letterCache[song.id] = result
-        return result
+        let mutable = NSMutableString(string: String(first)) as CFMutableString
+        CFStringTransform(mutable, nil, kCFStringTransformToLatin, false)
+        CFStringTransform(mutable, nil, kCFStringTransformStripDiacritics, false)
+        let pinyin = mutable as String
+        if let pinyinFirst = pinyin.first, pinyinFirst.isLetter {
+            return String(pinyinFirst).uppercased()
+        }
+        return "#"
+    }
+
+    private func buildCache() {
+        var cache: [Int: String] = [:]
+        for song in api.songs {
+            cache[song.id] = computeFirstLetter(song.displayTitle)
+        }
+        songLetters = cache
+        isCacheReady = true
     }
 
     var filteredSongs: [Song] {
-        var result = api.songs
+        guard isCacheReady else { return [] }
         if let letter = selectedLetter {
-            result = result.filter { firstLetter(of: $0) == letter }
+            return api.songs.filter { songLetters[$0.id] == letter }
         }
-        if !searchText.isEmpty {
-            result = result.filter {
-                $0.displayTitle.localizedCaseInsensitiveContains(searchText) ||
-                $0.displayArtist.localizedCaseInsensitiveContains(searchText)
-            }
-        }
-        return result
+        return api.songs
     }
 
     var pagedSongs: [Song] {
@@ -810,169 +816,219 @@ struct OrderSongsPage: View {
         return start < filteredSongs.count ? Array(filteredSongs[start..<end]) : []
     }
 
+    var totalPages: Int { max(1, (filteredSongs.count + pageSize - 1) / pageSize) }
+
     var body: some View {
         VStack(spacing: 0) {
-            // Header (exact .pf-head)
+            // Header
             HStack {
-                Text("歌名点歌")
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundColor(.white)
-                Text("\(filteredSongs.count) 首")
-                    .font(.system(size: 14))
-                    .foregroundColor(WebColors.sub)
-                    .padding(.leading, 8)
-                Spacer()
-                // Search
-                HStack {
-                    Image(systemName: "magnifyingglass").foregroundColor(WebColors.sub)
-                    TextField("搜索歌曲/歌手", text: $searchText)
-                        .textFieldStyle(.plain)
+                HStack(spacing: 8) {
+                    Image(systemName: "music.note")
+                        .font(.system(size: 24))
+                        .foregroundColor(WebColors.ac2)
+                    Text("立即点歌")
+                        .font(.system(size: 26, weight: .bold))
                         .foregroundColor(.white)
                 }
-                .padding(.horizontal, 12).padding(.vertical, 8)
-                .background(WebColors.nbBg)
-                .cornerRadius(999)
-                .overlay(RoundedRectangle(cornerRadius: 999).stroke(WebColors.nbBorder, lineWidth: 1))
-                .frame(width: 280)
-
+                Spacer()
                 Button(action: onBack) {
-                    HStack(spacing: 4) {
+                    HStack(spacing: 6) {
                         Image(systemName: "chevron.left")
                         Text("返回")
                     }
-                    .font(.system(size: 17))
-                    .padding(.horizontal, 18).padding(.vertical, 7)
+                    .font(.system(size: 18, weight: .medium))
+                    .padding(.horizontal, 20).padding(.vertical, 8)
                     .foregroundColor(.white)
+                    .background(Color.white.opacity(0.1))
                     .cornerRadius(999)
-                    .overlay(RoundedRectangle(cornerRadius: 999).stroke(Color.white.opacity(0.25), lineWidth: 1))
                 }
                 .buttonStyle(.plain)
             }
-            .padding(.horizontal, 20).padding(.vertical, 14)
+            .padding(.horizontal, 24).padding(.vertical, 14)
             .background(WebColors.topbarBg)
 
-            // A-Z Alphabet quick filter (5 rows x 6 cols grid)
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 6),
-                      spacing: 8) {
-                ForEach(letters, id: \.self) { letter in
-                    Button(action: {
-                        selectedLetter = (selectedLetter == letter) ? nil : letter
-                        currentPage = 0
-                    }) {
-                        Text(letter)
-                            .font(.system(size: 28, weight: .bold))
-                            .foregroundColor(selectedLetter == letter ? .white : WebColors.sub)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 56)
-                            .background(selectedLetter == letter ? WebColors.ac.opacity(0.7) : WebColors.cardBg)
-                            .cornerRadius(10)
+            // Main content: left song list + right alphabet panel
+            HStack(spacing: 0) {
+                // Left: song list (2 cols)
+                ScrollView {
+                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)],
+                              spacing: 10) {
+                        ForEach(Array(pagedSongs.enumerated()), id: \.element.id) { idx, song in
+                            songRow(song, index: currentPage * pageSize + idx)
+                        }
                     }
-                    .buttonStyle(.plain)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
                 }
-            }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 12)
-            .background(WebColors.topbarBg.opacity(0.5))
+                .frame(maxWidth: .infinity)
 
-            // Song list (2-col grid exact .song-list-2col)
-            ScrollView {
-                LazyVGrid(columns: [GridItem(.flexible(), spacing: 16), GridItem(.flexible(), spacing: 16)],
-                          spacing: 11) {
-                    ForEach(Array(pagedSongs.enumerated()), id: \.element.id) { idx, song in
-                        songRow(song, index: currentPage * pageSize + idx)
+                // Right: alphabet search panel
+                VStack(spacing: 0) {
+                    // Panel header
+                    HStack {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 20))
+                            .foregroundColor(WebColors.sub)
+                        Text("歌名搜索")
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundColor(.white)
+                        Spacer()
+                        Text("\(filteredSongs.count)")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 12).padding(.vertical, 4)
+                            .background(Color.white.opacity(0.15))
+                            .cornerRadius(999)
                     }
-                }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 12)
-            }
+                    .padding(.horizontal, 16).padding(.vertical, 14)
 
-            // Pagination footer (exact .pf-foot)
-            HStack(spacing: 16) {
+                    // Alphabet grid (5 cols)
+                    VStack(spacing: 10) {
+                        ForEach(letterRows, id: \.self) { row in
+                            HStack(spacing: 10) {
+                                ForEach(row, id: \.self) { letter in
+                                    Button(action: {
+                                        if letter == "DEL" {
+                                            selectedLetter = nil
+                                        } else {
+                                            selectedLetter = (selectedLetter == letter) ? nil : letter
+                                        }
+                                        currentPage = 0
+                                    }) {
+                                        if letter == "DEL" {
+                                            HStack(spacing: 6) {
+                                                Image(systemName: "delete.left")
+                                                    .font(.system(size: 20, weight: .bold))
+                                                Text("删除")
+                                                    .font(.system(size: 20, weight: .bold))
+                                            }
+                                            .foregroundColor(.white)
+                                            .frame(maxWidth: .infinity)
+                                            .frame(height: 56)
+                                            .background(selectedLetter == nil ? Color(hex: 0xb91c5c).opacity(0.8) : Color(hex: 0x2a2a3a))
+                                            .cornerRadius(10)
+                                        } else {
+                                            Text(letter)
+                                                .font(.system(size: 24, weight: .bold))
+                                                .foregroundColor(.white)
+                                                .frame(maxWidth: .infinity)
+                                                .frame(height: 56)
+                                                .background(selectedLetter == letter ? Color(hex: 0xb91c5c).opacity(0.9) : Color(hex: 0x2a2a3a))
+                                                .cornerRadius(10)
+                                        }
+                                    }
+                                    .buttonStyle(.plain)
+                                    if letter == "Z" {
+                                        Spacer().frame(maxWidth: .infinity)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 16)
+
+                    Spacer()
+                }
+                .frame(width: 340)
+                .background(Color(hex: 0x15151f))
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            // Pagination footer
+            HStack(spacing: 20) {
                 Button(action: { if currentPage > 0 { currentPage -= 1 } }) {
-                    Image(systemName: "chevron.left.circle")
-                        .font(.system(size: 28))
-                        .foregroundColor(currentPage > 0 ? WebColors.ac : WebColors.sub)
+                    HStack(spacing: 6) {
+                        Image(systemName: "chevron.left")
+                        Text("上一页")
+                    }
+                    .font(.system(size: 18, weight: .medium))
+                    .padding(.horizontal, 20).padding(.vertical, 8)
+                    .foregroundColor(currentPage > 0 ? .white : WebColors.sub)
+                    .background(currentPage > 0 ? Color.white.opacity(0.12) : Color.clear)
+                    .cornerRadius(999)
                 }
                 .buttonStyle(.plain)
                 .disabled(currentPage == 0)
 
-                Text("第 \(currentPage + 1) / \(max(1, (filteredSongs.count + pageSize - 1) / pageSize)) 页")
-                    .font(.system(size: 15))
-                    .foregroundColor(WebColors.sub)
+                Text("第 \(currentPage + 1)/\(totalPages) (共\(filteredSongs.count)首)")
+                    .font(.system(size: 18))
+                    .foregroundColor(.white)
 
-                Button(action: {
-                    if (currentPage + 1) * pageSize < filteredSongs.count { currentPage += 1 }
-                }) {
-                    Image(systemName: "chevron.right.circle")
-                        .font(.system(size: 28))
-                        .foregroundColor((currentPage + 1) * pageSize < filteredSongs.count ? WebColors.ac : WebColors.sub)
+                Button(action: { if currentPage + 1 < totalPages { currentPage += 1 } }) {
+                    HStack(spacing: 6) {
+                        Text("下一页")
+                        Image(systemName: "chevron.right")
+                    }
+                    .font(.system(size: 18, weight: .medium))
+                    .padding(.horizontal, 20).padding(.vertical, 8)
+                    .foregroundColor(currentPage + 1 < totalPages ? .white : WebColors.sub)
+                    .background(currentPage + 1 < totalPages ? Color.white.opacity(0.12) : Color.clear)
+                    .cornerRadius(999)
                 }
                 .buttonStyle(.plain)
+                .disabled(currentPage + 1 >= totalPages)
             }
-            .padding(.vertical, 10)
+            .padding(.vertical, 12)
             .frame(maxWidth: .infinity)
             .background(WebColors.topbarBg)
-            .overlay(Rectangle().fill(WebColors.topbarBorder).frame(height: 1), alignment: .top)
         }
         .background(WebColors.bg.ignoresSafeArea())
+        .onAppear { buildCache() }
+        .onChange(of: api.songs.count) { _ in buildCache() }
     }
 
     @ViewBuilder
     private func songRow(_ song: Song, index: Int) -> some View {
         HStack(spacing: 10) {
-            Text("\(index + 1)")
-                .font(.system(size: 14))
-                .foregroundColor(WebColors.sub)
-                .frame(width: 28)
+            // Number circle
+            ZStack {
+                Circle()
+                    .fill(LinearGradient(colors: [Color(hex: 0x9333ea), Color(hex: 0x6366f1)],
+                                         startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .frame(width: 32, height: 32)
+                Text("\(index + 1)")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(.white)
+            }
 
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
-                    Text(song.displayTitle)
-                        .font(.system(size: 16))
-                        .foregroundColor(.white)
-                        .lineLimit(1)
-                    if song.hasMultiTrack {
-                        Text("伴唱")
-                            .font(.system(size: 10))
-                            .padding(.horizontal, 5).padding(.vertical, 1)
-                            .background(WebColors.ac2.opacity(0.3))
-                            .foregroundColor(WebColors.ac2)
-                            .cornerRadius(4)
-                    }
-                }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(song.displayTitle)
+                    .font(.system(size: 17, weight: .medium))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
                 Text(song.displayArtist)
-                    .font(.system(size: 13))
+                    .font(.system(size: 14))
                     .foregroundColor(WebColors.sub)
                     .lineLimit(1)
             }
 
             Spacer()
 
-            // Favorite button (exact .btn-fav)
+            // Favorite
             Button(action: { api.toggleFavorite(songId: song.id) }) {
                 Image(systemName: api.favorites.contains { $0.id == song.id } ? "heart.fill" : "heart")
-                    .font(.system(size: 17))
-                    .foregroundColor(api.favorites.contains { $0.id == song.id } ? WebColors.pink : .white)
+                    .font(.system(size: 18))
+                    .foregroundColor(api.favorites.contains { $0.id == song.id } ? WebColors.pink : Color.white.opacity(0.6))
                     .frame(width: 36, height: 36)
-                    .background(api.favorites.contains { $0.id == song.id } ? WebColors.pink.opacity(0.3) : WebColors.cardBg)
-                    .cornerRadius(7)
             }
             .buttonStyle(.plain)
 
-            // Add button (exact .btn-add)
+            // Add button
             Button(action: { onAdd(song) }) {
                 Text("点歌")
-                    .font(.system(size: 15))
-                    .padding(.horizontal, 12).padding(.vertical, 5)
-                    .background(LinearGradient.g6)
+                    .font(.system(size: 16, weight: .medium))
+                    .padding(.horizontal, 16).padding(.vertical, 7)
+                    .background(LinearGradient(colors: [Color(hex: 0x9333ea), Color(hex: 0x7c3aed)],
+                                               startPoint: .leading, endPoint: .trailing))
                     .foregroundColor(.white)
                     .cornerRadius(8)
             }
             .buttonStyle(.plain)
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(WebColors.cardBg)
+        .padding(.vertical, 10)
+        .background(Color(hex: 0x1e1e2e))
         .cornerRadius(10)
     }
 }

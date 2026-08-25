@@ -147,18 +147,6 @@ struct FullPlayerView: View {
                 onClose()
             }
         }
-        .onMoveCommand { direction in
-            // Only seek when controls are hidden; when shown, left/right moves focus between buttons
-            if !showControls {
-                if direction == .left {
-                    playerManager.seek(to: max(0, playerManager.currentTime - 10))
-                } else if direction == .right {
-                    playerManager.seek(to: playerManager.currentTime + 10)
-                }
-            }
-            showControls = true
-            resetHideTimer()
-        }
     }
 
     private func controlContent(icon: String, title: String) -> some View {
