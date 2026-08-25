@@ -28,6 +28,12 @@ struct FullPlayerView: View {
                 .id("fullscreen-video")
                 .onAppear { setup() }
                 .onDisappear { cleanup() }
+                .onChange(of: api.queue.first(where: { $0.isPlaying })?.id) { _ in
+                    // Song changed, re-attach layer to ensure video shows
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                        playerManager.attachLayerToCurrentHost()
+                    }
+                }
 
             if showControls {
                 VStack {
@@ -115,13 +121,16 @@ struct FullPlayerView: View {
             }
         }
         .onMoveCommand { direction in
+            // Only seek when controls are hidden; when shown, left/right moves focus between buttons
+            if !showControls {
+                if direction == .left {
+                    playerManager.seek(to: max(0, playerManager.currentTime - 10))
+                } else if direction == .right {
+                    playerManager.seek(to: playerManager.currentTime + 10)
+                }
+            }
             showControls = true
             resetHideTimer()
-            if direction == .left {
-                playerManager.seek(to: max(0, playerManager.currentTime - 10))
-            } else if direction == .right {
-                playerManager.seek(to: playerManager.currentTime + 10)
-            }
         }
     }
 
