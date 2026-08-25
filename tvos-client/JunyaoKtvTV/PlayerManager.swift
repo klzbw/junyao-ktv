@@ -77,13 +77,8 @@ class PlayerManager: ObservableObject {
         player.play()
         isPlaying = true
 
-        // Apply current voice mode after tracks load
+        // Apply current voice mode (internal retries handle async HLS track loading)
         applyVoiceMode()
-
-        // Apply voice mode after tracks are loaded
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            self?.applyVoiceMode()
-        }
     }
 
     /// Attach player layer to the current host view
@@ -138,41 +133,53 @@ class PlayerManager: ObservableObject {
     // MARK: - Voice Toggle (Original / Accompaniment)
     var currentAudioTracks: Int = 1
     private var loadedAudioTrackIndex: Int = 0
+    private var voiceRetryCount = 0
 
     func toggleVoice() {
         isOriginalVoice.toggle()
+        // Reset track marker so retries will actually apply (matches web _loadedTrack logic)
+        loadedAudioTrackIndex = -1
+        voiceRetryCount = 0
         applyVoiceMode()
     }
 
     func setVoiceMode(_ original: Bool) {
         isOriginalVoice = original
+        loadedAudioTrackIndex = -1
+        voiceRetryCount = 0
         applyVoiceMode()
     }
 
     private func applyVoiceMode() {
         guard let playerItem = player?.currentItem else { return }
-        // HLS multi-audio-track switching (same as web hls.audioTrack = want)
-        // Try immediately, then retry as tracks load
-        trySelectAudioTrack(for: playerItem)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            guard let self = self, let item = self.player?.currentItem else { return }
-            self.trySelectAudioTrack(for: item)
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
-            guard let self = self, let item = self.player?.currentItem else { return }
-            self.trySelectAudioTrack(for: item)
+        let targetIndex = isOriginalVoice ? 0 : 1
+        // Skip if already on target track (matches web _loadedTrack check)
+        if loadedAudioTrackIndex == targetIndex { return }
+
+        trySelectAudioTrack(for: playerItem, targetIndex: targetIndex)
+
+        // Retry as HLS audio tracks load asynchronously (matches web retry pattern)
+        let delays: [Double] = [0.5, 1.5, 3.0, 5.0]
+        for delay in delays {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                guard let self = self, let item = self.player?.currentItem else { return }
+                if self.loadedAudioTrackIndex != targetIndex {
+                    self.trySelectAudioTrack(for: item, targetIndex: targetIndex)
+                }
+            }
         }
     }
 
-    private func trySelectAudioTrack(for playerItem: AVPlayerItem) {
+    private func trySelectAudioTrack(for playerItem: AVPlayerItem, targetIndex: Int) {
         guard let audioGroup = playerItem.asset.mediaSelectionGroup(forMediaCharacteristic: .audible) else { return }
         let options = audioGroup.options
-        guard options.count >= 2 else { return }
-        // track 0 = original, track 1 = accompaniment (matches web hls.audioTrack)
-        let targetIndex = isOriginalVoice ? 0 : 1
-        if playerItem.selectedMediaOption(in: audioGroup) != options[targetIndex] {
-            playerItem.select(options[targetIndex], in: audioGroup)
+        guard options.count > targetIndex else { return }
+        let targetOption = options[targetIndex]
+        let current = playerItem.selectedMediaOption(in: audioGroup)
+        if current != targetOption {
+            playerItem.select(targetOption, in: audioGroup)
         }
+        loadedAudioTrackIndex = targetIndex
     }
 
     func cleanup() {
