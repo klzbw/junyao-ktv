@@ -9,7 +9,9 @@ struct PanelOverlay<Content: View>: View {
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.6).ignoresSafeArea().onTapGesture { onClose() }
+            Color.black.opacity(0.6).ignoresSafeArea()
+                .focusable(false)
+                .onTapGesture { onClose() }
             VStack(spacing: 0) {
                 HStack {
                     Text(title).font(.headline).foregroundColor(theme.text)
@@ -27,7 +29,7 @@ struct PanelOverlay<Content: View>: View {
             .frame(width: 700)
             .background(theme.panelBg)
             .cornerRadius(16)
-            .overlay(RoundedRectangle(cornerRadius: 16).stroke(theme.cardBorder))
+            .focusSection()
         }
     }
 }
@@ -57,6 +59,7 @@ struct SearchPanel: View {
     var body: some View {
         ZStack {
             Color.black.opacity(0.6).ignoresSafeArea()
+                .focusable(false)
             VStack(spacing: 0) {
                 // Header
                 HStack {
@@ -172,7 +175,9 @@ struct QueuePanel: View {
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.6).ignoresSafeArea().onTapGesture { onClose() }
+            Color.black.opacity(0.6).ignoresSafeArea()
+                .focusable(false)
+                .onTapGesture { onClose() }
             VStack(spacing: 0) {
                 // Header
                 HStack {
@@ -222,6 +227,7 @@ struct QueuePanel: View {
             .background(WebColors.panelBg)
             .cornerRadius(16)
             .overlay(RoundedRectangle(cornerRadius: 16).stroke(WebColors.cardBorder, lineWidth: 1))
+            .focusSection()
         }
     }
 
@@ -283,7 +289,9 @@ struct SettingsPanel: View {
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.6).ignoresSafeArea().onTapGesture { onClose() }
+            Color.black.opacity(0.6).ignoresSafeArea()
+                .focusable(false)
+                .onTapGesture { onClose() }
             VStack(spacing: 0) {
                 // Header (exact .ph)
                 HStack {
@@ -395,6 +403,7 @@ struct SettingsPanel: View {
             .background(WebColors.panelBg)
             .cornerRadius(16)
             .overlay(RoundedRectangle(cornerRadius: 16).stroke(WebColors.cardBorder, lineWidth: 1))
+            .focusSection()
         }
         .onAppear { api.fetchStats(); api.fetchAutoplaySettings() }
         .sheet(isPresented: $showEQ) { EQPanel { showEQ = false } }
@@ -446,7 +455,9 @@ struct EQPanel: View {
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.6).ignoresSafeArea().onTapGesture { onClose() }
+            Color.black.opacity(0.6).ignoresSafeArea()
+                .focusable(false)
+                .onTapGesture { onClose() }
             VStack(spacing: 0) {
                 HStack {
                     Text("🎚 均衡器").font(.system(size: 22, weight: .bold)).foregroundColor(.white)
@@ -492,6 +503,7 @@ struct EQPanel: View {
             .background(WebColors.panelBg)
             .cornerRadius(16)
             .overlay(RoundedRectangle(cornerRadius: 16).stroke(WebColors.cardBorder, lineWidth: 1))
+            .focusSection()
         }
     }
 }
