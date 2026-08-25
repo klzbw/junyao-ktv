@@ -306,11 +306,6 @@ struct ContentView: View {
         .scaleEffect(focused ? 1.06 : 1.0)
         .animation(Animation.easeOut(duration: 0.18), value: focused)
     }
-        .focused($focused)
-        .focusEffectDisabled()
-        .scaleEffect(focused ? 1.08 : 0.96)
-        .animation(Animation.easeOut(duration: 0.18), value: focused)
-    }
 
     // MARK: - QR Code View (exact #now-qr-code2)
     private var qrCodeView: some View {
