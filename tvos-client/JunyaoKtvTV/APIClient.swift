@@ -116,11 +116,12 @@ class KTVAPIClient: ObservableObject {
     }
 
     // MARK: - Artists
-    func fetchArtists() {
-        guard let url = apiURL("/api/artists") else { return }
+    func fetchArtists(completion: (() -> Void)? = nil) {
+        guard let url = apiURL("/api/artists") else { completion?(); return }
         URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
             DispatchQueue.main.async {
                 if let data = data { self?.artists = (try? JSONDecoder().decode([Artist].self, from: data)) ?? [] }
+                completion?()
             }
         }.resume()
     }

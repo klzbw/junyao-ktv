@@ -764,11 +764,10 @@ struct OrderSongsPage: View {
     let onBack: () -> Void
     let onAdd: (Song) -> Void
     @State private var currentPage = 0
-    @State private var selectedLetter: String? = nil
-    @State private var songLetters: [Int: String] = [:] // Precomputed first letter cache
+    @State private var inputLetters = "" // Multi-letter pinyin initials input
+    @State private var songPinyin: [Int: String] = [:] // Precomputed pinyin initials
     @State private var isCacheReady = false
     private let pageSize = 32
-    // 5 cols x 6 rows alphabet layout (matches reference)
     private let letterRows: [[String]] = [
         ["A","B","C","D","E"],
         ["F","G","H","I","J"],
@@ -778,36 +777,45 @@ struct OrderSongsPage: View {
         ["Z","DEL"]
     ]
 
-    private func computeFirstLetter(_ text: String) -> String {
-        guard let first = text.first else { return "#" }
-        if first.isLetter && first.isASCII {
-            return String(first).uppercased()
+    private func computePinyinInitials(_ text: String) -> String {
+        var result = ""
+        for char in text {
+            if char.isLetter && char.isASCII {
+                result.append(char.uppercased())
+            } else if char.isLetter {
+                let mutable = NSMutableString(string: String(char)) as CFMutableString
+                CFStringTransform(mutable, nil, kCFStringTransformToLatin, false)
+                CFStringTransform(mutable, nil, kCFStringTransformStripDiacritics, false)
+                let pinyin = mutable as String
+                if let first = pinyin.first, first.isLetter {
+                    result.append(first.uppercased())
+                }
+            }
         }
-        let mutable = NSMutableString(string: String(first)) as CFMutableString
-        CFStringTransform(mutable, nil, kCFStringTransformToLatin, false)
-        CFStringTransform(mutable, nil, kCFStringTransformStripDiacritics, false)
-        let pinyin = mutable as String
-        if let pinyinFirst = pinyin.first, pinyinFirst.isLetter {
-            return String(pinyinFirst).uppercased()
-        }
-        return "#"
+        return result
     }
 
     private func buildCache() {
-        var cache: [Int: String] = [:]
-        for song in api.songs {
-            cache[song.id] = computeFirstLetter(song.displayTitle)
+        let songs = api.songs
+        DispatchQueue.global(qos: .userInitiated).async {
+            var cache: [Int: String] = [:]
+            for song in songs {
+                cache[song.id] = computePinyinInitials(song.displayTitle)
+            }
+            DispatchQueue.main.async {
+                self.songPinyin = cache
+                self.isCacheReady = true
+            }
         }
-        songLetters = cache
-        isCacheReady = true
     }
 
     var filteredSongs: [Song] {
         guard isCacheReady else { return [] }
-        if let letter = selectedLetter {
-            return api.songs.filter { songLetters[$0.id] == letter }
+        if inputLetters.isEmpty { return api.songs }
+        return api.songs.filter { song in
+            guard let pinyin = songPinyin[song.id] else { return false }
+            return pinyin.hasPrefix(inputLetters) || pinyin.contains(inputLetters)
         }
-        return api.songs
     }
 
     var pagedSongs: [Song] {
@@ -864,7 +872,7 @@ struct OrderSongsPage: View {
 
                 // Right: alphabet search panel
                 VStack(spacing: 0) {
-                    // Panel header
+                    // Panel header with input display
                     HStack {
                         Image(systemName: "magnifyingglass")
                             .font(.system(size: 20))
@@ -873,11 +881,11 @@ struct OrderSongsPage: View {
                             .font(.system(size: 22, weight: .bold))
                             .foregroundColor(.white)
                         Spacer()
-                        Text("\(filteredSongs.count)")
-                            .font(.system(size: 16, weight: .medium))
+                        Text(inputLetters.isEmpty ? "全部" : inputLetters)
+                            .font(.system(size: 18, weight: .bold))
                             .foregroundColor(.white)
-                            .padding(.horizontal, 12).padding(.vertical, 4)
-                            .background(Color.white.opacity(0.15))
+                            .padding(.horizontal, 14).padding(.vertical: 6)
+                            .background(inputLetters.isEmpty ? Color.white.opacity(0.15) : Color(hex: 0xb91c5c).opacity(0.8))
                             .cornerRadius(999)
                     }
                     .padding(.horizontal, 16).padding(.vertical, 14)
@@ -889,9 +897,11 @@ struct OrderSongsPage: View {
                                 ForEach(row, id: \.self) { letter in
                                     Button(action: {
                                         if letter == "DEL" {
-                                            selectedLetter = nil
+                                            if !inputLetters.isEmpty {
+                                                inputLetters.removeLast()
+                                            }
                                         } else {
-                                            selectedLetter = (selectedLetter == letter) ? nil : letter
+                                            inputLetters.append(letter)
                                         }
                                         currentPage = 0
                                     }) {
@@ -905,7 +915,7 @@ struct OrderSongsPage: View {
                                             .foregroundColor(.white)
                                             .frame(maxWidth: .infinity)
                                             .frame(height: 56)
-                                            .background(selectedLetter == nil ? Color(hex: 0xb91c5c).opacity(0.8) : Color(hex: 0x2a2a3a))
+                                            .background(Color(hex: 0x2a2a3a))
                                             .cornerRadius(10)
                                         } else {
                                             Text(letter)
@@ -913,7 +923,7 @@ struct OrderSongsPage: View {
                                                 .foregroundColor(.white)
                                                 .frame(maxWidth: .infinity)
                                                 .frame(height: 56)
-                                                .background(selectedLetter == letter ? Color(hex: 0xb91c5c).opacity(0.9) : Color(hex: 0x2a2a3a))
+                                                .background(Color(hex: 0x2a2a3a))
                                                 .cornerRadius(10)
                                         }
                                     }
@@ -927,6 +937,22 @@ struct OrderSongsPage: View {
                     }
                     .padding(.horizontal, 16)
                     .padding(.bottom, 16)
+
+                    // Clear button
+                    if !inputLetters.isEmpty {
+                        Button(action: { inputLetters = ""; currentPage = 0 }) {
+                            Text("清空")
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 44)
+                                .background(Color.white.opacity(0.1))
+                                .cornerRadius(10)
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 12)
+                    }
 
                     Spacer()
                 }

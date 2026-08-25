@@ -181,9 +181,10 @@ struct ArtistsPage: View {
     let onBack: () -> Void
     let onArtistSelect: (String) -> Void
     @State private var currentPage = 1
-    @State private var selectedLetter: String? = nil
-    @State private var artistLetters: [String: String] = [:] // key: artist name, value: first letter
+    @State private var inputLetters = ""
+    @State private var artistPinyin: [String: String] = [:] // key: artist name, value: pinyin initials
     @State private var isCacheReady = false
+    @State private var isLoading = true
     private let pageSize = 18
     private let letterRows: [[String]] = [
         ["A","B","C","D","E"],
@@ -194,36 +195,48 @@ struct ArtistsPage: View {
         ["Z","DEL"]
     ]
 
-    private func computeFirstLetter(_ text: String) -> String {
-        guard let first = text.first else { return "#" }
-        if first.isLetter && first.isASCII {
-            return String(first).uppercased()
+    private func computePinyinInitials(_ text: String) -> String {
+        var result = ""
+        for char in text {
+            if char.isLetter && char.isASCII {
+                result.append(char.uppercased())
+            } else if char.isLetter {
+                let mutable = NSMutableString(string: String(char)) as CFMutableString
+                CFStringTransform(mutable, nil, kCFStringTransformToLatin, false)
+                CFStringTransform(mutable, nil, kCFStringTransformStripDiacritics, false)
+                let pinyin = mutable as String
+                if let first = pinyin.first, first.isLetter {
+                    result.append(first.uppercased())
+                }
+            }
         }
-        let mutable = NSMutableString(string: String(first)) as CFMutableString
-        CFStringTransform(mutable, nil, kCFStringTransformToLatin, false)
-        CFStringTransform(mutable, nil, kCFStringTransformStripDiacritics, false)
-        let pinyin = mutable as String
-        if let pinyinFirst = pinyin.first, pinyinFirst.isLetter {
-            return String(pinyinFirst).uppercased()
-        }
-        return "#"
+        return result
     }
 
     private func buildCache() {
-        var cache: [String: String] = [:]
-        for artist in api.artists {
-            cache[artist.artist] = computeFirstLetter(artist.displayName)
+        let artists = api.artists
+        guard !artists.isEmpty else { return }
+        DispatchQueue.global(qos: .userInitiated).async {
+            var cache: [String: String] = [:]
+            for artist in artists {
+                cache[artist.artist] = computePinyinInitials(artist.displayName)
+            }
+            DispatchQueue.main.async {
+                self.artistPinyin = cache
+                self.isCacheReady = true
+                self.isLoading = false
+            }
         }
-        artistLetters = cache
-        isCacheReady = true
     }
 
     var filteredArtists: [Artist] {
         guard isCacheReady else { return [] }
-        if let letter = selectedLetter {
-            return api.artists.filter { artistLetters[$0.artist] == letter }
+        if inputLetters.isEmpty { return api.artists }
+        return api.artists.filter { artist in
+            guard let pinyin = artistPinyin[artist.artist] else { return false }
+            return pinyin.hasPrefix(inputLetters) || pinyin.contains(inputLetters) ||
+                   artist.displayName.localizedCaseInsensitiveContains(inputLetters)
         }
-        return api.artists
     }
 
     var pagedArtists: [Artist] {
@@ -319,11 +332,11 @@ struct ArtistsPage: View {
                             .font(.system(size: 22, weight: .bold))
                             .foregroundColor(.white)
                         Spacer()
-                        Text("\(filteredArtists.count)")
-                            .font(.system(size: 16, weight: .medium))
+                        Text(inputLetters.isEmpty ? "全部" : inputLetters)
+                            .font(.system(size: 18, weight: .bold))
                             .foregroundColor(.white)
-                            .padding(.horizontal, 12).padding(.vertical, 4)
-                            .background(Color.white.opacity(0.15))
+                            .padding(.horizontal, 14).padding(.vertical: 6)
+                            .background(inputLetters.isEmpty ? Color.white.opacity(0.15) : Color(hex: 0xb91c5c).opacity(0.8))
                             .cornerRadius(999)
                     }
                     .padding(.horizontal, 16).padding(.vertical, 14)
@@ -335,9 +348,11 @@ struct ArtistsPage: View {
                                 ForEach(row, id: \.self) { letter in
                                     Button(action: {
                                         if letter == "DEL" {
-                                            selectedLetter = nil
+                                            if !inputLetters.isEmpty {
+                                                inputLetters.removeLast()
+                                            }
                                         } else {
-                                            selectedLetter = (selectedLetter == letter) ? nil : letter
+                                            inputLetters.append(letter)
                                         }
                                         currentPage = 1
                                     }) {
@@ -351,7 +366,7 @@ struct ArtistsPage: View {
                                             .foregroundColor(.white)
                                             .frame(maxWidth: .infinity)
                                             .frame(height: 56)
-                                            .background(selectedLetter == nil ? Color(hex: 0xb91c5c).opacity(0.8) : Color(hex: 0x2a2a3a))
+                                            .background(Color(hex: 0x2a2a3a))
                                             .cornerRadius(10)
                                         } else {
                                             Text(letter)
@@ -359,7 +374,7 @@ struct ArtistsPage: View {
                                                 .foregroundColor(.white)
                                                 .frame(maxWidth: .infinity)
                                                 .frame(height: 56)
-                                                .background(selectedLetter == letter ? Color(hex: 0xb91c5c).opacity(0.9) : Color(hex: 0x2a2a3a))
+                                                .background(Color(hex: 0x2a2a3a))
                                                 .cornerRadius(10)
                                         }
                                     }
@@ -373,6 +388,22 @@ struct ArtistsPage: View {
                     }
                     .padding(.horizontal, 16)
                     .padding(.bottom, 16)
+
+                    // Clear button
+                    if !inputLetters.isEmpty {
+                        Button(action: { inputLetters = ""; currentPage = 1 }) {
+                            Text("清空")
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 44)
+                                .background(Color.white.opacity(0.1))
+                                .cornerRadius(10)
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 12)
+                    }
 
                     Spacer()
                 }
@@ -420,8 +451,17 @@ struct ArtistsPage: View {
             .background(WebColors.topbarBg)
         }
         .background(WebColors.bg.ignoresSafeArea())
-        .onAppear { api.fetchArtists() }
-        .onChange(of: api.artists.count) { _ in buildCache() }
+        .onAppear {
+            isLoading = true
+            api.fetchArtists {
+                buildCache()
+            }
+        }
+        .onChange(of: api.artists.count) { _ in
+            if api.artists.count > 0 && !isCacheReady {
+                buildCache()
+            }
+        }
     }
 }
 

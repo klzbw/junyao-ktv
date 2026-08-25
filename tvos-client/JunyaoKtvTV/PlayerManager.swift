@@ -153,30 +153,21 @@ class PlayerManager: ObservableObject {
             }
         }
 
-        // Method 2: Reload stream with track parameter
-        reloadWithVoiceTrack()
+        // Method 2: Server-side switch - reload HLS stream (server returns correct track based on state)
+        reloadHLSStream()
     }
 
-    private func reloadWithVoiceTrack() {
+    private func reloadHLSStream() {
         guard let player = player,
               let currentItem = player.currentItem,
               let asset = currentItem.asset as? AVURLAsset,
-              let songId = currentSongId else { return }
+              currentSongId != nil else { return }
 
         let currentTime = player.currentTime()
         let wasPlaying = player.rate > 0
-        let track = isOriginalVoice ? 0 : 1
 
-        // Build new URL with track parameter
-        var urlString = asset.url.absoluteString
-        if let range = urlString.range(of: "?track=") {
-            urlString = String(urlString[..<range.lowerBound])
-        }
-        urlString += "?track=\(track)"
-
-        guard let newURL = URL(string: urlString) else { return }
-
-        let newItem = AVPlayerItem(url: newURL)
+        // Use the same HLS URL - server will return correct audio track based on voice state
+        let newItem = AVPlayerItem(url: asset.url)
         player.replaceCurrentItem(with: newItem)
 
         // Wait for item to be ready, then seek and play
@@ -187,25 +178,17 @@ class PlayerManager: ObservableObject {
             queue: .main
         ) { _ in
             if wasPlaying {
-                player.seek(to: currentTime) { _ in
-                    player.play()
-                }
+                player.seek(to: currentTime) { _ in player.play() }
             }
-            if let obs = observer {
-                NotificationCenter.default.removeObserver(obs)
-            }
+            if let obs = observer { NotificationCenter.default.removeObserver(obs) }
         }
 
         // Fallback: after 2 seconds, seek and play anyway
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
             if wasPlaying && player.rate == 0 {
-                player.seek(to: currentTime) { _ in
-                    player.play()
-                }
+                player.seek(to: currentTime) { _ in player.play() }
             }
-            if let obs = observer {
-                NotificationCenter.default.removeObserver(obs)
-            }
+            if let obs = observer { NotificationCenter.default.removeObserver(obs) }
         }
     }
 
