@@ -15,18 +15,27 @@ struct SharedVideoView: UIViewRepresentable {
 
     func updateUIView(_ uiView: PlayerContainerView, context: Context) {
         uiView.playerManager = playerManager
-        uiView.attachLayerIfNeeded()
-    }
-
-    static func dismantleUIView(_ uiView: PlayerContainerView, coordinator: ()) {
-        uiView.detachLayer()
+        uiView.attachLayer()
     }
 }
 
 /// Custom UIView that holds the shared AVPlayerLayer and updates its frame on layout.
 class PlayerContainerView: UIView {
-    weak var playerManager: PlayerManager?
-    private var isLayerAttached = false
+    weak var playerManager: PlayerManager? {
+        didSet { attachLayer() }
+    }
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        backgroundColor = .black
+        clipsToBounds = true
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        backgroundColor = .black
+        clipsToBounds = true
+    }
 
     override func layoutSubviews() {
         super.layoutSubviews()
@@ -36,21 +45,28 @@ class PlayerContainerView: UIView {
         }
     }
 
-    func attachLayerIfNeeded() {
-        guard let playerManager = playerManager,
-              let layer = playerManager.playerLayer,
-              !isLayerAttached else { return }
-
-        layer.removeFromSuperlayer()
-        layer.frame = bounds
-        layer.videoGravity = .resizeAspectFill
-        self.layer.addSublayer(layer)
-        self.layer.masksToBounds = true
-        isLayerAttached = true
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        // Re-attach when view moves to a new window (e.g., returning from fullscreen)
+        if window != nil {
+            attachLayer()
+        }
     }
 
-    func detachLayer() {
-        playerManager?.playerLayer?.removeFromSuperlayer()
-        isLayerAttached = false
+    func attachLayer() {
+        guard let playerManager = playerManager,
+              let layer = playerManager.playerLayer else { return }
+
+        // Always re-attach to ensure layer is on this view
+        if layer.superlayer != self.layer {
+            layer.removeFromSuperlayer()
+            layer.frame = bounds
+            layer.videoGravity = .resizeAspectFill
+            self.layer.addSublayer(layer)
+        } else {
+            // Already attached, just update frame
+            layer.frame = bounds
+        }
+        self.layer.masksToBounds = true
     }
 }
