@@ -40,6 +40,7 @@ struct SearchPanel: View {
     let onClose: () -> Void
     @State private var query = ""
     @State private var currentPage = 0
+    @FocusState private var closeFocused: Bool
     private let pageSize = 40
 
     var filteredSongs: [Song] {
@@ -81,6 +82,7 @@ struct SearchPanel: View {
                     Button(action: onClose) {
                         Image(systemName: "xmark").foregroundColor(WebColors.sub)
                     }.buttonStyle(.plain)
+                    .focused($closeFocused)
                 }
                 .padding(.horizontal, 20).padding(.vertical, 14)
                 .background(WebColors.topbarBg)
@@ -136,7 +138,12 @@ struct SearchPanel: View {
             .cornerRadius(16)
             .focusSection()
         }
-        .onAppear { api.fetchSongs(query: "") }
+        .onAppear {
+            api.fetchSongs(query: "")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                closeFocused = true
+            }
+        }
     }
 
     @ViewBuilder
@@ -172,6 +179,7 @@ struct QueuePanel: View {
     @ObservedObject var api: KTVAPIClient
     let onClose: () -> Void
     let onPlay: () -> Void
+    @FocusState private var closeFocused: Bool
 
     var body: some View {
         ZStack {
@@ -198,6 +206,7 @@ struct QueuePanel: View {
                     Button(action: onClose) {
                         Image(systemName: "xmark").foregroundColor(WebColors.sub)
                     }.buttonStyle(.plain)
+                    .focused($closeFocused)
                 }
                 .padding(.horizontal, 20).padding(.vertical, 14)
                 .background(WebColors.topbarBg)
@@ -228,6 +237,11 @@ struct QueuePanel: View {
             .cornerRadius(16)
             .overlay(RoundedRectangle(cornerRadius: 16).stroke(WebColors.cardBorder, lineWidth: 1))
             .focusSection()
+        }
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                closeFocused = true
+            }
         }
     }
 
@@ -276,6 +290,7 @@ struct SettingsPanel: View {
     @State private var showEQ = false
     @State private var deviceRole: DeviceRole = .player
     @State private var playerLocked = false
+    @FocusState private var closeFocused: Bool
 
     enum DeviceRole { case player, controller
         var label: String { self == .player ? "播放端" : "控制端" }
@@ -305,6 +320,7 @@ struct SettingsPanel: View {
                             .background(Color.white.opacity(0.08))
                             .clipShape(Circle())
                     }.buttonStyle(.plain)
+                    .focused($closeFocused)
                 }
                 .padding(.horizontal, 20).padding(.vertical, 14)
                 .background(WebColors.topbarBg)
@@ -405,7 +421,13 @@ struct SettingsPanel: View {
             .overlay(RoundedRectangle(cornerRadius: 16).stroke(WebColors.cardBorder, lineWidth: 1))
             .focusSection()
         }
-        .onAppear { api.fetchStats(); api.fetchAutoplaySettings() }
+        .onAppear {
+            api.fetchStats()
+            api.fetchAutoplaySettings()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                closeFocused = true
+            }
+        }
         .sheet(isPresented: $showEQ) { EQPanel { showEQ = false } }
     }
 
@@ -446,6 +468,7 @@ struct SettingsPanel: View {
 struct EQPanel: View {
     let onClose: () -> Void
     @State private var selectedEQ = "flat"
+    @FocusState private var closeFocused: Bool
     let presets = [
         (id: "flat", name: "标准（关闭）"),
         (id: "vocal", name: "人声增强"),
@@ -468,6 +491,7 @@ struct EQPanel: View {
                             .frame(width: 42, height: 42)
                             .background(Color.white.opacity(0.08)).clipShape(Circle())
                     }.buttonStyle(.plain)
+                    .focused($closeFocused)
                 }
                 .padding(.horizontal, 20).padding(.vertical, 14)
                 .background(WebColors.topbarBg)
@@ -504,6 +528,11 @@ struct EQPanel: View {
             .cornerRadius(16)
             .overlay(RoundedRectangle(cornerRadius: 16).stroke(WebColors.cardBorder, lineWidth: 1))
             .focusSection()
+        }
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                closeFocused = true
+            }
         }
     }
 }
