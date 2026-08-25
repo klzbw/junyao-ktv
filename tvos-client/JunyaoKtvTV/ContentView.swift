@@ -499,8 +499,7 @@ struct ContentView: View {
     }
 
     private func setupPlaybackEndHandler() {
-        playerManager.onPlaybackEnd = { [weak self] in
-            guard let self = self else { return }
+        playerManager.onPlaybackEnd = {
             DispatchQueue.main.async {
                 let hasMore = self.api.queue.contains(where: { !$0.isPlaying })
                 if hasMore {
