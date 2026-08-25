@@ -433,9 +433,8 @@ struct ContentView: View {
                 }
                 .transition(.opacity)
             }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .cornerRadius(16)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .cornerRadius(16)
         }
         .padding(3)
         .background(panelFocused ? Color.white.opacity(0.15) : Color.clear)
