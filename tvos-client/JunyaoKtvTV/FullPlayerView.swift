@@ -146,8 +146,8 @@ struct FullPlayerView: View {
         // Set playback end callback to auto-exit
         playerManager.onPlaybackEnd = {
             DispatchQueue.main.async {
-                if !hasAutoExit {
-                    hasAutoExit = true
+                if !hasAutoExited {
+                    hasAutoExited = true
                     onClose()
                 }
             }
