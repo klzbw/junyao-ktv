@@ -20,6 +20,7 @@ class PlayerManager: ObservableObject {
 
     private var timeObserver: Any?
     private var statusObserver: NSKeyValueObservation?
+    private var itemStatusObserver: NSKeyValueObservation?
     private var endObserver: NSObjectProtocol?
 
     private init() {}
@@ -65,6 +66,15 @@ class PlayerManager: ObservableObject {
             }
         }
 
+        // Item status observer - apply voice mode when item is ready to play
+        itemStatusObserver = playerItem.observe(\.status, options: [.new]) { [weak self] _, _ in
+            if playerItem.status == .readyToPlay {
+                DispatchQueue.main.async {
+                    self?.applyVoiceMode()
+                }
+            }
+        }
+
         // Playback end observer
         endObserver = NotificationCenter.default.addObserver(
             forName: .AVPlayerItemDidPlayToEndTime,
@@ -77,7 +87,7 @@ class PlayerManager: ObservableObject {
         player.play()
         isPlaying = true
 
-        // Apply current voice mode (internal retries handle async HLS track loading)
+        // Apply voice mode immediately and with retries (HLS tracks load async)
         applyVoiceMode()
     }
 
@@ -159,7 +169,7 @@ class PlayerManager: ObservableObject {
         trySelectAudioTrack(for: playerItem, targetIndex: targetIndex)
 
         // Retry as HLS audio tracks load asynchronously (matches web retry pattern)
-        let delays: [Double] = [0.5, 1.5, 3.0, 5.0]
+        let delays: [Double] = [0.3, 0.8, 1.5, 2.5, 4.0]
         for delay in delays {
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
                 guard let self = self, let item = self.player?.currentItem else { return }
@@ -179,7 +189,13 @@ class PlayerManager: ObservableObject {
         if current != targetOption {
             playerItem.select(targetOption, in: audioGroup)
         }
-        loadedAudioTrackIndex = targetIndex
+        // Only mark as loaded if selection actually took effect
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+            guard let self = self else { return }
+            if playerItem.selectedMediaOption(in: audioGroup) == targetOption {
+                self.loadedAudioTrackIndex = targetIndex
+            }
+        }
     }
 
     func cleanup() {
@@ -189,6 +205,8 @@ class PlayerManager: ObservableObject {
         }
         statusObserver?.invalidate()
         statusObserver = nil
+        itemStatusObserver?.invalidate()
+        itemStatusObserver = nil
         if let endObserver = endObserver {
             NotificationCenter.default.removeObserver(endObserver)
             self.endObserver = nil
