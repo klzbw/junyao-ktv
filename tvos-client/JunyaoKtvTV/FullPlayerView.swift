@@ -15,7 +15,7 @@ struct FullPlayerView: View {
     @State private var hasAutoExited = false
     @State private var showQueue = false
     @State private var showQR = false
-    @FocusState private var controlsFocused: Bool
+    @FocusState private var playButtonFocused: Bool
     @FocusState private var videoFocused: Bool
 
     enum VoiceMode {
@@ -88,6 +88,7 @@ struct FullPlayerView: View {
                                 )
                             }
                             .buttonStyle(.card)
+                            .focused($playButtonFocused)
 
                             Button(action: { toggleVoice() }) {
                                 controlContent(icon: "mic.fill", title: voiceMode.label)
@@ -110,8 +111,6 @@ struct FullPlayerView: View {
                             .buttonStyle(.card)
                         }
                         .padding(.horizontal, 10)
-                        .focusSection()
-                        .focused($controlsFocused)
                     }
                     .padding(.horizontal, 24)
                     .padding(.bottom, 24)
@@ -122,7 +121,7 @@ struct FullPlayerView: View {
                 .transition(.opacity)
                 .onAppear {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        controlsFocused = true
+                        playButtonFocused = true
                     }
                 }
             }
@@ -159,7 +158,7 @@ struct FullPlayerView: View {
                 videoFocused = false
             } else {
                 videoFocused = true
-                controlsFocused = false
+                playButtonFocused = false
             }
         }
         .onPlayPauseCommand {
