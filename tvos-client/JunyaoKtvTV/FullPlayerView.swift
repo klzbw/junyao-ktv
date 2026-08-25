@@ -110,6 +110,11 @@ struct FullPlayerView: View {
         }
         .contentShape(Rectangle())
         .onTapGesture {
+            // If queue panel is open, close it first
+            if showQueue {
+                showQueue = false
+                return
+            }
             // Select button: toggle controls visibility
             withAnimation(.easeOut(duration: 0.2)) {
                 showControls.toggle()

@@ -148,29 +148,28 @@ struct SearchPanel: View {
 
     @ViewBuilder
     private func searchSongRow(_ song: Song, index: Int) -> some View {
-        HStack(spacing: 10) {
-            Text("\(index + 1)").font(.system(size: 14)).foregroundColor(WebColors.sub).frame(width: 28)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(song.displayTitle).font(.system(size: 16)).foregroundColor(.white).lineLimit(1)
-                Text(song.displayArtist).font(.system(size: 13)).foregroundColor(WebColors.sub).lineLimit(1)
-            }
-            Spacer()
-            Button(action: { api.toggleFavorite(songId: song.id) }) {
-                Image(systemName: api.favorites.contains { $0.id == song.id } ? "heart.fill" : "heart")
-                    .font(.system(size: 17))
-                    .foregroundColor(api.favorites.contains { $0.id == song.id } ? WebColors.pink : .white)
-                    .frame(width: 36, height: 36)
-                    .background(api.favorites.contains { $0.id == song.id } ? WebColors.pink.opacity(0.3) : WebColors.cardBg)
-                    .cornerRadius(7)
-            }.buttonStyle(.plain)
-            Button(action: { api.addToQueue(songId: song.id); onClose() }) {
+        Button(action: { api.addToQueue(songId: song.id); onClose() }) {
+            HStack(spacing: 10) {
+                Text("\(index + 1)").font(.system(size: 14)).foregroundColor(WebColors.sub).frame(width: 28)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(song.displayTitle).font(.system(size: 16)).foregroundColor(.white).lineLimit(1)
+                    Text(song.displayArtist).font(.system(size: 13)).foregroundColor(WebColors.sub).lineLimit(1)
+                }
+                Spacer()
+                if api.favorites.contains { $0.id == song.id } {
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: 17))
+                        .foregroundColor(WebColors.pink)
+                        .frame(width: 36, height: 36)
+                }
                 Text("点歌").font(.system(size: 15))
                     .padding(.horizontal, 12).padding(.vertical, 5)
                     .background(LinearGradient.g6).foregroundColor(.white).cornerRadius(8)
-            }.buttonStyle(.plain)
+            }
+            .padding(.horizontal, 12).padding(.vertical, 8)
+            .background(WebColors.cardBg).cornerRadius(10)
         }
-        .padding(.horizontal, 12).padding(.vertical, 8)
-        .background(WebColors.cardBg).cornerRadius(10)
+        .buttonStyle(.plain)
     }
 }
 
