@@ -142,7 +142,7 @@ struct FullPlayerView: View {
     private func setup() {
         showControls = true
         resetHideTimer()
-        hasAutoExit = false
+        hasAutoExited = false
         // Set playback end callback to auto-exit
         playerManager.onPlaybackEnd = {
             DispatchQueue.main.async {
