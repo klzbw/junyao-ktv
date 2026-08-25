@@ -22,7 +22,7 @@ class PlayerManager: NSObject, ObservableObject {
     private var statusObserver: NSKeyValueObservation?
     private var endObserver: NSObjectProtocol?
 
-    private init() {}
+    private override init() {}
 
     func setupPlayer(for url: URL) {
         if let existingURL = (player?.currentItem?.asset as? AVURLAsset)?.url,
