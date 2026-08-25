@@ -333,7 +333,9 @@ struct ContentView: View {
                 if let playing = api.queue.first(where: { $0.isPlaying }),
                    let hlsURL = api.hlsURL(songId: playing.song_id) {
                     // Video preview using shared player
+                    // Use id to force rebuild when returning from fullscreen
                     SharedVideoView(playerManager: playerManager)
+                        .id("preview-\(showingPlayer ? "fs" : "normal")")
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .onAppear {
                             playerManager.setupPlayer(for: hlsURL)
