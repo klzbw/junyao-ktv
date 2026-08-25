@@ -135,7 +135,6 @@ struct ContentView: View {
                 mainGrid
             }
             .allowsHitTesting(activePanel == nil)
-            .focusable(activePanel == nil)
 
             if let panel = activePanel {
                 panelView(panel)
