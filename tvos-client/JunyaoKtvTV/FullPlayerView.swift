@@ -38,10 +38,9 @@ struct FullPlayerView: View {
                     }
                 }
 
-            if showControls {
-                VStack {
-                    Spacer()
-                    VStack(spacing: 14) {
+            VStack {
+                Spacer()
+                VStack(spacing: 14) {
                         // Progress bar
                         VStack(spacing: 6) {
                             GeometryReader { geo in
@@ -112,23 +111,22 @@ struct FullPlayerView: View {
                         .onChange(of: showControls) { showing in
                             if showing {
                                 // Auto-focus play/pause button when controls appear
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                                     focusedControl = 2
                                 }
                             } else {
                                 focusedControl = nil
                             }
                         }
-                        .allowsHitTesting(showControls)
                     }
                     .padding(.horizontal, 24)
                     .padding(.bottom, 24)
                     .padding(.top, 16)
                     .background(LinearGradient(colors: [.clear, Color.black.opacity(0.9)],
                                                startPoint: .top, endPoint: .bottom))
-                }
-                .transition(.opacity)
             }
+            .opacity(showControls ? 1 : 0)
+            .allowsHitTesting(showControls)
 
             // Queue panel overlay
             if showQueue {
