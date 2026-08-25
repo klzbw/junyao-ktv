@@ -20,6 +20,7 @@ struct ContentView: View {
     @State private var volume: Float = 0.7
     @State private var showQR = false
     @State private var shouldResumePlaying = true
+    @State private var lastAutoNextQueueId: Int? = nil
     private let playerManager = PlayerManager.shared
 
     enum PanelType { case search, queue, settings, eq }
@@ -446,6 +447,8 @@ struct ContentView: View {
         .scaleEffect(panelFocused ? 1.03 : 1.0)
         .animation(.easeOut(duration: 0.18), value: panelFocused)
         .onChange(of: api.queue.first(where: { $0.isPlaying })?.song_id) { newId in
+            // Reset auto-next guard when song changes
+            lastAutoNextQueueId = nil
             if let playing = api.queue.first(where: { $0.isPlaying }) {
                 introSong = playing
                 showSongIntro = true
@@ -501,8 +504,15 @@ struct ContentView: View {
     private func setupPlaybackEndHandler() {
         playerManager.onPlaybackEnd = {
             DispatchQueue.main.async {
+                guard let curSong = self.api.queue.first(where: { $0.isPlaying }) else {
+                    if self.showingPlayer { self.showingPlayer = false }
+                    return
+                }
+                // Prevent duplicate next calls for the same song
+                if self.lastAutoNextQueueId == curSong.id { return }
                 let hasMore = self.api.queue.contains(where: { !$0.isPlaying })
                 if hasMore {
+                    self.lastAutoNextQueueId = curSong.id
                     self.api.nextSong()
                 } else if self.showingPlayer {
                     self.showingPlayer = false
