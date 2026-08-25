@@ -15,7 +15,7 @@ struct FullPlayerView: View {
     @State private var hasAutoExited = false
     @State private var showQueue = false
     @State private var showQR = false
-    @FocusState private var focusedControl: Int?
+    @FocusState private var controlsFocused: Bool
     @FocusState private var videoFocused: Bool
 
     enum VoiceMode {
@@ -74,12 +74,12 @@ struct FullPlayerView: View {
                             Button(action: { onClose() }) {
                                 controlContent(icon: "house", title: "主页")
                             }
-                            .focused($focusedControl, equals: 0)
+                            .buttonStyle(.card)
 
                             Button(action: { playerManager.restart() }) {
                                 controlContent(icon: "gobackward", title: "重唱")
                             }
-                            .focused($focusedControl, equals: 1)
+                            .buttonStyle(.card)
 
                             Button(action: { playerManager.togglePlayPause() }) {
                                 controlContent(
@@ -87,29 +87,31 @@ struct FullPlayerView: View {
                                     title: playerManager.isPlaying ? "暂停" : "播放"
                                 )
                             }
-                            .focused($focusedControl, equals: 2)
+                            .buttonStyle(.card)
 
                             Button(action: { toggleVoice() }) {
                                 controlContent(icon: "mic.fill", title: voiceMode.label)
                             }
-                            .focused($focusedControl, equals: 3)
+                            .buttonStyle(.card)
 
                             Button(action: { onNext() }) {
                                 controlContent(icon: "forward.end.fill", title: "切歌")
                             }
-                            .focused($focusedControl, equals: 4)
+                            .buttonStyle(.card)
 
                             Button(action: { showQueue = true }) {
                                 controlContent(icon: "list.bullet", title: "队列")
                             }
-                            .focused($focusedControl, equals: 5)
+                            .buttonStyle(.card)
 
                             Button(action: { showQR = true }) {
                                 controlContent(icon: "qrcode", title: "扫码")
                             }
-                            .focused($focusedControl, equals: 6)
+                            .buttonStyle(.card)
                         }
                         .padding(.horizontal, 10)
+                        .focusSection()
+                        .focused($controlsFocused)
                     }
                     .padding(.horizontal, 24)
                     .padding(.bottom, 24)
@@ -120,7 +122,7 @@ struct FullPlayerView: View {
                 .transition(.opacity)
                 .onAppear {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        focusedControl = 2
+                        controlsFocused = true
                     }
                 }
             }
@@ -157,7 +159,7 @@ struct FullPlayerView: View {
                 videoFocused = false
             } else {
                 videoFocused = true
-                focusedControl = nil
+                controlsFocused = false
             }
         }
         .onPlayPauseCommand {
