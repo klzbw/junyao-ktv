@@ -137,13 +137,25 @@ class KTVAPIClient: ObservableObject {
         }.resume()
     }
 
-    func addToQueue(songId: Int, nickname: String = "TV用户") {
-        guard let url = apiURL("/api/queue") else { return }
+    func addToQueue(songId: Int, nickname: String = "TV用户", completion: ((Bool) -> Void)? = nil) {
+        guard let url = apiURL("/api/queue") else { completion?(false); return }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try? JSONSerialization.data(withJSONObject: ["song_id": songId, "nickname": nickname])
-        URLSession.shared.dataTask(with: req) { [weak self] _, _, _ in self?.fetchQueue() }.resume()
+        URLSession.shared.dataTask(with: req) { [weak self] data, response, error in
+            DispatchQueue.main.async {
+                if let error = error {
+                    self?.connectionError = error.localizedDescription
+                    completion?(false)
+                } else if let httpResp = response as? HTTPURLResponse, httpResp.statusCode == 200 {
+                    self?.fetchQueue()
+                    completion?(true)
+                } else {
+                    completion?(false)
+                }
+            }
+        }.resume()
     }
 
     func nextSong() {

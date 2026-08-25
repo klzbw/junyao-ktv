@@ -1084,7 +1084,7 @@ struct OrderSongsPage: View {
                     .foregroundColor(.white)
                     .cornerRadius(8)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.card)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)

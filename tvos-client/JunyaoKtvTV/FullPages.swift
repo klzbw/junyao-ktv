@@ -100,7 +100,6 @@ struct WebSongRow: View {
     let onAdd: () -> Void
     let isFavorite: Bool
     let onToggleFav: () -> Void
-    @FocusState private var focused: Bool
 
     var body: some View {
         HStack(spacing: 12) {
@@ -126,6 +125,7 @@ struct WebSongRow: View {
             }
             Spacer()
 
+            // Favorite button
             Button(action: onToggleFav) {
                 Image(systemName: isFavorite ? "heart.fill" : "heart")
                     .font(.system(size: 22))
@@ -133,22 +133,20 @@ struct WebSongRow: View {
                     .frame(width: 44, height: 44)
                     .background(isFavorite ? WebColors.pink.opacity(0.3) : WebColors.cardBg)
                     .cornerRadius(9)
-            }.buttonStyle(.plain)
+            }
 
+            // Add button
             Button(action: onAdd) {
                 Text("点歌").font(.system(size: 18, weight: .semibold))
                     .padding(.horizontal, 16).padding(.vertical, 8)
                     .background(LinearGradient.g6).foregroundColor(.white).cornerRadius(10)
-            }.buttonStyle(.plain)
+            }
+            .buttonStyle(.card)
         }
         .padding(.horizontal, 16).padding(.vertical, 12)
-        .background(focused ? WebColors.ac.opacity(0.15) : WebColors.cardBg)
+        .background(WebColors.cardBg)
         .cornerRadius(12)
-        .scaleEffect(focused ? 1.02 : 1.0)
-        .animation(.easeOut(duration: 0.15), value: focused)
-        .focusable()
-        .focused($focused)
-        .focusEffectDisabled()
+        .focusSection()
     }
 }
 
@@ -333,7 +331,7 @@ struct ArtistsPage: View {
                                 }
                                 .frame(maxWidth: .infinity)
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(.card)
                         }
                     }
                     .padding(.horizontal, 16)
