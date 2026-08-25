@@ -117,7 +117,7 @@ struct MVButton: View {
                 Group {
                     if focused {
                         RoundedRectangle(cornerRadius: 14)
-                            .fill(WebColors.ac.opacity(0.35))
+                            .fill(WebColors.ac.opacity(0.25))
                     } else {
                         RoundedRectangle(cornerRadius: 14)
                             .fill(Color.white.opacity(0.08))
@@ -128,7 +128,7 @@ struct MVButton: View {
         .buttonStyle(.plain)
         .focused($focused)
         .focusEffectDisabled()
-        .scaleEffect(focused ? 1.08 : 1.0)
+        .scaleEffect(focused ? 1.04 : 1.0)
         .animation(Animation.easeOut(duration: 0.18), value: focused)
     }
 }

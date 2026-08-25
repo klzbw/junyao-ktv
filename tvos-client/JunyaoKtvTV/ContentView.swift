@@ -300,7 +300,7 @@ struct ContentView: View {
         .buttonStyle(.plain)
         .focused($focused)
         .focusEffectDisabled()
-        .scaleEffect(focused ? 1.06 : 1.0)
+        .scaleEffect(focused ? 1.03 : 1.0)
         .animation(Animation.easeOut(duration: 0.18), value: focused)
     }
 
@@ -602,7 +602,7 @@ struct ContentView: View {
         .buttonStyle(.plain)
         .focused($focused)
         .focusEffectDisabled()
-        .scaleEffect(focused ? 1.06 : 1.0)
+        .scaleEffect(focused ? 1.03 : 1.0)
         .animation(Animation.easeOut(duration: 0.18), value: focused)
     }
 
@@ -646,7 +646,7 @@ struct ContentView: View {
         .buttonStyle(.plain)
         .focused($focused)
         .focusEffectDisabled()
-        .scaleEffect(focused ? 1.04 : 1.0)
+        .scaleEffect(focused ? 1.02 : 1.0)
         .animation(Animation.easeOut(duration: 0.15), value: focused)
     }
 
