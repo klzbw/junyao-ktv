@@ -16,6 +16,7 @@ struct FullPlayerView: View {
     @State private var showQueue = false
     @State private var showQR = false
     @FocusState private var focusedControl: Int?
+    @FocusState private var videoFocused: Bool
 
     enum VoiceMode {
         case original, accompaniment
@@ -38,9 +39,10 @@ struct FullPlayerView: View {
                     }
                 }
 
-            VStack {
-                Spacer()
-                VStack(spacing: 14) {
+            if showControls && !showQueue && !showQR {
+                VStack {
+                    Spacer()
+                    VStack(spacing: 14) {
                         // Progress bar
                         VStack(spacing: 6) {
                             GeometryReader { geo in
@@ -108,25 +110,20 @@ struct FullPlayerView: View {
                             .focused($focusedControl, equals: 6)
                         }
                         .padding(.horizontal, 10)
-                        .onChange(of: showControls) { showing in
-                            if showing {
-                                // Auto-focus play/pause button when controls appear
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                                    focusedControl = 2
-                                }
-                            } else {
-                                focusedControl = nil
-                            }
-                        }
                     }
                     .padding(.horizontal, 24)
                     .padding(.bottom, 24)
                     .padding(.top, 16)
                     .background(LinearGradient(colors: [.clear, Color.black.opacity(0.9)],
                                                startPoint: .top, endPoint: .bottom))
+                }
+                .transition(.opacity)
+                .onAppear {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        focusedControl = 2
+                    }
+                }
             }
-            .opacity(showControls ? 1 : 0)
-            .allowsHitTesting(showControls)
 
             // Queue panel overlay
             if showQueue {
@@ -143,7 +140,8 @@ struct FullPlayerView: View {
             }
         }
         .contentShape(Rectangle())
-        .focusable(!showControls)
+        .focusable(true)
+        .focused($videoFocused)
         .onTapGesture {
             // If QR or queue panel is open, close it first
             if showQR { showQR = false; return }
@@ -153,6 +151,14 @@ struct FullPlayerView: View {
                 showControls.toggle()
             }
             if showControls { resetHideTimer() }
+        }
+        .onChange(of: showControls) { showing in
+            if showing {
+                videoFocused = false
+            } else {
+                videoFocused = true
+                focusedControl = nil
+            }
         }
         .onPlayPauseCommand {
             playerManager.togglePlayPause()
@@ -191,6 +197,7 @@ struct FullPlayerView: View {
         resetHideTimer()
         hasAutoExited = false
         voiceMode = playerManager.isOriginalVoice ? .original : .accompaniment
+        videoFocused = false
         // Set playback end callback to auto-exit
         playerManager.onPlaybackEnd = {
             DispatchQueue.main.async {
