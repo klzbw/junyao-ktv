@@ -275,6 +275,7 @@ struct ContentView: View {
             quickCard(title: "最新入库", icon: "tray.full.fill", gradient: LinearGradient(colors: [Color(hex: 0x1a7bff), Color(hex: 0x36d9f7)], startPoint: .leading, endPoint: .trailing)) { activePage = .newest }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .focusSection()
     }
 
     private func quickCard(title: String, icon: String, gradient: LinearGradient, action: @escaping () -> Void) -> some View {
@@ -445,6 +446,7 @@ struct ContentView: View {
             isPlaying = playerManager.isPlaying
             shouldResumePlaying = true
         }
+        .focusSection()
     }
 
     private func setupControlHandler() {
@@ -559,6 +561,7 @@ struct ContentView: View {
         .padding(.vertical, 6)
         .background(Color.white.opacity(0.04))
         .cornerRadius(14)
+        .focusSection()
     }
 
     // MARK: - Mid Cards (vertical column, 4 buttons fill height)
@@ -570,6 +573,7 @@ struct ContentView: View {
             bigRequestButton(title: "扫码点歌", icon: "qrcode", gradient: LinearGradient(colors: [Color(hex: 0x1a7bff), Color(hex: 0x36d9f7)], startPoint: .leading, endPoint: .trailing)) { showQR.toggle() }
         }
         .frame(maxHeight: .infinity)
+        .focusSection()
     }
 
     private func bigRequestButton(title: String, icon: String, gradient: LinearGradient, action: @escaping () -> Void) -> some View {
@@ -693,6 +697,7 @@ struct ContentView: View {
         .cornerRadius(16)
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(
             appThemeRaw == 2 ? WebColors.ac.opacity(0.3) : Color.white.opacity(0.08), lineWidth: 1))
+        .focusSection()
     }
 
     // MARK: - Panel Views
