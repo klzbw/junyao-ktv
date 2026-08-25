@@ -149,13 +149,12 @@ class PlayerManager: ObservableObject {
             if options.count >= 2 {
                 // Typically option 0 = original, option 1 = accompaniment
                 let targetIndex = isOriginalVoice ? 0 : min(1, options.count - 1)
-                playerItem.selectMediaOption(options[targetIndex], in: audioGroup)
+                playerItem.selectMediaOption(options[targetIndex], inMediaSelectionGroup: audioGroup)
                 return
             }
         }
 
-        // Method 2: Channel balance for dual-channel mono tracks
-        // KTV songs often have L=accompaniment, R=original
+        // Method 2: For single audio track, try audio mix for channel balance
         applyChannelBalance()
     }
 
@@ -169,13 +168,12 @@ class PlayerManager: ObservableObject {
         let mix = AVMutableAudioMix()
         let params = AVMutableAudioMixInputParameters(track: assetTrack)
 
-        if isOriginalVoice {
-            // Original: both channels (or right channel dominant)
-            params.setVolume(1.0, for: CMTimeRange(start: .zero, duration: .positiveInfinity))
-        } else {
-            // Accompaniment: mute original channel (typically right), keep left
-            // Try pan-based approach
-            params.setVolume(1.0, for: CMTimeRange(start: .zero, duration: .positiveInfinity))
+        // Set volume ramp for the entire duration
+        let duration = playerItem.duration
+        if duration.seconds > 0 {
+            let volume: Float = isOriginalVoice ? 1.0 : 0.8
+            params.setVolumeRamp(fromStartVolume: volume, toEndVolume: volume,
+                                 timeRange: CMTimeRange(start: .zero, duration: duration))
         }
 
         mix.inputParameters = [params]
