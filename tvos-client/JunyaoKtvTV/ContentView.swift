@@ -129,8 +129,6 @@ struct ContentView: View {
                 nextUpBar
                 mainGrid
             }
-            .focusable(activePanel == nil)
-            .allowsHitTesting(activePanel == nil)
 
             if let panel = activePanel {
                 panelView(panel)

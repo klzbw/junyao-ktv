@@ -2,7 +2,6 @@ import SwiftUI
 import AVFoundation
 
 /// Fullscreen player using the shared PlayerManager.
-/// The same AVPlayerLayer moves from small preview to here.
 struct FullPlayerView: View {
     let song: QueueItem
     let onNext: () -> Void
@@ -13,8 +12,6 @@ struct FullPlayerView: View {
     @State private var showControls = true
     @State private var voiceMode: VoiceMode = .original
     @State private var hideTimer: Timer?
-    @State private var nextUpSong: QueueItem?
-    @State private var showQueue = false
     @FocusState private var focusedButton: Int?
 
     enum VoiceMode {
@@ -26,13 +23,11 @@ struct FullPlayerView: View {
         ZStack {
             Color.black.ignoresSafeArea()
 
-            // Shared video view - same player layer moves here
             SharedVideoView(playerManager: playerManager)
                 .ignoresSafeArea()
                 .onAppear { setup() }
                 .onDisappear { cleanup() }
 
-            // Controls overlay
             if showControls {
                 VStack {
                     Spacer()
@@ -63,17 +58,17 @@ struct FullPlayerView: View {
                             }
                         }
 
-                        // Control buttons - 6 buttons with proper focus
+                        // 6 control buttons
                         HStack(spacing: 12) {
                             controlButton(icon: "house", title: "主页", tag: 0) { onClose() }
                             controlButton(icon: "gobackward", title: "重唱", tag: 1) { playerManager.restart() }
                             controlButton(icon: playerManager.isPlaying ? "pause.fill" : "play.fill",
-                                        title: playerManager.isPlaying ? "暂停" : "播放", tag: 2, isCenter: true) {
+                                        title: playerManager.isPlaying ? "暂停" : "播放", tag: 2) {
                                 playerManager.togglePlayPause()
                             }
                             controlButton(icon: "mic.fill", title: voiceMode.label, tag: 3) { toggleVoice() }
                             controlButton(icon: "forward.end.fill", title: "切歌", tag: 4) { onNext() }
-                            controlButton(icon: "list.bullet", title: "队列", tag: 5) { showQueue.toggle() }
+                            controlButton(icon: "list.bullet", title: "队列", tag: 5) { onClose() }
                         }
                         .focusSection()
                     }
@@ -84,12 +79,6 @@ struct FullPlayerView: View {
                                                startPoint: .top, endPoint: .bottom))
                 }
                 .transition(.opacity)
-            }
-
-            // Queue side panel
-            if showQueue {
-                queueSidePanel
-                    .transition(.move(edge: .trailing))
             }
         }
         .contentShape(Rectangle())
@@ -102,9 +91,7 @@ struct FullPlayerView: View {
             resetHideTimer()
         }
         .onExitCommand {
-            if showQueue {
-                showQueue = false
-            } else if showControls {
+            if showControls {
                 showControls = false
             } else {
                 onClose()
@@ -119,87 +106,16 @@ struct FullPlayerView: View {
                 playerManager.seek(to: playerManager.currentTime + 10)
             }
         }
-        .onLongPressGesture {
-            toggleControls()
-        }
     }
 
-    // MARK: - Queue Side Panel
-    private var queueSidePanel: some View {
-        HStack {
-            Spacer()
-            VStack(spacing: 0) {
-                HStack {
-                    Text("♪ 已点队列")
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(.white)
-                    Text("\(api.queue.count)首")
-                        .font(.system(size: 14))
-                        .foregroundColor(WebColors.sub)
-                        .padding(.leading, 8)
-                    Spacer()
-                    Button(action: { showQueue = false }) {
-                        Image(systemName: "xmark")
-                            .foregroundColor(.white)
-                            .frame(width: 36, height: 36)
-                            .background(Color.white.opacity(0.1))
-                            .clipShape(Circle())
-                    }.buttonStyle(.plain)
-                }
-                .padding(.horizontal, 16).padding(.vertical, 12)
-                .background(WebColors.topbarBg)
-
-                ScrollView {
-                    VStack(spacing: 4) {
-                        ForEach(Array(api.queue.enumerated()), id: \.element.id) { idx, item in
-                            HStack(spacing: 8) {
-                                if item.isPlaying {
-                                    Image(systemName: "play.circle.fill")
-                                        .foregroundColor(WebColors.ac2)
-                                        .font(.system(size: 16))
-                                } else {
-                                    Text("\(idx + 1)")
-                                        .font(.system(size: 13))
-                                        .foregroundColor(WebColors.sub)
-                                        .frame(width: 20)
-                                }
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(item.displayTitle)
-                                        .font(.system(size: 14))
-                                        .foregroundColor(.white)
-                                        .lineLimit(1)
-                                    Text(item.displayArtist)
-                                        .font(.system(size: 11))
-                                        .foregroundColor(WebColors.sub)
-                                        .lineLimit(1)
-                                }
-                                Spacer()
-                            }
-                            .padding(.horizontal, 12).padding(.vertical, 8)
-                            .background(item.isPlaying ? WebColors.ac.opacity(0.15) : Color.clear)
-                            .cornerRadius(8)
-                        }
-                    }
-                    .padding(.vertical, 8)
-                }
-            }
-            .frame(width: 320)
-            .background(WebColors.panelBg)
-            .cornerRadius(16, corners: [.topLeft, .bottomLeft])
-            .focusSection()
-        }
-        .ignoresSafeArea()
-    }
-
-    // MARK: - Control Button with proper focus
-    private func controlButton(icon: String, title: String, tag: Int, isCenter: Bool = false, action: @escaping () -> Void) -> some View {
+    private func controlButton(icon: String, title: String, tag: Int, action: @escaping () -> Void) -> some View {
         Button(action: {
             action()
             resetHideTimer()
         }) {
             VStack(spacing: 4) {
                 Image(systemName: icon)
-                    .font(.system(size: isCenter ? 32 : 26, weight: .medium))
+                    .font(.system(size: 26, weight: .medium))
                     .foregroundColor(.white)
                 Text(title)
                     .font(.system(size: 14, weight: .semibold))
@@ -218,14 +134,7 @@ struct FullPlayerView: View {
         .focusEffectDisabled()
     }
 
-    // MARK: - Logic
     private func setup() {
-        if let playingIdx = api.queue.firstIndex(where: { $0.isPlaying }) {
-            let nextIdx = api.queue.index(after: playingIdx)
-            if nextIdx < api.queue.count {
-                nextUpSong = api.queue[nextIdx]
-            }
-        }
         showControls = true
         resetHideTimer()
     }
@@ -242,39 +151,18 @@ struct FullPlayerView: View {
 
     private func toggleControls() {
         showControls.toggle()
-        if showControls {
-            resetHideTimer()
-        }
+        if showControls { resetHideTimer() }
     }
 
     private func resetHideTimer() {
         hideTimer?.invalidate()
         hideTimer = Timer.scheduledTimer(withTimeInterval: 6, repeats: false) { _ in
-            DispatchQueue.main.async {
-                showControls = false
-            }
+            DispatchQueue.main.async { showControls = false }
         }
     }
 
     private func formatTime(_ seconds: Double) -> String {
         guard !seconds.isNaN else { return "0:00" }
         return String(format: "%d:%02d", Int(seconds) / 60, Int(seconds) % 60)
-    }
-}
-
-// Helper for corner radius
-extension View {
-    func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
-        clipShape(RoundedCorner(radius: radius, corners: corners))
-    }
-}
-
-struct RoundedCorner: Shape {
-    var radius: CGFloat = .infinity
-    var corners: UIRectCorner = .allCorners
-
-    func path(in rect: CGRect) -> Path {
-        let path = UIBezierPath(roundedRect: rect, byRoundingCorners: corners, cornerRadii: CGSize(width: radius, height: radius))
-        return Path(path.cgPath)
     }
 }

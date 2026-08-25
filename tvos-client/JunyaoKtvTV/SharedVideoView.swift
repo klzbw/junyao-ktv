@@ -3,7 +3,6 @@ import AVFoundation
 import UIKit
 
 /// A video view that uses the shared PlayerManager's AVPlayerLayer.
-/// Uses a custom UIView subclass that properly manages layer frame on layout changes.
 struct SharedVideoView: UIViewRepresentable {
     let playerManager: PlayerManager
 
@@ -19,11 +18,9 @@ struct SharedVideoView: UIViewRepresentable {
     }
 }
 
-/// Custom UIView that holds the shared AVPlayerLayer and updates its frame on layout.
+/// Custom UIView that holds the shared AVPlayerLayer.
 class PlayerContainerView: UIView {
-    weak var playerManager: PlayerManager? {
-        didSet { attachLayer() }
-    }
+    weak var playerManager: PlayerManager?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -39,34 +36,16 @@ class PlayerContainerView: UIView {
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        // Update player layer frame whenever view bounds change
-        if let layer = playerManager?.playerLayer {
-            layer.frame = bounds
-        }
-    }
-
-    override func didMoveToWindow() {
-        super.didMoveToWindow()
-        // Re-attach when view moves to a new window (e.g., returning from fullscreen)
-        if window != nil {
-            attachLayer()
-        }
+        playerManager?.playerLayer?.frame = bounds
     }
 
     func attachLayer() {
-        guard let playerManager = playerManager,
-              let layer = playerManager.playerLayer else { return }
-
-        // Always re-attach to ensure layer is on this view
+        guard let layer = playerManager?.playerLayer else { return }
         if layer.superlayer != self.layer {
             layer.removeFromSuperlayer()
             layer.frame = bounds
             layer.videoGravity = .resizeAspectFill
             self.layer.addSublayer(layer)
-        } else {
-            // Already attached, just update frame
-            layer.frame = bounds
         }
-        self.layer.masksToBounds = true
     }
 }
