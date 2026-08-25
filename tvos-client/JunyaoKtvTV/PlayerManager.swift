@@ -130,6 +130,8 @@ class PlayerManager: ObservableObject {
     }
 
     // MARK: - Voice Toggle (Original / Accompaniment)
+    var currentAudioTracks: Int = 1
+
     func toggleVoice() {
         isOriginalVoice.toggle()
         applyVoiceMode()
@@ -143,18 +145,28 @@ class PlayerManager: ObservableObject {
     private func applyVoiceMode() {
         guard let playerItem = player?.currentItem else { return }
 
-        // Method 1: Try switching HLS audio tracks
-        if let audioGroup = playerItem.asset.mediaSelectionGroup(forMediaCharacteristic: .audible) {
-            let options = audioGroup.options
-            if options.count >= 2 {
-                let targetIndex = isOriginalVoice ? 0 : min(1, options.count - 1)
-                playerItem.select(options[targetIndex], in: audioGroup)
-                return
+        // Try switching HLS audio tracks immediately
+        if trySwitchAudioTracks(playerItem) { return }
+
+        // HLS tracks may not be loaded yet, retry after delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            guard let self = self, let item = self.player?.currentItem else { return }
+            if !self.trySwitchAudioTracks(item) {
+                // Fallback: reload HLS stream
+                self.reloadHLSStream()
             }
         }
+    }
 
-        // Method 2: Server-side switch - reload HLS stream (server returns correct track based on state)
-        reloadHLSStream()
+    private func trySwitchAudioTracks(_ playerItem: AVPlayerItem) -> Bool {
+        guard let audioGroup = playerItem.asset.mediaSelectionGroup(forMediaCharacteristic: .audible) else {
+            return false
+        }
+        let options = audioGroup.options
+        guard options.count >= 2 else { return false }
+        let targetIndex = isOriginalVoice ? 0 : min(1, options.count - 1)
+        playerItem.select(options[targetIndex], in: audioGroup)
+        return true
     }
 
     private func reloadHLSStream() {

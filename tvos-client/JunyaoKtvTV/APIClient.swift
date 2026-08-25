@@ -86,22 +86,23 @@ class KTVAPIClient: ObservableObject {
     }
 
     // MARK: - Songs
-    func fetchSongs(query: String = "", artist: String = "") {
+    func fetchSongs(query: String = "", artist: String = "", completion: (() -> Void)? = nil) {
         var path = "/api/songs"
         var params: [String] = []
         if !query.isEmpty { params.append("q=\(query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")") }
         if !artist.isEmpty { params.append("artist=\(artist.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")") }
         if !params.isEmpty { path += "?" + params.joined(separator: "&") }
-        guard let url = apiURL(path) else { return }
+        guard let url = apiURL(path) else { completion?(); return }
         URLSession.shared.dataTask(with: url) { [weak self] data, _, error in
             DispatchQueue.main.async {
-                if let error = error { self?.connectionError = error.localizedDescription; self?.isConnected = false; return }
-                guard let data = data else { return }
+                if let error = error { self?.connectionError = error.localizedDescription; self?.isConnected = false; completion?(); return }
+                guard let data = data else { completion?(); return }
                 do {
                     self?.songs = try JSONDecoder().decode([Song].self, from: data)
                     self?.isConnected = true
                     self?.connectionError = nil
                 } catch { self?.connectionError = "解析失败: \(error.localizedDescription)" }
+                completion?()
             }
         }.resume()
     }
