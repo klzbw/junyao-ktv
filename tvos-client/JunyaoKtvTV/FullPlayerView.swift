@@ -125,20 +125,19 @@ struct FullPlayerView: View {
                 }
             }
 
-            // Transparent button to receive select button when controls are hidden
+            // Transparent focusable area to receive select button when controls are hidden
             if !showControls && !showQueue && !showQR {
-                Button(action: {
-                    withAnimation(.easeOut(duration: 0.2)) {
-                        showControls = true
+                Color.black.opacity(0.001)
+                    .contentShape(Rectangle())
+                    .focusable(true)
+                    .focusEffectDisabled()
+                    .onTapGesture {
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            showControls = true
+                        }
+                        resetHideTimer()
                     }
-                    resetHideTimer()
-                }) {
-                    Color.clear
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .focusEffectDisabled()
-                .ignoresSafeArea()
+                    .ignoresSafeArea()
             }
 
             // Queue panel overlay
