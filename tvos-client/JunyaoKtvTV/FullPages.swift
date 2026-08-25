@@ -181,22 +181,47 @@ struct ArtistsPage: View {
     let onBack: () -> Void
     let onArtistSelect: (String) -> Void
     @State private var currentPage = 1
+    @State private var searchInput = ""
     private let pageSize = 40
+
+    private func firstLetter(of text: String) -> String {
+        guard let first = text.first else { return "#" }
+        if first.isLetter && first.isASCII {
+            return String(first).uppercased()
+        }
+        let mutable = NSMutableString(string: String(first)) as CFMutableString
+        CFStringTransform(mutable, nil, kCFStringTransformToLatin, false)
+        CFStringTransform(mutable, nil, kCFStringTransformStripDiacritics, false)
+        let pinyin = mutable as String
+        if let pinyinFirst = pinyin.first, pinyinFirst.isLetter {
+            return String(pinyinFirst).uppercased()
+        }
+        return "#"
+    }
+
+    var filteredArtists: [Artist] {
+        if searchInput.isEmpty { return api.artists }
+        return api.artists.filter { artist in
+            // Match by first letter or name contains
+            firstLetter(of: artist.displayName) == searchInput.uppercased() ||
+            artist.displayName.localizedCaseInsensitiveContains(searchInput)
+        }
+    }
 
     var pagedArtists: [Artist] {
         let start = (currentPage - 1) * pageSize
-        let end = min(start + pageSize, api.artists.count)
-        return start < api.artists.count ? Array(api.artists[start..<end]) : []
+        let end = min(start + pageSize, filteredArtists.count)
+        return start < filteredArtists.count ? Array(filteredArtists[start..<end]) : []
     }
 
     var body: some View {
         FullPageContainer(title: "🎙 歌星", onBack: onBack,
                          showPagination: true, currentPage: currentPage,
-                         totalPages: max(1, (api.artists.count + pageSize - 1) / pageSize),
+                         totalPages: max(1, (filteredArtists.count + pageSize - 1) / pageSize),
                          onPageChange: { currentPage = $0 }) {
             HStack(spacing: 0) {
                 // Alpha panel (exact .alpha-panel, width 345px)
-                AlphaKeyboard()
+                AlphaKeyboard(input: $searchInput)
                     .frame(width: 300)
                     .background(Color.black.opacity(0.3))
 
@@ -223,12 +248,13 @@ struct ArtistsPage: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .onAppear { api.fetchArtists() }
+        .onChange(of: searchInput) { _ in currentPage = 1 }
     }
 }
 
 // MARK: - Alpha Keyboard (exact .alpha-panel)
 struct AlphaKeyboard: View {
-    @State private var input = ""
+    @Binding var input: String
     @State private var isNumMode = false
     let letters = Array("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
     let numbers = Array("0123456789")

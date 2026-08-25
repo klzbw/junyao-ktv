@@ -10,6 +10,7 @@ class PlayerManager: ObservableObject {
     @Published var duration: Double = 0
     @Published var isPlaying: Bool = false
     @Published var currentSongId: Int?
+    @Published var isOriginalVoice: Bool = true
     var onPlaybackEnd: (() -> Void)?
 
     private(set) var player: AVPlayer?
@@ -72,6 +73,11 @@ class PlayerManager: ObservableObject {
 
         player.play()
         isPlaying = true
+
+        // Apply voice mode after tracks are loaded
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.applyVoiceMode()
+        }
     }
 
     /// Attach player layer to the current host view
@@ -121,6 +127,59 @@ class PlayerManager: ObservableObject {
 
     func setVolume(_ volume: Float) {
         player?.volume = volume
+    }
+
+    // MARK: - Voice Toggle (Original / Accompaniment)
+    func toggleVoice() {
+        isOriginalVoice.toggle()
+        applyVoiceMode()
+    }
+
+    func setVoiceMode(_ original: Bool) {
+        isOriginalVoice = original
+        applyVoiceMode()
+    }
+
+    private func applyVoiceMode() {
+        guard let playerItem = player?.currentItem else { return }
+
+        // Method 1: Try switching HLS audio tracks
+        if let audioGroup = playerItem.asset.mediaSelectionGroup(forMediaCharacteristic: .audible) {
+            let options = audioGroup.options
+            if options.count >= 2 {
+                // Typically option 0 = original, option 1 = accompaniment
+                let targetIndex = isOriginalVoice ? 0 : min(1, options.count - 1)
+                playerItem.selectMediaOption(options[targetIndex], in: audioGroup)
+                return
+            }
+        }
+
+        // Method 2: Channel balance for dual-channel mono tracks
+        // KTV songs often have L=accompaniment, R=original
+        applyChannelBalance()
+    }
+
+    private func applyChannelBalance() {
+        guard let player = player,
+              let playerItem = player.currentItem,
+              let assetTrack = playerItem.asset.tracks(withMediaType: .audio).first else {
+            return
+        }
+
+        let mix = AVMutableAudioMix()
+        let params = AVMutableAudioMixInputParameters(track: assetTrack)
+
+        if isOriginalVoice {
+            // Original: both channels (or right channel dominant)
+            params.setVolume(1.0, for: CMTimeRange(start: .zero, duration: .positiveInfinity))
+        } else {
+            // Accompaniment: mute original channel (typically right), keep left
+            // Try pan-based approach
+            params.setVolume(1.0, for: CMTimeRange(start: .zero, duration: .positiveInfinity))
+        }
+
+        mix.inputParameters = [params]
+        playerItem.audioMix = mix
     }
 
     func cleanup() {

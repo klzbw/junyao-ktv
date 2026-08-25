@@ -14,6 +14,7 @@ struct FullPlayerView: View {
     @State private var hideTimer: Timer?
     @State private var hasAutoExited = false
     @State private var showQueue = false
+    @State private var showQR = false
 
     enum VoiceMode {
         case original, accompaniment
@@ -89,6 +90,9 @@ struct FullPlayerView: View {
                             Button(action: { showQueue = true }) {
                                 controlContent(icon: "list.bullet", title: "队列")
                             }
+                            Button(action: { showQR = true }) {
+                                controlContent(icon: "qrcode", title: "扫码")
+                            }
                         }
                         .padding(.horizontal, 10)
                     }
@@ -107,14 +111,19 @@ struct FullPlayerView: View {
                     .transition(.move(edge: .trailing))
                     .zIndex(2)
             }
+
+            // QR code overlay
+            if showQR {
+                qrPanel
+                    .transition(.opacity)
+                    .zIndex(3)
+            }
         }
         .contentShape(Rectangle())
         .onTapGesture {
-            // If queue panel is open, close it first
-            if showQueue {
-                showQueue = false
-                return
-            }
+            // If QR or queue panel is open, close it first
+            if showQR { showQR = false; return }
+            if showQueue { showQueue = false; return }
             // Select button: toggle controls visibility
             withAnimation(.easeOut(duration: 0.2)) {
                 showControls.toggle()
@@ -127,7 +136,9 @@ struct FullPlayerView: View {
             resetHideTimer()
         }
         .onExitCommand {
-            if showQueue {
+            if showQR {
+                showQR = false
+            } else if showQueue {
                 showQueue = false
             } else if showControls {
                 showControls = false
@@ -167,6 +178,7 @@ struct FullPlayerView: View {
         showControls = true
         resetHideTimer()
         hasAutoExited = false
+        voiceMode = playerManager.isOriginalVoice ? .original : .accompaniment
         // Set playback end callback to auto-exit
         playerManager.onPlaybackEnd = {
             DispatchQueue.main.async {
@@ -264,6 +276,57 @@ struct FullPlayerView: View {
         }
     }
 
+    // MARK: - QR Panel
+    private var qrPanel: some View {
+        ZStack {
+            Color.black.opacity(0.7).ignoresSafeArea()
+                .focusable(false)
+                .onTapGesture { showQR = false }
+            VStack(spacing: 16) {
+                Text("扫码点歌")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundColor(.white)
+                if let qrImage = generateQRCode(from: "http://\(api.serverAddress)/m") {
+                    Image(uiImage: qrImage)
+                        .interpolation(.none)
+                        .resizable()
+                        .frame(width: 240, height: 240)
+                        .background(Color.white)
+                        .cornerRadius(12)
+                        .padding(12)
+                        .background(Color.white)
+                        .cornerRadius(16)
+                }
+                Text("手机扫码即可点歌")
+                    .font(.system(size: 16))
+                    .foregroundColor(WebColors.sub)
+                Button(action: { showQR = false }) {
+                    Text("关闭")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 24).padding(.vertical, 10)
+                        .background(WebColors.ac)
+                        .cornerRadius(999)
+                }.buttonStyle(.plain)
+            }
+            .padding(30)
+            .background(WebColors.panelBg)
+            .cornerRadius(20)
+            .focusSection()
+        }
+    }
+
+    private func generateQRCode(from string: String) -> UIImage? {
+        guard let data = string.data(using: .ascii),
+              let filter = CIFilter(name: "CIQRCodeGenerator") else { return nil }
+        filter.setValue(data, forKey: "inputMessage")
+        filter.setValue("M", forKey: "inputCorrectionLevel")
+        guard let output = filter.outputImage else { return nil }
+        let scaled = output.transformed(by: CGAffineTransform(scaleX: 10, y: 10))
+        guard let cgImage = CIContext().createCGImage(scaled, from: scaled.extent) else { return nil }
+        return UIImage(cgImage: cgImage)
+    }
+
     private func cleanup() {
         hideTimer?.invalidate()
         hideTimer = nil
@@ -271,7 +334,8 @@ struct FullPlayerView: View {
     }
 
     private func toggleVoice() {
-        voiceMode = voiceMode == .original ? .accompaniment : .original
+        playerManager.toggleVoice()
+        voiceMode = playerManager.isOriginalVoice ? .original : .accompaniment
         api.toggleVoice()
     }
 

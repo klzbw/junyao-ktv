@@ -455,8 +455,8 @@ struct ContentView: View {
             case "repeat":
                 playerManager.restart()
             case "voice":
-                isOriginalVoice.toggle()
-                showToast(isOriginalVoice ? "原唱" : "伴唱")
+                playerManager.toggleVoice()
+                showToast(playerManager.isOriginalVoice ? "原唱" : "伴唱")
             case "eq":
                 if let name = payload["name"] as? String {
                     showToast("均衡器: \(name)")
@@ -527,9 +527,10 @@ struct ContentView: View {
     private var mvCtrl: some View {
         HStack(spacing: 6) {
             MVButton(icon: "slider.horizontal.3", title: "均衡器") { activePanel = .eq }
-            MVButton(icon: "mic", title: isOriginalVoice ? "原唱" : "伴唱") {
-                isOriginalVoice.toggle()
+            MVButton(icon: "mic", title: playerManager.isOriginalVoice ? "原唱" : "伴唱") {
+                playerManager.toggleVoice()
                 api.toggleVoice()
+                showToast(playerManager.isOriginalVoice ? "原唱" : "伴唱")
             }
             MVButton(icon: playerManager.isPlaying ? "pause.fill" : "play.fill",
                     title: playerManager.isPlaying ? "暂停" : "播放", isCenter: true) {
@@ -764,14 +765,38 @@ struct OrderSongsPage: View {
     let onAdd: (Song) -> Void
     @State private var searchText = ""
     @State private var currentPage = 0
+    @State private var selectedLetter: String? = nil
     private let pageSize = 50
+    private let letters = ["#","A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"]
+
+    private func firstLetter(of text: String) -> String {
+        guard let first = text.first else { return "#" }
+        if first.isLetter && first.isASCII {
+            return String(first).uppercased()
+        }
+        // Convert Chinese to pinyin and get first letter
+        let mutable = NSMutableString(string: String(first)) as CFMutableString
+        CFStringTransform(mutable, nil, kCFStringTransformToLatin, false)
+        CFStringTransform(mutable, nil, kCFStringTransformStripDiacritics, false)
+        let pinyin = mutable as String
+        if let pinyinFirst = pinyin.first, pinyinFirst.isLetter {
+            return String(pinyinFirst).uppercased()
+        }
+        return "#"
+    }
 
     var filteredSongs: [Song] {
-        if searchText.isEmpty { return api.songs }
-        return api.songs.filter {
-            $0.displayTitle.localizedCaseInsensitiveContains(searchText) ||
-            $0.displayArtist.localizedCaseInsensitiveContains(searchText)
+        var result = api.songs
+        if let letter = selectedLetter {
+            result = result.filter { firstLetter(of: $0.displayTitle) == letter }
         }
+        if !searchText.isEmpty {
+            result = result.filter {
+                $0.displayTitle.localizedCaseInsensitiveContains(searchText) ||
+                $0.displayArtist.localizedCaseInsensitiveContains(searchText)
+            }
+        }
+        return result
     }
 
     var pagedSongs: [Song] {
@@ -820,6 +845,29 @@ struct OrderSongsPage: View {
             }
             .padding(.horizontal, 20).padding(.vertical, 14)
             .background(WebColors.topbarBg)
+
+            // A-Z Alphabet quick filter
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(letters, id: \.self) { letter in
+                        Button(action: {
+                            selectedLetter = (selectedLetter == letter) ? nil : letter
+                            currentPage = 0
+                        }) {
+                            Text(letter)
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(selectedLetter == letter ? .white : WebColors.sub)
+                                .frame(width: 36, height: 36)
+                                .background(selectedLetter == letter ? WebColors.ac.opacity(0.6) : WebColors.cardBg)
+                                .cornerRadius(8)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 10)
+            }
+            .background(WebColors.topbarBg.opacity(0.5))
 
             // Song list (2-col grid exact .song-list-2col)
             ScrollView {
