@@ -332,18 +332,21 @@ struct ArtistsPage: View {
                             .font(.system(size: 22, weight: .bold))
                             .foregroundColor(.white)
                         Spacer()
-                        Group {
-                            if inputLetters.isEmpty {
-                                Text("全部")
-                            } else {
-                                Text(inputLetters)
-                            }
+                        if inputLetters.isEmpty {
+                            Text("全部")
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 14).padding(.vertical: 6)
+                                .background(Color.white.opacity(0.15))
+                                .cornerRadius(999)
+                        } else {
+                            Text(inputLetters)
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 14).padding(.vertical: 6)
+                                .background(Color(hex: 0xb91c5c).opacity(0.8))
+                                .cornerRadius(999)
                         }
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 14).padding(.vertical: 6)
-                            .background(inputLetters.isEmpty ? Color.white.opacity(0.15) : Color(hex: 0xb91c5c).opacity(0.8))
-                            .cornerRadius(999)
                     }
                     .padding(.horizontal, 16).padding(.vertical, 14)
 
