@@ -149,7 +149,7 @@ class PlayerManager: ObservableObject {
             if options.count >= 2 {
                 // Typically option 0 = original, option 1 = accompaniment
                 let targetIndex = isOriginalVoice ? 0 : min(1, options.count - 1)
-                playerItem.selectMediaOption(options[targetIndex], inMediaSelectionGroup: audioGroup)
+                playerItem.select(options[targetIndex], in: audioGroup)
                 return
             }
         }
