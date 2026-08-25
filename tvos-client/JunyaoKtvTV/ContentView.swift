@@ -279,7 +279,8 @@ struct ContentView: View {
     }
 
     private func quickCard(title: String, icon: String, gradient: LinearGradient, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
+        @FocusState var focused: Bool
+        return Button(action: action) {
             HStack(spacing: 6) {
                 Text(title)
                     .font(.system(size: 24, weight: .bold))
@@ -293,11 +294,14 @@ struct ContentView: View {
             }
             .padding(.horizontal, 14)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(gradient)
+            .background(gradient.opacity(focused ? 1.0 : 0.85))
             .cornerRadius(12)
         }
         .buttonStyle(.plain)
+        .focused($focused)
         .focusEffectDisabled()
+        .scaleEffect(focused ? 1.06 : 1.0)
+        .animation(Animation.easeOut(duration: 0.18), value: focused)
     }
 
     // MARK: - QR Code View (exact #now-qr-code2)
@@ -634,8 +638,8 @@ struct ContentView: View {
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
             .background(
-                item.isPlaying ? WebColors.ac.opacity(0.15) :
-                focused ? Color.white.opacity(0.1) : Color.clear
+                item.isPlaying ? WebColors.ac.opacity(0.25) :
+                focused ? WebColors.ac.opacity(0.2) : Color.clear
             )
             .cornerRadius(8)
         }
