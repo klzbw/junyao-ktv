@@ -66,29 +66,28 @@ struct NavButton: View {
     @FocusState private var focused: Bool
 
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: 4) {
-                Image(systemName: icon).font(.system(size: 16))
-                Text(title).font(.system(size: 16))
-                if let badge = badge, badge > 0 {
-                    Text("\(badge)")
-                        .font(.system(size: 11))
-                        .padding(.horizontal, 5).padding(.vertical, 1)
-                        .background(WebColors.ac)
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
-                }
+        HStack(spacing: 4) {
+            Image(systemName: icon).font(.system(size: 16))
+            Text(title).font(.system(size: 16))
+            if let badge = badge, badge > 0 {
+                Text("\(badge)")
+                    .font(.system(size: 11))
+                    .padding(.horizontal, 5).padding(.vertical, 1)
+                    .background(WebColors.ac)
+                    .foregroundColor(.white)
+                    .cornerRadius(8)
             }
-            .padding(.horizontal, 10).padding(.vertical, 6)
-            .background(focused ? WebColors.nbFocusBg : WebColors.nbBg)
-            .foregroundColor(focused ? WebColors.ac : .white)
-            .cornerRadius(999)
-            .scaleEffect(focused ? 1.06 : 1.0)
-            .animation(.easeOut(duration: 0.2), value: focused)
         }
-        .buttonStyle(.plain)
+        .padding(.horizontal, 10).padding(.vertical, 6)
+        .background(focused ? WebColors.ac.opacity(0.4) : WebColors.nbBg)
+        .foregroundColor(focused ? .white : Color.white.opacity(0.85))
+        .cornerRadius(999)
+        .focusable(true)
         .focused($focused)
         .focusEffectDisabled()
+        .scaleEffect(focused ? 1.08 : 1.0)
+        .animation(.easeOut(duration: 0.2), value: focused)
+        .onTapGesture { action() }
     }
 }
 
@@ -116,17 +115,17 @@ struct MVButton: View {
             Group {
                 if focused {
                     RoundedRectangle(cornerRadius: 14)
-                        .fill(WebColors.ac.opacity(0.25))
+                        .fill(WebColors.ac.opacity(0.5))
                 } else {
                     RoundedRectangle(cornerRadius: 14)
-                        .fill(Color.white.opacity(0.08))
+                        .fill(Color.white.opacity(0.06))
                 }
             }
         )
         .focusable(true)
         .focused($focused)
         .focusEffectDisabled()
-        .scaleEffect(focused ? 1.04 : 1.0)
+        .scaleEffect(focused ? 1.06 : 1.0)
         .animation(Animation.easeOut(duration: 0.18), value: focused)
         .onTapGesture { action() }
     }

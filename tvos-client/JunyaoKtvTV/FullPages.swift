@@ -38,22 +38,23 @@ struct FullPageContainer<Content: View>: View {
                         .font(.system(size: 22, weight: .bold))
                         .foregroundColor(.white)
                     Spacer()
-                    Button(action: onBack) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "chevron.left")
-                            Text("返回")
-                        }
-                        .font(.system(size: 17))
-                        .padding(.horizontal, 18).padding(.vertical, 7)
-                        .foregroundColor(backFocused ? WebColors.ac : .white)
-                        .cornerRadius(999)
-                        .overlay(RoundedRectangle(cornerRadius: 999)
-                            .stroke(backFocused ? WebColors.ac : Color.white.opacity(0.25), lineWidth: 1))
-                        .scaleEffect(backFocused ? 1.08 : 1.0)
-                        .animation(.easeOut(duration: 0.2), value: backFocused)
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                        Text("返回")
                     }
-                    .buttonStyle(.plain)
+                    .font(.system(size: 17))
+                    .padding(.horizontal, 18).padding(.vertical, 7)
+                    .foregroundColor(backFocused ? .white : Color.white.opacity(0.85))
+                    .background(backFocused ? WebColors.ac.opacity(0.4) : Color.clear)
+                    .cornerRadius(999)
+                    .overlay(RoundedRectangle(cornerRadius: 999)
+                        .stroke(backFocused ? WebColors.ac : Color.white.opacity(0.25), lineWidth: 1))
+                    .focusable(true)
                     .focused($backFocused)
+                    .focusEffectDisabled()
+                    .scaleEffect(backFocused ? 1.06 : 1.0)
+                    .animation(.easeOut(duration: 0.2), value: backFocused)
+                    .onTapGesture { onBack() }
                 }
                 .padding(.horizontal, 20).padding(.vertical, 14)
                 .background(WebColors.topbarBg)
@@ -492,6 +493,42 @@ struct ArtistsPage: View {
 }
 
 // MARK: - Alpha Keyboard (exact .alpha-panel)
+struct AlphaKey: View {
+    let label: String
+    var isDelete: Bool = false
+    let action: () -> Void
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        Text(label)
+            .font(.system(size: isDelete ? 14 : 26, weight: .bold))
+            .foregroundColor(isDelete ? WebColors.pink : (focused ? .white : Color.white.opacity(0.9)))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, isDelete ? 10 : 16)
+            .background(
+                Group {
+                    if focused {
+                        RoundedRectangle(cornerRadius: 6).fill(WebColors.ac.opacity(0.5))
+                    } else if isDelete {
+                        RoundedRectangle(cornerRadius: 6).fill(WebColors.pink.opacity(0.15))
+                    } else {
+                        RoundedRectangle(cornerRadius: 6).fill(WebColors.cardBg)
+                    }
+                }
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 6)
+                    .stroke(focused ? WebColors.ac2 : Color.clear, lineWidth: 2)
+            )
+            .focusable(true)
+            .focused($focused)
+            .focusEffectDisabled()
+            .scaleEffect(focused ? 1.08 : 1.0)
+            .animation(.easeOut(duration: 0.15), value: focused)
+            .onTapGesture { action() }
+    }
+}
+
 struct AlphaKeyboard: View {
     @Binding var input: String
     @State private var isNumMode = false
@@ -506,12 +543,13 @@ struct AlphaKeyboard: View {
                 Text(input.isEmpty ? "歌星搜索" : input)
                     .font(.system(size: 16)).foregroundColor(.white).lineLimit(1)
                 Spacer()
-                Button(action: { isNumMode.toggle() }) {
-                    Text(isNumMode ? "ABC" : "123")
-                        .font(.system(size: 14)).foregroundColor(WebColors.ac2)
-                        .padding(.horizontal, 8).padding(.vertical, 4)
-                        .background(WebColors.cardBg).cornerRadius(6)
-                }.buttonStyle(.plain)
+                Text(isNumMode ? "ABC" : "123")
+                    .font(.system(size: 14)).foregroundColor(WebColors.ac2)
+                    .padding(.horizontal, 8).padding(.vertical, 4)
+                    .background(WebColors.cardBg).cornerRadius(6)
+                    .focusable(true)
+                    .focusEffectDisabled()
+                    .onTapGesture { isNumMode.toggle() }
             }
             .padding(.horizontal, 12).padding(.vertical, 10)
             .background(WebColors.cardBg).cornerRadius(8)
@@ -524,25 +562,9 @@ struct AlphaKeyboard: View {
                                     GridItem(.flexible())], spacing: 6) {
                     let keys = isNumMode ? numbers : letters
                     ForEach(keys, id: \.self) { ch in
-                        Button(action: { input.append(ch) }) {
-                            Text(String(ch))
-                                .font(.system(size: 26, weight: .bold))
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(WebColors.cardBg)
-                                .cornerRadius(6)
-                        }.buttonStyle(.plain)
+                        AlphaKey(label: String(ch), action: { input.append(ch) })
                     }
-                    Button(action: { if !input.isEmpty { input.removeLast() } }) {
-                        Text("删除")
-                            .font(.system(size: 14))
-                            .foregroundColor(WebColors.pink)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
-                            .background(WebColors.pink.opacity(0.15))
-                            .cornerRadius(6)
-                    }.buttonStyle(.plain)
+                    AlphaKey(label: "删除", isDelete: true, action: { if !input.isEmpty { input.removeLast() } })
                 }
             }
         }

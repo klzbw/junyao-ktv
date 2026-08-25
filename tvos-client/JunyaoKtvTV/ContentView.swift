@@ -293,12 +293,16 @@ struct ContentView: View {
         }
         .padding(.horizontal, 14)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(gradient.opacity(focused ? 1.0 : 0.85))
+        .background(gradient.opacity(focused ? 1.0 : 0.6))
         .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(focused ? Color.white.opacity(0.6) : Color.clear, lineWidth: 2)
+        )
         .focusable(true)
         .focused($focused)
         .focusEffectDisabled()
-        .scaleEffect(focused ? 1.03 : 1.0)
+        .scaleEffect(focused ? 1.05 : 1.0)
         .animation(Animation.easeOut(duration: 0.18), value: focused)
         .onTapGesture { action() }
     }
@@ -335,100 +339,107 @@ struct ContentView: View {
 
     // MARK: - Now Panel (exact #now-panel with video preview)
     private var nowPanel: some View {
-        Button(action: {
+        @FocusState var panelFocused: Bool
+        return ZStack {
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.black)
+
+            if let playing = api.queue.first(where: { $0.isPlaying }),
+               let hlsURL = api.hlsURL(songId: playing.song_id) {
+                // Video preview using shared player
+                // Use id to force rebuild when returning from fullscreen
+                SharedVideoView(playerManager: playerManager)
+                    .id("preview-\(showingPlayer ? "fs" : "normal")")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .onAppear {
+                        playerManager.currentAudioTracks = playing.audio_tracks ?? 1
+                        playerManager.setupPlayer(for: hlsURL)
+                        playerManager.setVolume(volume)
+                        // Re-attach layer after setup to ensure video shows
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            playerManager.attachLayerToCurrentHost()
+                        }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            playerManager.attachLayerToCurrentHost()
+                        }
+                    }
+
+                // Song intro animation (exact #song-intro)
+                if showSongIntro, let intro = introSong {
+                    songIntroView(song: intro)
+                        .transition(.opacity)
+                }
+
+                // Bottom gradient info (exact #now-info)
+                VStack {
+                    Spacer()
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(playing.displayTitle)
+                            .font(.system(size: 22, weight: .semibold))
+                            .foregroundColor(.white)
+                            .lineLimit(1)
+                        Text(playing.displayArtist)
+                            .font(.system(size: 17))
+                            .foregroundColor(WebColors.sub)
+                            .lineLimit(1)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 14)
+                    .background(LinearGradient(colors: [Color.black.opacity(0.85), .clear],
+                                               startPoint: .bottom, endPoint: .top))
+                }
+            } else {
+                // Idle state (exact #now-idle)
+                VStack(spacing: 10) {
+                    Text("骏耀K歌")
+                        .font(.system(size: 36, weight: .heavy))
+                        .foregroundStyle(LinearGradient(colors: [WebColors.ac2, WebColors.ac, WebColors.pink],
+                                                        startPoint: .leading, endPoint: .trailing))
+                    Text("扫码点歌 · 大屏沉浸演唱")
+                        .font(.system(size: 14))
+                        .foregroundColor(WebColors.sub)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(
+                    RadialGradient(colors: [WebColors.ac.opacity(0.2), .clear],
+                                   center: UnitPoint(x: 0.3, y: 0.5), startRadius: 0, endRadius: 200)
+                    .overlay(WebColors.navy)
+                )
+            }
+
+            // QR Code corner (exact #now-qr-corner)
+            if showQR {
+                VStack {
+                    HStack {
+                        Spacer()
+                        qrCodeView
+                            .padding(10)
+                            .background(Color.white.opacity(0.95))
+                            .cornerRadius(10)
+                            .padding(10)
+                    }
+                    Spacer()
+                }
+                .transition(.opacity)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .cornerRadius(16)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(panelFocused ? WebColors.ac : Color.clear, lineWidth: 3)
+        )
+        .focusable(true)
+        .focused($panelFocused)
+        .focusEffectDisabled()
+        .scaleEffect(panelFocused ? 1.02 : 1.0)
+        .animation(.easeOut(duration: 0.18), value: panelFocused)
+        .onTapGesture {
             if api.queue.contains(where: { $0.isPlaying }) {
                 showingPlayer = true
             }
-        }) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color.black)
-
-                if let playing = api.queue.first(where: { $0.isPlaying }),
-                   let hlsURL = api.hlsURL(songId: playing.song_id) {
-                    // Video preview using shared player
-                    // Use id to force rebuild when returning from fullscreen
-                    SharedVideoView(playerManager: playerManager)
-                        .id("preview-\(showingPlayer ? "fs" : "normal")")
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .onAppear {
-                            playerManager.currentAudioTracks = playing.audio_tracks ?? 1
-                            playerManager.setupPlayer(for: hlsURL)
-                            playerManager.setVolume(volume)
-                            // Re-attach layer after setup to ensure video shows
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                playerManager.attachLayerToCurrentHost()
-                            }
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                playerManager.attachLayerToCurrentHost()
-                            }
-                        }
-
-                    // Song intro animation (exact #song-intro)
-                    if showSongIntro, let intro = introSong {
-                        songIntroView(song: intro)
-                            .transition(.opacity)
-                    }
-
-                    // Bottom gradient info (exact #now-info)
-                    VStack {
-                        Spacer()
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(playing.displayTitle)
-                                .font(.system(size: 22, weight: .semibold))
-                                .foregroundColor(.white)
-                                .lineLimit(1)
-                            Text(playing.displayArtist)
-                                .font(.system(size: 17))
-                                .foregroundColor(WebColors.sub)
-                                .lineLimit(1)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 14)
-                        .background(LinearGradient(colors: [Color.black.opacity(0.85), .clear],
-                                                   startPoint: .bottom, endPoint: .top))
-                    }
-                } else {
-                    // Idle state (exact #now-idle)
-                    VStack(spacing: 10) {
-                        Text("骏耀K歌")
-                            .font(.system(size: 36, weight: .heavy))
-                            .foregroundStyle(LinearGradient(colors: [WebColors.ac2, WebColors.ac, WebColors.pink],
-                                                            startPoint: .leading, endPoint: .trailing))
-                        Text("扫码点歌 · 大屏沉浸演唱")
-                            .font(.system(size: 14))
-                            .foregroundColor(WebColors.sub)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(
-                        RadialGradient(colors: [WebColors.ac.opacity(0.2), .clear],
-                                       center: UnitPoint(x: 0.3, y: 0.5), startRadius: 0, endRadius: 200)
-                        .overlay(WebColors.navy)
-                    )
-                }
-
-                // QR Code corner (exact #now-qr-corner)
-                if showQR {
-                    VStack {
-                        HStack {
-                            Spacer()
-                            qrCodeView
-                                .padding(10)
-                                .background(Color.white.opacity(0.95))
-                                .cornerRadius(10)
-                                .padding(10)
-                        }
-                        Spacer()
-                    }
-                    .transition(.opacity)
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .cornerRadius(16)
         }
-        .buttonStyle(.plain)
-        .focusEffectDisabled()
         .onChange(of: api.queue.first(where: { $0.isPlaying })?.song_id) { newId in
             if let playing = api.queue.first(where: { $0.isPlaying }) {
                 introSong = playing
@@ -594,12 +605,16 @@ struct ContentView: View {
         }
         .padding(.horizontal, 18)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(gradient.opacity(focused ? 1.0 : 0.85))
+        .background(gradient.opacity(focused ? 1.0 : 0.7))
         .cornerRadius(16)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(focused ? Color.white.opacity(0.7) : Color.clear, lineWidth: 3)
+        )
         .focusable(true)
         .focused($focused)
         .focusEffectDisabled()
-        .scaleEffect(focused ? 1.03 : 1.0)
+        .scaleEffect(focused ? 1.05 : 1.0)
         .animation(Animation.easeOut(duration: 0.18), value: focused)
         .onTapGesture { action() }
     }
@@ -633,14 +648,18 @@ struct ContentView: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
         .background(
-            item.isPlaying ? WebColors.ac.opacity(0.25) :
-            focused ? WebColors.ac.opacity(0.2) : Color.clear
+            item.isPlaying ? WebColors.ac.opacity(0.35) :
+            focused ? WebColors.ac.opacity(0.3) : Color.clear
         )
         .cornerRadius(8)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(focused ? WebColors.ac2.opacity(0.8) : Color.clear, lineWidth: 2)
+        )
         .focusable(true)
         .focused($focused)
         .focusEffectDisabled()
-        .scaleEffect(focused ? 1.02 : 1.0)
+        .scaleEffect(focused ? 1.03 : 1.0)
         .animation(Animation.easeOut(duration: 0.15), value: focused)
         .onTapGesture {
             // Queue item tap - could play this song if API supports it
