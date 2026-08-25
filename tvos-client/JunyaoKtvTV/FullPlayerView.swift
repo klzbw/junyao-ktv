@@ -58,7 +58,7 @@ struct FullPlayerView: View {
                             }
                         }
 
-                        // 6 control buttons
+                        // 6 control buttons with focus support
                         HStack(spacing: 12) {
                             controlButton(icon: "house", title: "主页", tag: 0) { onClose() }
                             controlButton(icon: "gobackward", title: "重唱", tag: 1) { playerManager.restart() }
@@ -82,28 +82,48 @@ struct FullPlayerView: View {
             }
         }
         .contentShape(Rectangle())
-        .focusable()
+        .focusable(!showControls)
         .focusEffectDisabled()
-        .onTapGesture { toggleControls() }
+        .onTapGesture {
+            // Remote select button: show controls and focus play/pause
+            if !showControls {
+                showControls = true
+                focusedButton = 2
+                resetHideTimer()
+            }
+        }
         .onPlayPauseCommand {
             playerManager.togglePlayPause()
             showControls = true
+            focusedButton = 2
             resetHideTimer()
         }
         .onExitCommand {
             if showControls {
                 showControls = false
+                focusedButton = nil
             } else {
                 onClose()
             }
         }
         .onMoveCommand { direction in
-            showControls = true
+            if !showControls {
+                showControls = true
+                focusedButton = 2
+            }
             resetHideTimer()
             if direction == .left {
                 playerManager.seek(to: max(0, playerManager.currentTime - 10))
             } else if direction == .right {
                 playerManager.seek(to: playerManager.currentTime + 10)
+            }
+        }
+        .onChange(of: showControls) { newValue in
+            if newValue {
+                // Auto-focus play/pause button when controls appear
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    focusedButton = 2
+                }
             }
         }
     }
@@ -126,7 +146,7 @@ struct FullPlayerView: View {
             .padding(.vertical, 12)
             .background(focusedButton == tag ? WebColors.ac.opacity(0.5) : Color.white.opacity(0.12))
             .cornerRadius(12)
-            .scaleEffect(focusedButton == tag ? 1.1 : 1.0)
+            .scaleEffect(focusedButton == tag ? 1.12 : 1.0)
             .animation(.easeOut(duration: 0.15), value: focusedButton)
         }
         .buttonStyle(.plain)
@@ -137,6 +157,10 @@ struct FullPlayerView: View {
     private func setup() {
         showControls = true
         resetHideTimer()
+        // Auto-focus play/pause after a short delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            focusedButton = 2
+        }
     }
 
     private func cleanup() {
@@ -149,15 +173,13 @@ struct FullPlayerView: View {
         api.toggleVoice()
     }
 
-    private func toggleControls() {
-        showControls.toggle()
-        if showControls { resetHideTimer() }
-    }
-
     private func resetHideTimer() {
         hideTimer?.invalidate()
         hideTimer = Timer.scheduledTimer(withTimeInterval: 6, repeats: false) { _ in
-            DispatchQueue.main.async { showControls = false }
+            DispatchQueue.main.async {
+                showControls = false
+                focusedButton = nil
+            }
         }
     }
 

@@ -3,24 +3,19 @@ import AVFoundation
 import UIKit
 
 /// A video view that hosts the shared PlayerManager's playerContainerView.
-/// The global container view (with AVPlayerLayer) moves between small and fullscreen.
 struct SharedVideoView: UIViewRepresentable {
     let playerManager: PlayerManager
 
     func makeUIView(context: Context) -> VideoHostView {
         let view = VideoHostView()
         view.playerManager = playerManager
+        view.attachPlayer()
         return view
     }
 
     func updateUIView(_ uiView: VideoHostView, context: Context) {
         uiView.playerManager = playerManager
         uiView.attachPlayer()
-    }
-
-    static func dismantleUIView(_ uiView: VideoHostView, coordinator: ()) {
-        // Don't detach here - let the next view take over
-        // This prevents flicker when switching
     }
 }
 
@@ -38,6 +33,13 @@ class VideoHostView: UIView {
         super.init(coder: coder)
         backgroundColor = .black
         clipsToBounds = true
+    }
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        if window != nil {
+            attachPlayer()
+        }
     }
 
     override func layoutSubviews() {
