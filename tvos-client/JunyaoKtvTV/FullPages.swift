@@ -507,18 +507,19 @@ struct AlphaKey: View {
                 .foregroundColor(focused ? .white : (isDelete ? WebColors.pink : Color.white.opacity(0.8)))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, isDelete ? 10 : 16)
+                .background(
+                    Group {
+                        if focused {
+                            RoundedRectangle(cornerRadius: 6).fill(WebColors.ac.opacity(0.6))
+                        } else if isDelete {
+                            RoundedRectangle(cornerRadius: 6).fill(WebColors.pink.opacity(0.15))
+                        } else {
+                            RoundedRectangle(cornerRadius: 6).fill(Color.white.opacity(0.08))
+                        }
+                    }
+                )
         }
-        .background(
-            Group {
-                if focused {
-                    RoundedRectangle(cornerRadius: 6).fill(WebColors.ac.opacity(0.6))
-                } else if isDelete {
-                    RoundedRectangle(cornerRadius: 6).fill(WebColors.pink.opacity(0.15))
-                } else {
-                    RoundedRectangle(cornerRadius: 6).fill(Color.white.opacity(0.08))
-                }
-            }
-        )
+        .background(Color.clear)
         .buttonStyle(.plain)
         .focused($focused)
         .focusEffectDisabled()

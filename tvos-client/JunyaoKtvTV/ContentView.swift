@@ -294,9 +294,10 @@ struct ContentView: View {
             }
             .padding(.horizontal, 14)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(gradient.opacity(focused ? 1.0 : 0.7))
+            .cornerRadius(12)
         }
-        .background(gradient.opacity(focused ? 1.0 : 0.7))
-        .cornerRadius(12)
+        .background(Color.clear)
         .buttonStyle(.plain)
         .focused($focused)
         .focusEffectDisabled()
@@ -596,9 +597,10 @@ struct ContentView: View {
             }
             .padding(.horizontal, 18)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(gradient.opacity(focused ? 1.0 : 0.7))
+            .cornerRadius(16)
         }
-        .background(gradient.opacity(focused ? 1.0 : 0.7))
-        .cornerRadius(16)
+        .background(Color.clear)
         .buttonStyle(.plain)
         .focused($focused)
         .focusEffectDisabled()
@@ -637,12 +639,13 @@ struct ContentView: View {
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
+            .background(
+                item.isPlaying ? WebColors.ac.opacity(0.3) :
+                focused ? WebColors.ac.opacity(0.25) : Color.clear
+            )
+            .cornerRadius(8)
         }
-        .background(
-            item.isPlaying ? WebColors.ac.opacity(0.3) :
-            focused ? WebColors.ac.opacity(0.25) : Color.clear
-        )
-        .cornerRadius(8)
+        .background(Color.clear)
         .buttonStyle(.plain)
         .focused($focused)
         .focusEffectDisabled()
