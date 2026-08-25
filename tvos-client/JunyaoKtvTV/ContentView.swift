@@ -280,28 +280,27 @@ struct ContentView: View {
 
     private func quickCard(title: String, icon: String, gradient: LinearGradient, action: @escaping () -> Void) -> some View {
         @FocusState var focused: Bool
-        return Button(action: action) {
-            HStack(spacing: 6) {
-                Text(title)
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundColor(.white)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-                Spacer()
-                Image(systemName: icon)
-                    .font(.system(size: 28, weight: .medium))
-                    .foregroundColor(.white.opacity(0.95))
-            }
-            .padding(.horizontal, 14)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        return HStack(spacing: 6) {
+            Text(title)
+                .font(.system(size: 24, weight: .bold))
+                .foregroundColor(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
+            Spacer()
+            Image(systemName: icon)
+                .font(.system(size: 28, weight: .medium))
+                .foregroundColor(.white.opacity(0.95))
         }
+        .padding(.horizontal, 14)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(gradient.opacity(focused ? 1.0 : 0.85))
         .cornerRadius(12)
-        .buttonStyle(.plain)
+        .focusable(true)
         .focused($focused)
         .focusEffectDisabled()
         .scaleEffect(focused ? 1.03 : 1.0)
         .animation(Animation.easeOut(duration: 0.18), value: focused)
+        .onTapGesture { action() }
     }
 
     // MARK: - QR Code View (exact #now-qr-code2)
@@ -582,72 +581,70 @@ struct ContentView: View {
 
     private func bigRequestButton(title: String, icon: String, gradient: LinearGradient, action: @escaping () -> Void) -> some View {
         @FocusState var focused: Bool
-        return Button(action: action) {
-            HStack(spacing: 8) {
-                Text(title)
-                    .font(.system(size: 44, weight: .bold))
-                    .foregroundColor(.white)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-                Spacer()
-                Image(systemName: icon)
-                    .font(.system(size: 44, weight: .medium))
-                    .foregroundColor(.white.opacity(0.95))
-            }
-            .padding(.horizontal, 18)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        return HStack(spacing: 8) {
+            Text(title)
+                .font(.system(size: 44, weight: .bold))
+                .foregroundColor(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
+            Spacer()
+            Image(systemName: icon)
+                .font(.system(size: 44, weight: .medium))
+                .foregroundColor(.white.opacity(0.95))
         }
+        .padding(.horizontal, 18)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(gradient.opacity(focused ? 1.0 : 0.85))
         .cornerRadius(16)
-        .buttonStyle(.plain)
+        .focusable(true)
         .focused($focused)
         .focusEffectDisabled()
         .scaleEffect(focused ? 1.03 : 1.0)
         .animation(Animation.easeOut(duration: 0.18), value: focused)
+        .onTapGesture { action() }
     }
 
     private func queueRow(item: QueueItem, index: Int) -> some View {
         @FocusState var focused: Bool
-        return Button(action: {
-            // Queue item tap - could play this song if API supports it
-        }) {
-            HStack(spacing: 8) {
-                if item.isPlaying {
-                    Image(systemName: "play.circle.fill")
-                        .foregroundColor(WebColors.ac2)
-                        .font(.system(size: 16))
-                        .frame(width: 20)
-                } else {
-                    Text("\(index + 1)")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(focused ? .white : WebColors.sub)
-                        .frame(width: 20)
-                }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(item.displayTitle)
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(.white)
-                        .lineLimit(1)
-                    Text(item.displayArtist)
-                        .font(.system(size: 13))
-                        .foregroundColor(focused ? .white.opacity(0.8) : WebColors.sub)
-                        .lineLimit(1)
-                }
-                Spacer()
+        return HStack(spacing: 8) {
+            if item.isPlaying {
+                Image(systemName: "play.circle.fill")
+                    .foregroundColor(WebColors.ac2)
+                    .font(.system(size: 16))
+                    .frame(width: 20)
+            } else {
+                Text("\(index + 1)")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(focused ? .white : WebColors.sub)
+                    .frame(width: 20)
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
-            .background(
-                item.isPlaying ? WebColors.ac.opacity(0.25) :
-                focused ? WebColors.ac.opacity(0.2) : Color.clear
-            )
-            .cornerRadius(8)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.displayTitle)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                Text(item.displayArtist)
+                    .font(.system(size: 13))
+                    .foregroundColor(focused ? .white.opacity(0.8) : WebColors.sub)
+                    .lineLimit(1)
+            }
+            Spacer()
         }
-        .buttonStyle(.plain)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(
+            item.isPlaying ? WebColors.ac.opacity(0.25) :
+            focused ? WebColors.ac.opacity(0.2) : Color.clear
+        )
+        .cornerRadius(8)
+        .focusable(true)
         .focused($focused)
         .focusEffectDisabled()
         .scaleEffect(focused ? 1.02 : 1.0)
         .animation(Animation.easeOut(duration: 0.15), value: focused)
+        .onTapGesture {
+            // Queue item tap - could play this song if API supports it
+        }
     }
 
     // MARK: - Right Queue (exact #right-queue)

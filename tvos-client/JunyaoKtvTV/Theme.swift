@@ -101,19 +101,17 @@ struct MVButton: View {
     @FocusState private var focused: Bool
 
     var body: some View {
-        Button(action: action) {
-            VStack(spacing: 4) {
-                Image(systemName: icon)
-                    .font(.system(size: isCenter ? 34 : 28, weight: .medium))
-                    .foregroundColor(focused ? .white : Color.white.opacity(0.9))
-                Text(title)
-                    .font(.system(size: isCenter ? 18 : 17, weight: .semibold))
-                    .foregroundColor(focused ? .white : Color.white.opacity(0.85))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        VStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: isCenter ? 34 : 28, weight: .medium))
+                .foregroundColor(focused ? .white : Color.white.opacity(0.9))
+            Text(title)
+                .font(.system(size: isCenter ? 18 : 17, weight: .semibold))
+                .foregroundColor(focused ? .white : Color.white.opacity(0.85))
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(
             Group {
                 if focused {
@@ -125,11 +123,12 @@ struct MVButton: View {
                 }
             }
         )
-        .buttonStyle(.plain)
+        .focusable(true)
         .focused($focused)
         .focusEffectDisabled()
         .scaleEffect(focused ? 1.04 : 1.0)
         .animation(Animation.easeOut(duration: 0.18), value: focused)
+        .onTapGesture { action() }
     }
 }
 
