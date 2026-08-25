@@ -297,7 +297,9 @@ struct ContentView: View {
             .background(gradient.opacity(focused ? 1.0 : 0.7))
             .cornerRadius(12)
         }
-        .background(Color.clear)
+        .padding(3)
+        .background(focused ? Color.white.opacity(0.15) : Color.clear)
+        .cornerRadius(15)
         .buttonStyle(.plain)
         .focused($focused)
         .focusEffectDisabled()
@@ -600,7 +602,9 @@ struct ContentView: View {
             .background(gradient.opacity(focused ? 1.0 : 0.7))
             .cornerRadius(16)
         }
-        .background(Color.clear)
+        .padding(3)
+        .background(focused ? Color.white.opacity(0.15) : Color.clear)
+        .cornerRadius(19)
         .buttonStyle(.plain)
         .focused($focused)
         .focusEffectDisabled()
@@ -645,7 +649,9 @@ struct ContentView: View {
             )
             .cornerRadius(8)
         }
-        .background(Color.clear)
+        .padding(2)
+        .background(focused ? Color.white.opacity(0.12) : Color.clear)
+        .cornerRadius(10)
         .buttonStyle(.plain)
         .focused($focused)
         .focusEffectDisabled()

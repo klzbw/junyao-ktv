@@ -519,7 +519,9 @@ struct AlphaKey: View {
                     }
                 )
         }
-        .background(Color.clear)
+        .padding(2)
+        .background(focused ? Color.white.opacity(0.15) : Color.clear)
+        .cornerRadius(8)
         .buttonStyle(.plain)
         .focused($focused)
         .focusEffectDisabled()
