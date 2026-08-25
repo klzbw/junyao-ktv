@@ -613,7 +613,7 @@ struct ContentView: View {
             RoundedRectangle(cornerRadius: 16)
                 .stroke(focused ? Color.white : Color.white.opacity(0.1), lineWidth: focused ? 4 : 1)
         )
-        .shadow(color: focused ? gradient.stops.first?.color ?? WebColors.ac : .clear, radius: focused ? 16 : 0, x: 0, y: 0)
+        .shadow(color: focused ? WebColors.ac : .clear, radius: focused ? 16 : 0, x: 0, y: 0)
         .focusable(true)
         .focused($focused)
         .focusEffectDisabled()
