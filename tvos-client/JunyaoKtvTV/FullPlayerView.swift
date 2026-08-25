@@ -137,6 +137,7 @@ struct FullPlayerView: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .focusEffectDisabled()
                 .ignoresSafeArea()
             }
 
