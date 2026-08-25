@@ -125,6 +125,9 @@ struct MVButton: View {
                 }
             )
         }
+        .padding(2)
+        .background(focused ? Color.white.opacity(0.15) : Color.clear)
+        .cornerRadius(16)
         .buttonStyle(.plain)
         .focused($focused)
         .focusEffectDisabled()

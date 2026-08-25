@@ -339,7 +339,8 @@ struct ContentView: View {
 
     // MARK: - Now Panel (exact #now-panel with video preview)
     private var nowPanel: some View {
-        Button(action: {
+        @FocusState var panelFocused: Bool
+        return Button(action: {
             if api.queue.contains(where: { $0.isPlaying }) {
                 showingPlayer = true
             }
@@ -431,8 +432,14 @@ struct ContentView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .cornerRadius(16)
         }
+        .padding(3)
+        .background(panelFocused ? Color.white.opacity(0.15) : Color.clear)
+        .cornerRadius(19)
         .buttonStyle(.plain)
+        .focused($panelFocused)
         .focusEffectDisabled()
+        .scaleEffect(panelFocused ? 1.03 : 1.0)
+        .animation(.easeOut(duration: 0.18), value: panelFocused)
         .onChange(of: api.queue.first(where: { $0.isPlaying })?.song_id) { newId in
             if let playing = api.queue.first(where: { $0.isPlaying }) {
                 introSong = playing
