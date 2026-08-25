@@ -66,28 +66,29 @@ struct NavButton: View {
     @FocusState private var focused: Bool
 
     var body: some View {
-        HStack(spacing: 4) {
-            Image(systemName: icon).font(.system(size: 16))
-            Text(title).font(.system(size: 16))
-            if let badge = badge, badge > 0 {
-                Text("\(badge)")
-                    .font(.system(size: 11))
-                    .padding(.horizontal, 5).padding(.vertical, 1)
-                    .background(WebColors.ac)
-                    .foregroundColor(.white)
-                    .cornerRadius(8)
+        Button(action: action) {
+            HStack(spacing: 4) {
+                Image(systemName: icon).font(.system(size: 16))
+                Text(title).font(.system(size: 16))
+                if let badge = badge, badge > 0 {
+                    Text("\(badge)")
+                        .font(.system(size: 11))
+                        .padding(.horizontal, 5).padding(.vertical, 1)
+                        .background(WebColors.ac)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                }
             }
+            .padding(.horizontal, 10).padding(.vertical, 6)
         }
-        .padding(.horizontal, 10).padding(.vertical, 6)
         .background(focused ? WebColors.ac.opacity(0.4) : WebColors.nbBg)
         .foregroundColor(focused ? .white : Color.white.opacity(0.85))
         .cornerRadius(999)
-        .focusable(true)
+        .buttonStyle(.plain)
         .focused($focused)
         .focusEffectDisabled()
         .scaleEffect(focused ? 1.08 : 1.0)
         .animation(.easeOut(duration: 0.2), value: focused)
-        .onTapGesture { action() }
     }
 }
 
@@ -100,17 +101,19 @@ struct MVButton: View {
     @FocusState private var focused: Bool
 
     var body: some View {
-        VStack(spacing: 4) {
-            Image(systemName: icon)
-                .font(.system(size: isCenter ? 34 : 28, weight: .medium))
-                .foregroundColor(focused ? .white : Color.white.opacity(0.9))
-            Text(title)
-                .font(.system(size: isCenter ? 18 : 17, weight: .semibold))
-                .foregroundColor(focused ? .white : Color.white.opacity(0.85))
-                .lineLimit(1)
-                .minimumScaleFactor(0.5)
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: isCenter ? 34 : 28, weight: .medium))
+                    .foregroundColor(focused ? .white : Color.white.opacity(0.9))
+                Text(title)
+                    .font(.system(size: isCenter ? 18 : 17, weight: .semibold))
+                    .foregroundColor(focused ? .white : Color.white.opacity(0.85))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(
             Group {
                 if focused {
@@ -127,12 +130,11 @@ struct MVButton: View {
                 .stroke(focused ? Color.white : Color.white.opacity(0.1), lineWidth: focused ? 2 : 1)
         )
         .shadow(color: focused ? WebColors.ac.opacity(0.7) : .clear, radius: focused ? 14 : 0, x: 0, y: 0)
-        .focusable(true)
+        .buttonStyle(.plain)
         .focused($focused)
         .focusEffectDisabled()
         .scaleEffect(focused ? 1.1 : 0.96)
         .animation(Animation.easeOut(duration: 0.18), value: focused)
-        .onTapGesture { action() }
     }
 }
 

@@ -280,19 +280,21 @@ struct ContentView: View {
 
     private func quickCard(title: String, icon: String, gradient: LinearGradient, action: @escaping () -> Void) -> some View {
         @FocusState var focused: Bool
-        return HStack(spacing: 6) {
-            Text(title)
-                .font(.system(size: 24, weight: .bold))
-                .foregroundColor(.white)
-                .lineLimit(1)
-                .minimumScaleFactor(0.5)
-            Spacer()
-            Image(systemName: icon)
-                .font(.system(size: 28, weight: .medium))
-                .foregroundColor(.white.opacity(0.95))
+        return Button(action: action) {
+            HStack(spacing: 6) {
+                Text(title)
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+                Spacer()
+                Image(systemName: icon)
+                    .font(.system(size: 28, weight: .medium))
+                    .foregroundColor(.white.opacity(0.95))
+            }
+            .padding(.horizontal, 14)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .padding(.horizontal, 14)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(gradient.opacity(focused ? 1.0 : 0.35))
         .cornerRadius(12)
         .overlay(
@@ -300,12 +302,11 @@ struct ContentView: View {
                 .stroke(focused ? Color.white : Color.white.opacity(0.15), lineWidth: focused ? 3 : 1)
         )
         .shadow(color: focused ? Color.white.opacity(0.4) : .clear, radius: focused ? 12 : 0, x: 0, y: 0)
-        .focusable(true)
+        .buttonStyle(.plain)
         .focused($focused)
         .focusEffectDisabled()
         .scaleEffect(focused ? 1.08 : 0.96)
         .animation(Animation.easeOut(duration: 0.18), value: focused)
-        .onTapGesture { action() }
     }
 
     // MARK: - QR Code View (exact #now-qr-code2)
@@ -594,19 +595,21 @@ struct ContentView: View {
 
     private func bigRequestButton(title: String, icon: String, gradient: LinearGradient, action: @escaping () -> Void) -> some View {
         @FocusState var focused: Bool
-        return HStack(spacing: 8) {
-            Text(title)
-                .font(.system(size: 44, weight: .bold))
-                .foregroundColor(.white)
-                .lineLimit(1)
-                .minimumScaleFactor(0.5)
-            Spacer()
-            Image(systemName: icon)
-                .font(.system(size: 44, weight: .medium))
-                .foregroundColor(.white.opacity(0.95))
+        return Button(action: action) {
+            HStack(spacing: 8) {
+                Text(title)
+                    .font(.system(size: 44, weight: .bold))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+                Spacer()
+                Image(systemName: icon)
+                    .font(.system(size: 44, weight: .medium))
+                    .foregroundColor(.white.opacity(0.95))
+            }
+            .padding(.horizontal, 18)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .padding(.horizontal, 18)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(gradient.opacity(focused ? 1.0 : 0.4))
         .cornerRadius(16)
         .overlay(
@@ -614,42 +617,45 @@ struct ContentView: View {
                 .stroke(focused ? Color.white : Color.white.opacity(0.1), lineWidth: focused ? 4 : 1)
         )
         .shadow(color: focused ? WebColors.ac : .clear, radius: focused ? 16 : 0, x: 0, y: 0)
-        .focusable(true)
+        .buttonStyle(.plain)
         .focused($focused)
         .focusEffectDisabled()
         .scaleEffect(focused ? 1.06 : 0.97)
         .animation(Animation.easeOut(duration: 0.18), value: focused)
-        .onTapGesture { action() }
     }
 
     private func queueRow(item: QueueItem, index: Int) -> some View {
         @FocusState var focused: Bool
-        return HStack(spacing: 8) {
-            if item.isPlaying {
-                Image(systemName: "play.circle.fill")
-                    .foregroundColor(WebColors.ac2)
-                    .font(.system(size: 16))
-                    .frame(width: 20)
-            } else {
-                Text("\(index + 1)")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(focused ? .white : WebColors.sub)
-                    .frame(width: 20)
+        return Button(action: {
+            // Queue item tap - could play this song if API supports it
+        }) {
+            HStack(spacing: 8) {
+                if item.isPlaying {
+                    Image(systemName: "play.circle.fill")
+                        .foregroundColor(WebColors.ac2)
+                        .font(.system(size: 16))
+                        .frame(width: 20)
+                } else {
+                    Text("\(index + 1)")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(focused ? .white : WebColors.sub)
+                        .frame(width: 20)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(item.displayTitle)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                    Text(item.displayArtist)
+                        .font(.system(size: 13))
+                        .foregroundColor(focused ? .white.opacity(0.8) : WebColors.sub)
+                        .lineLimit(1)
+                }
+                Spacer()
             }
-            VStack(alignment: .leading, spacing: 2) {
-                Text(item.displayTitle)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(.white)
-                    .lineLimit(1)
-                Text(item.displayArtist)
-                    .font(.system(size: 13))
-                    .foregroundColor(focused ? .white.opacity(0.8) : WebColors.sub)
-                    .lineLimit(1)
-            }
-            Spacer()
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
         .background(
             item.isPlaying ? WebColors.ac.opacity(0.4) :
             focused ? WebColors.ac.opacity(0.45) : Color.white.opacity(0.03)
@@ -660,14 +666,11 @@ struct ContentView: View {
                 .stroke(focused ? WebColors.ac2 : (item.isPlaying ? WebColors.ac.opacity(0.5) : Color.clear), lineWidth: focused ? 3 : 1)
         )
         .shadow(color: focused ? WebColors.ac.opacity(0.6) : .clear, radius: focused ? 10 : 0, x: 0, y: 0)
-        .focusable(true)
+        .buttonStyle(.plain)
         .focused($focused)
         .focusEffectDisabled()
         .scaleEffect(focused ? 1.04 : 1.0)
         .animation(Animation.easeOut(duration: 0.15), value: focused)
-        .onTapGesture {
-            // Queue item tap - could play this song if API supports it
-        }
     }
 
     // MARK: - Right Queue (exact #right-queue)
