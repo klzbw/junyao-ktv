@@ -336,15 +336,15 @@ struct ArtistsPage: View {
                             Text("全部")
                                 .font(.system(size: 18, weight: .bold))
                                 .foregroundColor(.white)
-                                .padding(.horizontal, 14).padding(.vertical: 6)
+                                .padding(EdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14))
                                 .background(Color.white.opacity(0.15))
                                 .cornerRadius(999)
                         } else {
                             Text(inputLetters)
                                 .font(.system(size: 18, weight: .bold))
                                 .foregroundColor(.white)
-                                .padding(.horizontal, 14).padding(.vertical: 6)
-                                .background(Color(hex: 0xb91c5c).opacity(0.8))
+                                .padding(EdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14))
+                                .background(Color(hex: UInt32(0xb91c5c)).opacity(0.8))
                                 .cornerRadius(999)
                         }
                     }
