@@ -2,7 +2,6 @@ import AVFoundation
 import UIKit
 
 /// Shared player manager - holds a single AVPlayer, AVPlayerLayer, and its container view.
-/// The container view moves between small preview and fullscreen views.
 class PlayerManager: ObservableObject {
     static let shared = PlayerManager()
 
@@ -10,13 +9,15 @@ class PlayerManager: ObservableObject {
     @Published var duration: Double = 0
     @Published var isPlaying: Bool = false
     @Published var currentSongId: Int?
+    /// Called when current item finishes playing
+    var onPlaybackEnd: (() -> Void)?
 
     private(set) var player: AVPlayer?
     private(set) var playerLayer: AVPlayerLayer?
-    /// Global container view that holds the player layer. Moves between parent views.
     private(set) var playerContainerView: UIView
     private var timeObserver: Any?
     private var statusObserver: NSKeyValueObservation?
+    private var endObserver: NSObjectProtocol?
 
     private init() {
         playerContainerView = UIView()
@@ -25,13 +26,13 @@ class PlayerManager: ObservableObject {
     }
 
     func setupPlayer(for url: URL) {
-        // If same song, keep existing player
         if let existingURL = (player?.currentItem?.asset as? AVURLAsset)?.url,
            existingURL == url {
+            // Same song, just ensure layer frame is correct
+            refreshLayerFrame()
             return
         }
 
-        // Cleanup old player
         cleanup()
 
         let playerItem = AVPlayerItem(url: url)
@@ -42,11 +43,10 @@ class PlayerManager: ObservableObject {
         layer.videoGravity = .resizeAspect
         self.playerLayer = layer
 
-        // Attach layer to the global container view
         playerContainerView.layer.addSublayer(layer)
-        layer.frame = playerContainerView.bounds
+        refreshLayerFrame()
 
-        // Add time observer
+        // Time observer
         timeObserver = player.addPeriodicTimeObserver(
             forInterval: CMTime(seconds: 0.5, preferredTimescale: 600),
             queue: .main
@@ -57,15 +57,31 @@ class PlayerManager: ObservableObject {
             }
         }
 
-        // Observe rate changes to sync isPlaying
+        // Rate observer
         statusObserver = player.observe(\.timeControlStatus, options: [.new]) { [weak self] _, _ in
             DispatchQueue.main.async {
                 self?.isPlaying = player.timeControlStatus == .playing
             }
         }
 
+        // Playback end observer
+        endObserver = NotificationCenter.default.addObserver(
+            forName: .AVPlayerItemDidPlayToEndTime,
+            object: playerItem,
+            queue: .main
+        ) { [weak self] _ in
+            self?.onPlaybackEnd?()
+        }
+
         player.play()
         isPlaying = true
+    }
+
+    func refreshLayerFrame() {
+        if let superview = playerContainerView.superview {
+            playerContainerView.frame = superview.bounds
+        }
+        playerLayer?.frame = playerContainerView.bounds
     }
 
     func play() {
@@ -101,7 +117,6 @@ class PlayerManager: ObservableObject {
         player?.volume = volume
     }
 
-    /// Attach the global player container view to a given parent view
     func attachContainer(to parent: UIView) {
         if playerContainerView.superview != parent {
             playerContainerView.removeFromSuperview()
@@ -111,7 +126,6 @@ class PlayerManager: ObservableObject {
         playerLayer?.frame = parent.bounds
     }
 
-    /// Detach the global player container view from its current superview
     func detachContainer() {
         playerContainerView.removeFromSuperview()
     }
@@ -128,6 +142,10 @@ class PlayerManager: ObservableObject {
         }
         statusObserver?.invalidate()
         statusObserver = nil
+        if let endObserver = endObserver {
+            NotificationCenter.default.removeObserver(endObserver)
+            self.endObserver = nil
+        }
         playerLayer?.removeFromSuperlayer()
         playerLayer = nil
         playerContainerView.removeFromSuperview()

@@ -340,6 +340,13 @@ struct ContentView: View {
                         .onAppear {
                             playerManager.setupPlayer(for: hlsURL)
                             playerManager.setVolume(volume)
+                            // Refresh frame after setup to ensure video shows
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                playerManager.refreshLayerFrame()
+                            }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                playerManager.refreshLayerFrame()
+                            }
                         }
 
                     // Song intro animation (exact #song-intro)

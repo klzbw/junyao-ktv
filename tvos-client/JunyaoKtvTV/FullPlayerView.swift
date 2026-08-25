@@ -12,7 +12,7 @@ struct FullPlayerView: View {
     @State private var showControls = true
     @State private var voiceMode: VoiceMode = .original
     @State private var hideTimer: Timer?
-    @FocusState private var focusedButton: Int?
+    @State private var hasAutoExited = false
 
     enum VoiceMode {
         case original, accompaniment
@@ -32,7 +32,7 @@ struct FullPlayerView: View {
             if showControls {
                 VStack {
                     Spacer()
-                    VStack(spacing: 12) {
+                    VStack(spacing: 14) {
                         // Progress bar
                         VStack(spacing: 6) {
                             GeometryReader { geo in
@@ -59,35 +59,48 @@ struct FullPlayerView: View {
                             }
                         }
 
-                        // 6 control buttons - use default tvOS focus effect
-                        HStack(spacing: 16) {
-                            controlButton(icon: "house", title: "主页", tag: 0) { onClose() }
-                            controlButton(icon: "gobackward", title: "重唱", tag: 1) { playerManager.restart() }
-                            controlButton(icon: playerManager.isPlaying ? "pause.fill" : "play.fill",
-                                        title: playerManager.isPlaying ? "暂停" : "播放", tag: 2) {
-                                playerManager.togglePlayPause()
+                        // 6 control buttons - standard tvOS focusable buttons
+                        HStack(spacing: 20) {
+                            Button(action: { onClose() }) {
+                                controlContent(icon: "house", title: "主页")
                             }
-                            controlButton(icon: "mic.fill", title: voiceMode.label, tag: 3) { toggleVoice() }
-                            controlButton(icon: "forward.end.fill", title: "切歌", tag: 4) { onNext() }
-                            controlButton(icon: "list.bullet", title: "队列", tag: 5) { onClose() }
+                            Button(action: { playerManager.restart() }) {
+                                controlContent(icon: "gobackward", title: "重唱")
+                            }
+                            Button(action: { playerManager.togglePlayPause() }) {
+                                controlContent(
+                                    icon: playerManager.isPlaying ? "pause.fill" : "play.fill",
+                                    title: playerManager.isPlaying ? "暂停" : "播放"
+                                )
+                            }
+                            Button(action: { toggleVoice() }) {
+                                controlContent(icon: "mic.fill", title: voiceMode.label)
+                            }
+                            Button(action: { onNext() }) {
+                                controlContent(icon: "forward.end.fill", title: "切歌")
+                            }
+                            Button(action: { onClose() }) {
+                                controlContent(icon: "list.bullet", title: "队列")
+                            }
                         }
+                        .padding(.horizontal, 10)
                     }
                     .padding(.horizontal, 24)
-                    .padding(.bottom, 20)
+                    .padding(.bottom, 24)
                     .padding(.top, 16)
-                    .background(LinearGradient(colors: [.clear, Color.black.opacity(0.85)],
+                    .background(LinearGradient(colors: [.clear, Color.black.opacity(0.9)],
                                                startPoint: .top, endPoint: .bottom))
                 }
                 .transition(.opacity)
             }
         }
         .contentShape(Rectangle())
-        .focusable(!showControls)
         .onTapGesture {
-            // Remote select button: toggle controls
-            if !showControls {
-                showControls = true
+            // Select button: toggle controls visibility
+            withAnimation(.easeOut(duration: 0.2)) {
+                showControls.toggle()
             }
+            if showControls { resetHideTimer() }
         }
         .onPlayPauseCommand {
             playerManager.togglePlayPause()
@@ -97,15 +110,12 @@ struct FullPlayerView: View {
         .onExitCommand {
             if showControls {
                 showControls = false
-                focusedButton = nil
             } else {
                 onClose()
             }
         }
         .onMoveCommand { direction in
-            if !showControls {
-                showControls = true
-            }
+            showControls = true
             resetHideTimer()
             if direction == .left {
                 playerManager.seek(to: max(0, playerManager.currentTime - 10))
@@ -113,48 +123,41 @@ struct FullPlayerView: View {
                 playerManager.seek(to: playerManager.currentTime + 10)
             }
         }
-        .onChange(of: showControls) { newValue in
-            if newValue {
-                // Auto-focus play/pause button when controls appear
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                    focusedButton = 2
-                }
-            }
-        }
     }
 
-    private func controlButton(icon: String, title: String, tag: Int, action: @escaping () -> Void) -> some View {
-        Button(action: {
-            action()
-            resetHideTimer()
-        }) {
-            VStack(spacing: 6) {
-                Image(systemName: icon)
-                    .font(.system(size: 28, weight: .medium))
-                    .foregroundColor(.white)
-                Text(title)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(.white)
-            }
-            .frame(width: 90, height: 90)
-            .background(Color.white.opacity(0.15))
-            .cornerRadius(14)
+    private func controlContent(icon: String, title: String) -> some View {
+        VStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 30, weight: .medium))
+                .foregroundColor(.white)
+            Text(title)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(.white)
         }
-        .buttonStyle(.plain)
-        .focused($focusedButton, equals: tag)
+        .frame(width: 95, height: 95)
+        .background(Color.white.opacity(0.15))
+        .cornerRadius(16)
     }
 
     private func setup() {
         showControls = true
         resetHideTimer()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-            focusedButton = 2
+        hasAutoExit = false
+        // Set playback end callback to auto-exit
+        playerManager.onPlaybackEnd = {
+            DispatchQueue.main.async {
+                if !hasAutoExit {
+                    hasAutoExit = true
+                    onClose()
+                }
+            }
         }
     }
 
     private func cleanup() {
         hideTimer?.invalidate()
         hideTimer = nil
+        playerManager.onPlaybackEnd = nil
     }
 
     private func toggleVoice() {
@@ -166,8 +169,9 @@ struct FullPlayerView: View {
         hideTimer?.invalidate()
         hideTimer = Timer.scheduledTimer(withTimeInterval: 8, repeats: false) { _ in
             DispatchQueue.main.async {
-                showControls = false
-                focusedButton = nil
+                withAnimation(.easeOut(duration: 0.3)) {
+                    showControls = false
+                }
             }
         }
     }
