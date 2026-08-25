@@ -159,9 +159,10 @@ class KTVAPIClient: ObservableObject {
     }
 
     func nextSong() {
-        guard let url = apiURL("/api/queue/next") else { return }
-        var req = URLRequest(url: url); req.httpMethod = "POST"
-        URLSession.shared.dataTask(with: req) { [weak self] _, _, _ in self?.fetchQueue() }.resume()
+        sendWSControl("next")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            self?.fetchQueue()
+        }
     }
 
     func restartSong() {

@@ -11,6 +11,7 @@ struct Song: Codable, Identifiable, Hashable {
     let audio_tracks: Int?
     let play_count: Int?
     let category: String?
+    let genre: String?
     let language: String?
     let source: String?
 

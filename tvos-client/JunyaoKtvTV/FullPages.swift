@@ -733,13 +733,17 @@ struct CategoryPage: View {
     @State private var currentPage = 1
     private let pageSize = 50
 
-    let languages = ["国语", "粤语", "英语", "日语", "韩语", "其他"]
-    let genres = ["流行", "摇滚", "民谣", "电子", "古典", "爵士", "乡村", "R&B", "其他"]
+    var allLanguages: [String] {
+        Array(Set(api.songs.compactMap { $0.language?.isEmpty == false ? $0.language : nil })).sorted()
+    }
+    var allGenres: [String] {
+        Array(Set(api.songs.compactMap { $0.genre?.isEmpty == false ? $0.genre : nil })).sorted()
+    }
 
     var filteredSongs: [Song] {
         api.songs.filter { song in
             if let lang = selectedLang, song.language != lang { return false }
-            if let genre = selectedGenre, song.category != genre { return false }
+            if let genre = selectedGenre, song.genre != genre { return false }
             return true
         }
     }
@@ -759,7 +763,7 @@ struct CategoryPage: View {
                 // Category panel (exact .cat-panel)
                 VStack(alignment: .leading, spacing: 12) {
                     Text("语种").font(.system(size: 15, weight: .bold)).foregroundColor(WebColors.ac2)
-                    WrapView(items: languages) { lang in
+                    WrapView(items: allLanguages) { lang in
                         categoryChip(lang, isSelected: selectedLang == lang) {
                             selectedLang = selectedLang == lang ? nil : lang
                             currentPage = 1
@@ -768,7 +772,7 @@ struct CategoryPage: View {
 
                     Text("风格").font(.system(size: 15, weight: .bold)).foregroundColor(WebColors.ac2)
                         .padding(.top, 8)
-                    WrapView(items: genres) { genre in
+                    WrapView(items: allGenres) { genre in
                         categoryChip(genre, isSelected: selectedGenre == genre) {
                             selectedGenre = selectedGenre == genre ? nil : genre
                             currentPage = 1
