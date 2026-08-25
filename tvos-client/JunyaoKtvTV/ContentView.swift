@@ -294,13 +294,13 @@ struct ContentView: View {
             }
             .padding(.horizontal, 14)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(gradient.opacity(focused ? 1.0 : 0.85))
-            .cornerRadius(12)
         }
+        .background(gradient.opacity(focused ? 1.0 : 0.7))
+        .cornerRadius(12)
         .buttonStyle(.plain)
         .focused($focused)
         .focusEffectDisabled()
-        .scaleEffect(focused ? 1.03 : 1.0)
+        .scaleEffect(focused ? 1.06 : 1.0)
         .animation(Animation.easeOut(duration: 0.18), value: focused)
     }
 
@@ -597,17 +597,12 @@ struct ContentView: View {
             .padding(.horizontal, 18)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .background(gradient.opacity(focused ? 1.0 : 0.4))
+        .background(gradient.opacity(focused ? 1.0 : 0.7))
         .cornerRadius(16)
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(focused ? Color.white : Color.white.opacity(0.1), lineWidth: focused ? 4 : 1)
-        )
-        .shadow(color: focused ? WebColors.ac : .clear, radius: focused ? 16 : 0, x: 0, y: 0)
         .buttonStyle(.plain)
         .focused($focused)
         .focusEffectDisabled()
-        .scaleEffect(focused ? 1.06 : 0.97)
+        .scaleEffect(focused ? 1.05 : 1.0)
         .animation(Animation.easeOut(duration: 0.18), value: focused)
     }
 
@@ -644,19 +639,14 @@ struct ContentView: View {
             .padding(.vertical, 8)
         }
         .background(
-            item.isPlaying ? WebColors.ac.opacity(0.4) :
-            focused ? WebColors.ac.opacity(0.45) : Color.white.opacity(0.03)
+            item.isPlaying ? WebColors.ac.opacity(0.3) :
+            focused ? WebColors.ac.opacity(0.25) : Color.clear
         )
         .cornerRadius(8)
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(focused ? WebColors.ac2 : (item.isPlaying ? WebColors.ac.opacity(0.5) : Color.clear), lineWidth: focused ? 3 : 1)
-        )
-        .shadow(color: focused ? WebColors.ac.opacity(0.6) : .clear, radius: focused ? 10 : 0, x: 0, y: 0)
         .buttonStyle(.plain)
         .focused($focused)
         .focusEffectDisabled()
-        .scaleEffect(focused ? 1.04 : 1.0)
+        .scaleEffect(focused ? 1.03 : 1.0)
         .animation(Animation.easeOut(duration: 0.15), value: focused)
     }
 

@@ -504,30 +504,25 @@ struct AlphaKey: View {
         Button(action: action) {
             Text(label)
                 .font(.system(size: isDelete ? 14 : 26, weight: .bold))
-                .foregroundColor(focused ? .white : (isDelete ? WebColors.pink : Color.white.opacity(0.7)))
+                .foregroundColor(focused ? .white : (isDelete ? WebColors.pink : Color.white.opacity(0.8)))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, isDelete ? 10 : 16)
         }
         .background(
             Group {
                 if focused {
-                    RoundedRectangle(cornerRadius: 6).fill(WebColors.ac)
+                    RoundedRectangle(cornerRadius: 6).fill(WebColors.ac.opacity(0.6))
                 } else if isDelete {
                     RoundedRectangle(cornerRadius: 6).fill(WebColors.pink.opacity(0.15))
                 } else {
-                    RoundedRectangle(cornerRadius: 6).fill(Color.white.opacity(0.06))
+                    RoundedRectangle(cornerRadius: 6).fill(Color.white.opacity(0.08))
                 }
             }
         )
-        .overlay(
-            RoundedRectangle(cornerRadius: 6)
-                .stroke(focused ? Color.white : Color.white.opacity(0.1), lineWidth: focused ? 2 : 1)
-        )
-        .shadow(color: focused ? WebColors.ac.opacity(0.8) : .clear, radius: focused ? 12 : 0, x: 0, y: 0)
         .buttonStyle(.plain)
         .focused($focused)
         .focusEffectDisabled()
-        .scaleEffect(focused ? 1.12 : 0.95)
+        .scaleEffect(focused ? 1.08 : 1.0)
         .animation(.easeOut(duration: 0.15), value: focused)
     }
 }
