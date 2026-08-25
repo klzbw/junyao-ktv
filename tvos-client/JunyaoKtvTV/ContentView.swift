@@ -766,29 +766,34 @@ struct OrderSongsPage: View {
     @State private var searchText = ""
     @State private var currentPage = 0
     @State private var selectedLetter: String? = nil
+    @State private var letterCache: [Int: String] = [:]
     private let pageSize = 50
     private let letters = ["#","A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"]
 
-    private func firstLetter(of text: String) -> String {
-        guard let first = text.first else { return "#" }
+    private func firstLetter(of song: Song) -> String {
+        if let cached = letterCache[song.id] { return cached }
+        let text = song.displayTitle
+        guard let first = text.first else { letterCache[song.id] = "#"; return "#" }
+        var result = "#"
         if first.isLetter && first.isASCII {
-            return String(first).uppercased()
+            result = String(first).uppercased()
+        } else {
+            let mutable = NSMutableString(string: String(first)) as CFMutableString
+            CFStringTransform(mutable, nil, kCFStringTransformToLatin, false)
+            CFStringTransform(mutable, nil, kCFStringTransformStripDiacritics, false)
+            let pinyin = mutable as String
+            if let pinyinFirst = pinyin.first, pinyinFirst.isLetter {
+                result = String(pinyinFirst).uppercased()
+            }
         }
-        // Convert Chinese to pinyin and get first letter
-        let mutable = NSMutableString(string: String(first)) as CFMutableString
-        CFStringTransform(mutable, nil, kCFStringTransformToLatin, false)
-        CFStringTransform(mutable, nil, kCFStringTransformStripDiacritics, false)
-        let pinyin = mutable as String
-        if let pinyinFirst = pinyin.first, pinyinFirst.isLetter {
-            return String(pinyinFirst).uppercased()
-        }
-        return "#"
+        letterCache[song.id] = result
+        return result
     }
 
     var filteredSongs: [Song] {
         var result = api.songs
         if let letter = selectedLetter {
-            result = result.filter { firstLetter(of: $0.displayTitle) == letter }
+            result = result.filter { firstLetter(of: $0) == letter }
         }
         if !searchText.isEmpty {
             result = result.filter {
@@ -846,27 +851,27 @@ struct OrderSongsPage: View {
             .padding(.horizontal, 20).padding(.vertical, 14)
             .background(WebColors.topbarBg)
 
-            // A-Z Alphabet quick filter
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
-                    ForEach(letters, id: \.self) { letter in
-                        Button(action: {
-                            selectedLetter = (selectedLetter == letter) ? nil : letter
-                            currentPage = 0
-                        }) {
-                            Text(letter)
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(selectedLetter == letter ? .white : WebColors.sub)
-                                .frame(width: 36, height: 36)
-                                .background(selectedLetter == letter ? WebColors.ac.opacity(0.6) : WebColors.cardBg)
-                                .cornerRadius(8)
-                        }
-                        .buttonStyle(.plain)
+            // A-Z Alphabet quick filter (5 rows x 6 cols grid)
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 6),
+                      spacing: 8) {
+                ForEach(letters, id: \.self) { letter in
+                    Button(action: {
+                        selectedLetter = (selectedLetter == letter) ? nil : letter
+                        currentPage = 0
+                    }) {
+                        Text(letter)
+                            .font(.system(size: 28, weight: .bold))
+                            .foregroundColor(selectedLetter == letter ? .white : WebColors.sub)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 56)
+                            .background(selectedLetter == letter ? WebColors.ac.opacity(0.7) : WebColors.cardBg)
+                            .cornerRadius(10)
                     }
+                    .buttonStyle(.plain)
                 }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 10)
             }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
             .background(WebColors.topbarBg.opacity(0.5))
 
             // Song list (2-col grid exact .song-list-2col)

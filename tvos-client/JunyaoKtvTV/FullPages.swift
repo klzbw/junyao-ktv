@@ -182,7 +182,7 @@ struct ArtistsPage: View {
     let onArtistSelect: (String) -> Void
     @State private var currentPage = 1
     @State private var searchInput = ""
-    private let pageSize = 40
+    private let pageSize = 20
 
     private func firstLetter(of text: String) -> String {
         guard let first = text.first else { return "#" }
@@ -227,17 +227,17 @@ struct ArtistsPage: View {
 
                 // Artist grid (exact .ag)
                 ScrollView {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 16)], spacing: 16) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 160), spacing: 20)], spacing: 20) {
                         ForEach(pagedArtists) { artist in
                             Button(action: { onArtistSelect(artist.artist) }) {
-                                VStack(spacing: 8) {
+                                VStack(spacing: 10) {
                                     Circle()
                                         .fill(LinearGradient.g3)
-                                        .frame(width: 72, height: 72)
+                                        .frame(width: 100, height: 100)
                                         .overlay(Text(String(artist.displayName.prefix(1)))
-                                            .font(.system(size: 28, weight: .bold)).foregroundColor(.white))
-                                    Text(artist.displayName).font(.system(size: 14)).foregroundColor(.white).lineLimit(1)
-                                    Text("\(artist.count)首").font(.system(size: 12)).foregroundColor(WebColors.sub)
+                                            .font(.system(size: 40, weight: .bold)).foregroundColor(.white))
+                                    Text(artist.displayName).font(.system(size: 20, weight: .medium)).foregroundColor(.white).lineLimit(1)
+                                    Text("\(artist.count)首").font(.system(size: 16)).foregroundColor(WebColors.sub)
                                 }
                             }.buttonStyle(.plain)
                         }
@@ -287,10 +287,10 @@ struct AlphaKeyboard: View {
                     ForEach(keys, id: \.self) { ch in
                         Button(action: { input.append(ch) }) {
                             Text(String(ch))
-                                .font(.system(size: 16, weight: .medium))
+                                .font(.system(size: 26, weight: .bold))
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
-                                .padding(.vertical, 10)
+                                .padding(.vertical, 16)
                                 .background(WebColors.cardBg)
                                 .cornerRadius(6)
                         }.buttonStyle(.plain)

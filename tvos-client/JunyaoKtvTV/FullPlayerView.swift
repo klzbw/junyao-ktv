@@ -120,6 +120,7 @@ struct FullPlayerView: View {
             }
         }
         .contentShape(Rectangle())
+        .focusable(true)
         .onTapGesture {
             // If QR or queue panel is open, close it first
             if showQR { showQR = false; return }

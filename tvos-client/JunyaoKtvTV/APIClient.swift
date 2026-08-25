@@ -276,7 +276,12 @@ class KTVAPIClient: ObservableObject {
     }
 
     // MARK: - URLs
-    func hlsURL(songId: Int) -> URL? { apiURL("/hls/\(songId)/master.m3u8") }
+    func hlsURL(songId: Int, track: Int? = nil) -> URL? {
+        if let track = track {
+            return apiURL("/hls/\(songId)/master.m3u8?track=\(track)")
+        }
+        return apiURL("/hls/\(songId)/master.m3u8")
+    }
     func streamURL(songId: Int, track: Int = 0) -> URL? { apiURL("/stream/\(songId)?track=\(track)") }
     func coverURL(_ filename: String?) -> URL? {
         guard let filename = filename, !filename.isEmpty else { return nil }

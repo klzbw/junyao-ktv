@@ -147,37 +147,62 @@ class PlayerManager: ObservableObject {
         if let audioGroup = playerItem.asset.mediaSelectionGroup(forMediaCharacteristic: .audible) {
             let options = audioGroup.options
             if options.count >= 2 {
-                // Typically option 0 = original, option 1 = accompaniment
                 let targetIndex = isOriginalVoice ? 0 : min(1, options.count - 1)
                 playerItem.select(options[targetIndex], in: audioGroup)
                 return
             }
         }
 
-        // Method 2: For single audio track, try audio mix for channel balance
-        applyChannelBalance()
+        // Method 2: Reload stream with track parameter
+        reloadWithVoiceTrack()
     }
 
-    private func applyChannelBalance() {
+    private func reloadWithVoiceTrack() {
         guard let player = player,
-              let playerItem = player.currentItem,
-              let assetTrack = playerItem.asset.tracks(withMediaType: .audio).first else {
-            return
+              let currentItem = player.currentItem,
+              let asset = currentItem.asset as? AVURLAsset,
+              let songId = currentSongId else { return }
+
+        let currentTime = player.currentTime()
+        let wasPlaying = player.rate > 0
+        let track = isOriginalVoice ? 0 : 1
+
+        // Build new URL with track parameter
+        var urlString = asset.url.absoluteString
+        // Remove existing track parameter
+        if let range = urlString.range(of: "?track=") {
+            urlString = String(urlString[..<range.lowerBound])
         }
+        urlString += "?track=\(track)"
 
-        let mix = AVMutableAudioMix()
-        let params = AVMutableAudioMixInputParameters(track: assetTrack)
+        guard let newURL = URL(string: urlString) else { return }
 
-        // Set volume ramp for the entire duration
-        let duration = playerItem.duration
-        if duration.seconds > 0 {
-            let volume: Float = isOriginalVoice ? 1.0 : 0.8
-            params.setVolumeRamp(fromStartVolume: volume, toEndVolume: volume,
-                                 timeRange: CMTimeRange(start: .zero, duration: duration))
+        let newItem = AVPlayerItem(url: newURL)
+        player.replaceCurrentItem(with: newItem)
+
+        // Seek to previous position after loading
+        newItem.addObserver(self, forKeyPath: "status", options: [.new], context: nil)
+        pendingSeekTime = currentTime
+        pendingWasPlaying = wasPlaying
+    }
+
+    private var pendingSeekTime: CMTime?
+    private var pendingWasPlaying: Bool = false
+
+    override func observeValue(forKeyPath keyPath: String?, of object: Any?,
+                               change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
+        if keyPath == "status", let item = object as? AVPlayerItem, item.status == .readyToPlay {
+            if let seekTime = pendingSeekTime {
+                player?.seek(to: seekTime) { [weak self] _ in
+                    if self?.pendingWasPlaying == true {
+                        self?.player?.play()
+                    }
+                    self?.pendingSeekTime = nil
+                    self?.pendingWasPlaying = false
+                }
+            }
+            item.removeObserver(self, forKeyPath: "status")
         }
-
-        mix.inputParameters = [params]
-        playerItem.audioMix = mix
     }
 
     func cleanup() {
