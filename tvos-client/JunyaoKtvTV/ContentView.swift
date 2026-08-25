@@ -169,7 +169,7 @@ struct ContentView: View {
                     .font(.system(size: 24))
                     .foregroundStyle(LinearGradient(colors: [WebColors.ac2, WebColors.ac, WebColors.pink],
                                                     startPoint: .leading, endPoint: .trailing))
-                Text("骏耀K歌")
+                Text("墨墨爱K歌")
                     .font(.system(size: 22, weight: .bold))
                     .foregroundColor(.white)
             }
@@ -403,7 +403,7 @@ struct ContentView: View {
             } else {
                 // Idle state (exact #now-idle)
                 VStack(spacing: 10) {
-                    Text("骏耀K歌")
+                    Text("墨墨爱K歌")
                         .font(.system(size: 36, weight: .heavy))
                         .foregroundStyle(LinearGradient(colors: [WebColors.ac2, WebColors.ac, WebColors.pink],
                                                         startPoint: .leading, endPoint: .trailing))
