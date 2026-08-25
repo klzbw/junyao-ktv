@@ -43,6 +43,11 @@ struct ContentView: View {
                 mainContent
             }
         }
+        .onExitCommand {
+            if activePage != nil {
+                activePage = nil
+            }
+        }
         .onAppear {
             currentTheme = AppTheme(rawValue: appThemeRaw) ?? .theme1
             if !serverAddress.isEmpty {
@@ -135,6 +140,11 @@ struct ContentView: View {
                 panelView(panel)
                     .zIndex(1)
                     .transition(.opacity)
+            }
+        }
+        .onExitCommand {
+            if activePanel != nil {
+                activePanel = nil
             }
         }
         .onPlayPauseCommand {
@@ -340,12 +350,12 @@ struct ContentView: View {
                         .onAppear {
                             playerManager.setupPlayer(for: hlsURL)
                             playerManager.setVolume(volume)
-                            // Refresh frame after setup to ensure video shows
+                            // Re-attach layer after setup to ensure video shows
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                playerManager.refreshLayerFrame()
+                                playerManager.attachLayerToCurrentHost()
                             }
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                playerManager.refreshLayerFrame()
+                                playerManager.attachLayerToCurrentHost()
                             }
                         }
 
