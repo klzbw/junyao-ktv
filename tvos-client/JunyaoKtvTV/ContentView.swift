@@ -129,10 +129,12 @@ struct ContentView: View {
                 nextUpBar
                 mainGrid
             }
+            .allowsHitTesting(activePanel == nil)
 
             if let panel = activePanel {
                 panelView(panel)
                     .zIndex(1)
+                    .transition(.opacity)
             }
         }
         .onPlayPauseCommand {

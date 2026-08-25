@@ -1,9 +1,8 @@
 import AVFoundation
 import UIKit
 
-/// Shared player manager - holds a single AVPlayer and AVPlayerLayer
-/// that moves between small preview and fullscreen views.
-/// This mirrors the web page's strategy of moving the same <video> element in DOM.
+/// Shared player manager - holds a single AVPlayer, AVPlayerLayer, and its container view.
+/// The container view moves between small preview and fullscreen views.
 class PlayerManager: ObservableObject {
     static let shared = PlayerManager()
 
@@ -14,10 +13,16 @@ class PlayerManager: ObservableObject {
 
     private(set) var player: AVPlayer?
     private(set) var playerLayer: AVPlayerLayer?
+    /// Global container view that holds the player layer. Moves between parent views.
+    private(set) var playerContainerView: UIView
     private var timeObserver: Any?
     private var statusObserver: NSKeyValueObservation?
 
-    private init() {}
+    private init() {
+        playerContainerView = UIView()
+        playerContainerView.backgroundColor = .black
+        playerContainerView.clipsToBounds = true
+    }
 
     func setupPlayer(for url: URL) {
         // If same song, keep existing player
@@ -34,8 +39,12 @@ class PlayerManager: ObservableObject {
         self.player = player
 
         let layer = AVPlayerLayer(player: player)
-        layer.videoGravity = .resizeAspectFill
+        layer.videoGravity = .resizeAspect
         self.playerLayer = layer
+
+        // Attach layer to the global container view
+        playerContainerView.layer.addSublayer(layer)
+        layer.frame = playerContainerView.bounds
 
         // Add time observer
         timeObserver = player.addPeriodicTimeObserver(
@@ -92,17 +101,24 @@ class PlayerManager: ObservableObject {
         player?.volume = volume
     }
 
-    /// Attach player layer to a given view's layer
-    func attachLayer(to view: UIView) {
-        guard let layer = playerLayer else { return }
-        layer.removeFromSuperlayer()
-        layer.frame = view.bounds
-        view.layer.addSublayer(layer)
+    /// Attach the global player container view to a given parent view
+    func attachContainer(to parent: UIView) {
+        if playerContainerView.superview != parent {
+            playerContainerView.removeFromSuperview()
+            parent.addSubview(playerContainerView)
+        }
+        playerContainerView.frame = parent.bounds
+        playerLayer?.frame = parent.bounds
     }
 
-    /// Detach player layer from its current superlayer
-    func detachLayer() {
-        playerLayer?.removeFromSuperlayer()
+    /// Detach the global player container view from its current superview
+    func detachContainer() {
+        playerContainerView.removeFromSuperview()
+    }
+
+    func updateContainerFrame(_ frame: CGRect) {
+        playerContainerView.frame = frame
+        playerLayer?.frame = frame
     }
 
     func cleanup() {
@@ -114,6 +130,7 @@ class PlayerManager: ObservableObject {
         statusObserver = nil
         playerLayer?.removeFromSuperlayer()
         playerLayer = nil
+        playerContainerView.removeFromSuperview()
         player?.pause()
         player = nil
         isPlaying = false
