@@ -785,20 +785,40 @@ struct OrderSongsPage: View {
             if char.isLetter && char.isASCII {
                 result.append(char.uppercased())
             } else if char.isLetter {
-                let mutable = NSMutableString(string: String(char)) as CFMutableString
-                CFStringTransform(mutable, nil, kCFStringTransformToLatin, false)
-                CFStringTransform(mutable, nil, kCFStringTransformStripDiacritics, false)
-                let pinyin = mutable as String
-                if let first = pinyin.first, first.isLetter {
-                    result.append(first.uppercased())
-                }
+                result.append(pinyinFirstLetter(char))
             }
         }
         return result
     }
 
+    private static var pinyinCharCache: [Character: String] = [:]
+    private static let pinyinCacheLock = NSLock()
+
+    private func pinyinFirstLetter(_ char: Character) -> String {
+        OrderSongsPage.pinyinCacheLock.lock()
+        if let cached = OrderSongsPage.pinyinCharCache[char] {
+            OrderSongsPage.pinyinCacheLock.unlock()
+            return cached
+        }
+        OrderSongsPage.pinyinCacheLock.unlock()
+
+        let mutable = NSMutableString(string: String(char)) as CFMutableString
+        CFStringTransform(mutable, nil, kCFStringTransformToLatin, false)
+        CFStringTransform(mutable, nil, kCFStringTransformStripDiacritics, false)
+        let pinyin = mutable as String
+        let result = pinyin.first.map { String($0).uppercased() } ?? "#"
+
+        OrderSongsPage.pinyinCacheLock.lock()
+        OrderSongsPage.pinyinCharCache[char] = result
+        OrderSongsPage.pinyinCacheLock.unlock()
+
+        return result
+    }
+
     private func buildCache() {
         let songs = api.songs
+        guard !songs.isEmpty else { return }
+        isCacheReady = false
         DispatchQueue.global(qos: .userInitiated).async {
             var cache: [Int: String] = [:]
             for song in songs {
@@ -812,8 +832,8 @@ struct OrderSongsPage: View {
     }
 
     var filteredSongs: [Song] {
-        guard isCacheReady else { return [] }
         if inputLetters.isEmpty { return api.songs }
+        guard isCacheReady else { return [] }
         return api.songs.filter { song in
             guard let pinyin = songPinyin[song.id] else { return false }
             return pinyin.hasPrefix(inputLetters) || pinyin.contains(inputLetters)

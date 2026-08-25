@@ -195,19 +195,37 @@ struct ArtistsPage: View {
         ["Z","DEL"]
     ]
 
+    private static var pinyinCharCache: [Character: String] = [:]
+    private static let pinyinCacheLock = NSLock()
+
+    private func pinyinFirstLetter(_ char: Character) -> String {
+        ArtistsPage.pinyinCacheLock.lock()
+        if let cached = ArtistsPage.pinyinCharCache[char] {
+            ArtistsPage.pinyinCacheLock.unlock()
+            return cached
+        }
+        ArtistsPage.pinyinCacheLock.unlock()
+
+        let mutable = NSMutableString(string: String(char)) as CFMutableString
+        CFStringTransform(mutable, nil, kCFStringTransformToLatin, false)
+        CFStringTransform(mutable, nil, kCFStringTransformStripDiacritics, false)
+        let pinyin = mutable as String
+        let result = pinyin.first.map { String($0).uppercased() } ?? "#"
+
+        ArtistsPage.pinyinCacheLock.lock()
+        ArtistsPage.pinyinCharCache[char] = result
+        ArtistsPage.pinyinCacheLock.unlock()
+
+        return result
+    }
+
     private func computePinyinInitials(_ text: String) -> String {
         var result = ""
         for char in text {
             if char.isLetter && char.isASCII {
                 result.append(char.uppercased())
             } else if char.isLetter {
-                let mutable = NSMutableString(string: String(char)) as CFMutableString
-                CFStringTransform(mutable, nil, kCFStringTransformToLatin, false)
-                CFStringTransform(mutable, nil, kCFStringTransformStripDiacritics, false)
-                let pinyin = mutable as String
-                if let first = pinyin.first, first.isLetter {
-                    result.append(first.uppercased())
-                }
+                result.append(pinyinFirstLetter(char))
             }
         }
         return result
@@ -216,6 +234,7 @@ struct ArtistsPage: View {
     private func buildCache() {
         let artists = api.artists
         guard !artists.isEmpty else { return }
+        isCacheReady = false
         DispatchQueue.global(qos: .userInitiated).async {
             var cache: [String: String] = [:]
             for artist in artists {
@@ -230,8 +249,8 @@ struct ArtistsPage: View {
     }
 
     var filteredArtists: [Artist] {
-        guard isCacheReady else { return [] }
         if inputLetters.isEmpty { return api.artists }
+        guard isCacheReady else { return [] }
         return api.artists.filter { artist in
             guard let pinyin = artistPinyin[artist.artist] else { return false }
             return pinyin.hasPrefix(inputLetters) || pinyin.contains(inputLetters) ||

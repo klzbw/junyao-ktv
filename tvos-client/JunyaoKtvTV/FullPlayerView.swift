@@ -15,6 +15,7 @@ struct FullPlayerView: View {
     @State private var hasAutoExited = false
     @State private var showQueue = false
     @State private var showQR = false
+    @FocusState private var focusedControl: Int?
 
     enum VoiceMode {
         case original, accompaniment
@@ -67,34 +68,58 @@ struct FullPlayerView: View {
                             }
                         }
 
-                        // 6 control buttons - standard tvOS focusable buttons
+                        // 7 control buttons - standard tvOS focusable buttons
                         HStack(spacing: 20) {
                             Button(action: { onClose() }) {
                                 controlContent(icon: "house", title: "主页")
                             }
+                            .focused($focusedControl, equals: 0)
+
                             Button(action: { playerManager.restart() }) {
                                 controlContent(icon: "gobackward", title: "重唱")
                             }
+                            .focused($focusedControl, equals: 1)
+
                             Button(action: { playerManager.togglePlayPause() }) {
                                 controlContent(
                                     icon: playerManager.isPlaying ? "pause.fill" : "play.fill",
                                     title: playerManager.isPlaying ? "暂停" : "播放"
                                 )
                             }
+                            .focused($focusedControl, equals: 2)
+
                             Button(action: { toggleVoice() }) {
                                 controlContent(icon: "mic.fill", title: voiceMode.label)
                             }
+                            .focused($focusedControl, equals: 3)
+
                             Button(action: { onNext() }) {
                                 controlContent(icon: "forward.end.fill", title: "切歌")
                             }
+                            .focused($focusedControl, equals: 4)
+
                             Button(action: { showQueue = true }) {
                                 controlContent(icon: "list.bullet", title: "队列")
                             }
+                            .focused($focusedControl, equals: 5)
+
                             Button(action: { showQR = true }) {
                                 controlContent(icon: "qrcode", title: "扫码")
                             }
+                            .focused($focusedControl, equals: 6)
                         }
                         .padding(.horizontal, 10)
+                        .onChange(of: showControls) { showing in
+                            if showing {
+                                // Auto-focus play/pause button when controls appear
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                    focusedControl = 2
+                                }
+                            } else {
+                                focusedControl = nil
+                            }
+                        }
+                        .allowsHitTesting(showControls)
                     }
                     .padding(.horizontal, 24)
                     .padding(.bottom, 24)

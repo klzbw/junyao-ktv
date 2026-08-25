@@ -74,6 +74,9 @@ class PlayerManager: ObservableObject {
         player.play()
         isPlaying = true
 
+        // Apply current voice mode after tracks load
+        applyVoiceMode()
+
         // Apply voice mode after tracks are loaded
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
             self?.applyVoiceMode()
@@ -145,62 +148,31 @@ class PlayerManager: ObservableObject {
     private func applyVoiceMode() {
         guard let playerItem = player?.currentItem else { return }
 
-        // Try switching HLS audio tracks immediately
-        if trySwitchAudioTracks(playerItem) { return }
+        // HLS multi-audio-track switching (same as web hls.audioTrack = want)
+        // Try immediately, then retry as tracks load
+        trySelectAudioTrack(for: playerItem)
 
-        // HLS tracks may not be loaded yet, retry after delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
             guard let self = self, let item = self.player?.currentItem else { return }
-            if !self.trySwitchAudioTracks(item) {
-                // Fallback: reload HLS stream
-                self.reloadHLSStream()
-            }
+            self.trySelectAudioTrack(for: item)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+            guard let self = self, let item = self.player?.currentItem else { return }
+            self.trySelectAudioTrack(for: item)
         }
     }
 
-    private func trySwitchAudioTracks(_ playerItem: AVPlayerItem) -> Bool {
-        guard let audioGroup = playerItem.asset.mediaSelectionGroup(forMediaCharacteristic: .audible) else {
-            return false
-        }
+    private func trySelectAudioTrack(for playerItem: AVPlayerItem) {
+        guard let audioGroup = playerItem.asset.mediaSelectionGroup(forMediaCharacteristic: .audible) else { return }
         let options = audioGroup.options
-        guard options.count >= 2 else { return false }
+        guard options.count >= 2 else { return }
+
+        // track 0 = original, track 1 = accompaniment (matches web hls.audioTrack)
         let targetIndex = isOriginalVoice ? 0 : min(1, options.count - 1)
-        playerItem.select(options[targetIndex], in: audioGroup)
-        return true
-    }
+        let targetOption = options[targetIndex]
 
-    private func reloadHLSStream() {
-        guard let player = player,
-              let currentItem = player.currentItem,
-              let asset = currentItem.asset as? AVURLAsset,
-              currentSongId != nil else { return }
-
-        let currentTime = player.currentTime()
-        let wasPlaying = player.rate > 0
-
-        // Use the same HLS URL - server will return correct audio track based on voice state
-        let newItem = AVPlayerItem(url: asset.url)
-        player.replaceCurrentItem(with: newItem)
-
-        // Wait for item to be ready, then seek and play
-        var observer: NSObjectProtocol?
-        observer = NotificationCenter.default.addObserver(
-            forName: .AVPlayerItemNewAccessLogEntry,
-            object: newItem,
-            queue: .main
-        ) { _ in
-            if wasPlaying {
-                player.seek(to: currentTime) { _ in player.play() }
-            }
-            if let obs = observer { NotificationCenter.default.removeObserver(obs) }
-        }
-
-        // Fallback: after 2 seconds, seek and play anyway
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-            if wasPlaying && player.rate == 0 {
-                player.seek(to: currentTime) { _ in player.play() }
-            }
-            if let obs = observer { NotificationCenter.default.removeObserver(obs) }
+        if playerItem.selectedMediaOption(in: audioGroup) != targetOption {
+            playerItem.select(targetOption, in: audioGroup)
         }
     }
 
