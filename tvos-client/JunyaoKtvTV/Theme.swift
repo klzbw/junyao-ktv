@@ -113,18 +113,18 @@ struct MVButton: View {
                     .minimumScaleFactor(0.5)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(
-                Group {
-                    if focused {
-                        RoundedRectangle(cornerRadius: 14)
-                            .fill(WebColors.ac.opacity(0.25))
-                    } else {
-                        RoundedRectangle(cornerRadius: 14)
-                            .fill(Color.white.opacity(0.08))
-                    }
-                }
-            )
         }
+        .background(
+            Group {
+                if focused {
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(WebColors.ac.opacity(0.25))
+                } else {
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(Color.white.opacity(0.08))
+                }
+            }
+        )
         .buttonStyle(.plain)
         .focused($focused)
         .focusEffectDisabled()

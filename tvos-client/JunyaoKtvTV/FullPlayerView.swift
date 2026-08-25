@@ -196,10 +196,14 @@ struct FullPlayerView: View {
         resetHideTimer()
         hasAutoExited = false
         voiceMode = playerManager.isOriginalVoice ? .original : .accompaniment
-        // Set playback end callback to auto-exit
+        // Set playback end callback: auto-play next if available, else exit
         playerManager.onPlaybackEnd = {
             DispatchQueue.main.async {
-                if !hasAutoExited {
+                // Check if there are more songs after current
+                let hasMore = api.queue.contains(where: { !$0.isPlaying })
+                if hasMore {
+                    api.nextSong()
+                } else if !hasAutoExited {
                     hasAutoExited = true
                     onClose()
                 }

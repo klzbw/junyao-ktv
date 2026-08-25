@@ -294,9 +294,9 @@ struct ContentView: View {
             }
             .padding(.horizontal, 14)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(gradient.opacity(focused ? 1.0 : 0.85))
-            .cornerRadius(12)
         }
+        .background(gradient.opacity(focused ? 1.0 : 0.85))
+        .cornerRadius(12)
         .buttonStyle(.plain)
         .focused($focused)
         .focusEffectDisabled()
@@ -596,9 +596,9 @@ struct ContentView: View {
             }
             .padding(.horizontal, 18)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(gradient.opacity(focused ? 1.0 : 0.85))
-            .cornerRadius(16)
         }
+        .background(gradient.opacity(focused ? 1.0 : 0.85))
+        .cornerRadius(16)
         .buttonStyle(.plain)
         .focused($focused)
         .focusEffectDisabled()
