@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 // MARK: - Full Page Container (exact .pd-full / .pf-head / .pf-body / .pf-foot)
 struct FullPageContainer<Content: View>: View {

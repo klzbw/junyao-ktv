@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 import AVKit
 import CoreImage
 
@@ -928,9 +928,6 @@ struct OrderSongsPage: View {
                                         }
                                     }
                                     .buttonStyle(.plain)
-                                    if letter == "Z" {
-                                        Spacer().frame(maxWidth: .infinity)
-                                    }
                                 }
                             }
                         }
