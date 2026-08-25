@@ -3,7 +3,7 @@ import UIKit
 
 /// Shared player manager - holds a single AVPlayer and AVPlayerLayer.
 /// The layer moves between small preview and fullscreen views via currentHostView.
-class PlayerManager: ObservableObject {
+class PlayerManager: NSObject, ObservableObject {
     static let shared = PlayerManager()
 
     @Published var currentTime: Double = 0
