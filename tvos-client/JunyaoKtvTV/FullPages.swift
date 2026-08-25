@@ -502,28 +502,29 @@ struct AlphaKey: View {
     var body: some View {
         Text(label)
             .font(.system(size: isDelete ? 14 : 26, weight: .bold))
-            .foregroundColor(isDelete ? WebColors.pink : (focused ? .white : Color.white.opacity(0.9)))
+            .foregroundColor(focused ? .white : (isDelete ? WebColors.pink : Color.white.opacity(0.7)))
             .frame(maxWidth: .infinity)
             .padding(.vertical, isDelete ? 10 : 16)
             .background(
                 Group {
                     if focused {
-                        RoundedRectangle(cornerRadius: 6).fill(WebColors.ac.opacity(0.5))
+                        RoundedRectangle(cornerRadius: 6).fill(WebColors.ac)
                     } else if isDelete {
                         RoundedRectangle(cornerRadius: 6).fill(WebColors.pink.opacity(0.15))
                     } else {
-                        RoundedRectangle(cornerRadius: 6).fill(WebColors.cardBg)
+                        RoundedRectangle(cornerRadius: 6).fill(Color.white.opacity(0.06))
                     }
                 }
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 6)
-                    .stroke(focused ? WebColors.ac2 : Color.clear, lineWidth: 2)
+                    .stroke(focused ? Color.white : Color.white.opacity(0.1), lineWidth: focused ? 2 : 1)
             )
+            .shadow(color: focused ? WebColors.ac.opacity(0.8) : .clear, radius: focused ? 12 : 0, x: 0, y: 0)
             .focusable(true)
             .focused($focused)
             .focusEffectDisabled()
-            .scaleEffect(focused ? 1.08 : 1.0)
+            .scaleEffect(focused ? 1.12 : 0.95)
             .animation(.easeOut(duration: 0.15), value: focused)
             .onTapGesture { action() }
     }

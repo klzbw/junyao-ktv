@@ -115,17 +115,22 @@ struct MVButton: View {
             Group {
                 if focused {
                     RoundedRectangle(cornerRadius: 14)
-                        .fill(WebColors.ac.opacity(0.5))
+                        .fill(WebColors.ac)
                 } else {
                     RoundedRectangle(cornerRadius: 14)
-                        .fill(Color.white.opacity(0.06))
+                        .fill(Color.white.opacity(0.05))
                 }
             }
         )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(focused ? Color.white : Color.white.opacity(0.1), lineWidth: focused ? 2 : 1)
+        )
+        .shadow(color: focused ? WebColors.ac.opacity(0.7) : .clear, radius: focused ? 14 : 0, x: 0, y: 0)
         .focusable(true)
         .focused($focused)
         .focusEffectDisabled()
-        .scaleEffect(focused ? 1.06 : 1.0)
+        .scaleEffect(focused ? 1.1 : 0.96)
         .animation(Animation.easeOut(duration: 0.18), value: focused)
         .onTapGesture { action() }
     }
