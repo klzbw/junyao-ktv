@@ -207,7 +207,6 @@ struct FullPlayerView: View {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                         let newSongId = api.queue.first(where: { $0.isPlaying })?.song_id
                         if newSongId == currentSongId || newSongId == nil {
-                            // No next song, exit fullscreen
                             if !hasAutoExited {
                                 hasAutoExited = true
                                 onClose()
