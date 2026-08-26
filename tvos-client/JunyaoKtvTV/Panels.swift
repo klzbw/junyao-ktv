@@ -38,6 +38,7 @@ struct PanelOverlay<Content: View>: View {
 struct SearchPanel: View {
     @ObservedObject var api: KTVAPIClient
     let onClose: () -> Void
+    let onAdd: (Song) -> Void
     @State private var query = ""
     @State private var currentPage = 0
     @FocusState private var closeFocused: Bool
@@ -149,7 +150,7 @@ struct SearchPanel: View {
     @ViewBuilder
     private func searchSongRow(_ song: Song, index: Int) -> some View {
         @FocusState var focused: Bool
-        return Button(action: { api.addToQueue(songId: song.id); onClose() }) {
+        return Button(action: { onAdd(song); onClose() }) {
             HStack(spacing: 10) {
                 Text("\(index + 1)").font(.system(size: 14)).foregroundColor(WebColors.sub).frame(width: 28)
                 VStack(alignment: .leading, spacing: 3) {
@@ -544,3 +545,4 @@ struct EQPanel: View {
         }
     }
 }
+

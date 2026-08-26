@@ -579,6 +579,7 @@ struct ArtistSongsPage: View {
     @ObservedObject var api: KTVAPIClient
     let artist: String
     let onBack: () -> Void
+    let onAdd: (Song) -> Void
     @State private var currentPage = 1
     private let pageSize = 50
 
@@ -595,7 +596,7 @@ struct ArtistSongsPage: View {
                          onPageChange: { currentPage = $0 }) {
             ScrollView {
                 TwoColSongList(songs: pagedSongs, startIndex: (currentPage - 1) * pageSize,
-                              showRank: false, onAdd: { api.addToQueue(songId: $0.id) },
+                              showRank: false, onAdd: onAdd,
                               favorites: api.favorites, onToggleFav: { api.toggleFavorite(songId: $0) })
             }
         }
@@ -607,12 +608,13 @@ struct ArtistSongsPage: View {
 struct ChartsPage: View {
     @ObservedObject var api: KTVAPIClient
     let onBack: () -> Void
+    let onAdd: (Song) -> Void
 
     var body: some View {
         FullPageContainer(title: "🏆 热歌榜单", onBack: onBack) {
             ScrollView {
                 TwoColSongList(songs: api.charts, startIndex: 0, showRank: true,
-                              onAdd: { api.addToQueue(songId: $0.id) },
+                              onAdd: onAdd,
                               favorites: api.favorites, onToggleFav: { api.toggleFavorite(songId: $0) })
             }
         }
@@ -624,6 +626,7 @@ struct ChartsPage: View {
 struct FavoritesPage: View {
     @ObservedObject var api: KTVAPIClient
     let onBack: () -> Void
+    let onAdd: (Song) -> Void
     @State private var currentPage = 1
     private let pageSize = 50
 
@@ -649,7 +652,7 @@ struct FavoritesPage: View {
             } else {
                 ScrollView {
                     TwoColSongList(songs: pagedSongs, startIndex: (currentPage - 1) * pageSize,
-                                  showRank: false, onAdd: { api.addToQueue(songId: $0.id) },
+                                  showRank: false, onAdd: onAdd,
                                   favorites: api.favorites, onToggleFav: { api.toggleFavorite(songId: $0) })
                 }
             }
@@ -662,6 +665,7 @@ struct FavoritesPage: View {
 struct HistoryPage: View {
     @ObservedObject var api: KTVAPIClient
     let onBack: () -> Void
+    let onAdd: (Song) -> Void
     @State private var currentPage = 1
     private let pageSize = 50
 
@@ -687,7 +691,7 @@ struct HistoryPage: View {
             } else {
                 ScrollView {
                     TwoColSongList(songs: pagedSongs, startIndex: (currentPage - 1) * pageSize,
-                                  showRank: false, onAdd: { api.addToQueue(songId: $0.id) },
+                                  showRank: false, onAdd: onAdd,
                                   favorites: api.favorites, onToggleFav: { api.toggleFavorite(songId: $0) })
                 }
             }
@@ -700,6 +704,7 @@ struct HistoryPage: View {
 struct NewestPage: View {
     @ObservedObject var api: KTVAPIClient
     let onBack: () -> Void
+    let onAdd: (Song) -> Void
     @State private var currentPage = 1
     private let pageSize = 18
 
@@ -716,7 +721,7 @@ struct NewestPage: View {
                          onPageChange: { currentPage = $0 }) {
             ScrollView {
                 TwoColSongList(songs: pagedSongs, startIndex: (currentPage - 1) * pageSize,
-                              showRank: false, onAdd: { api.addToQueue(songId: $0.id) },
+                              showRank: false, onAdd: onAdd,
                               favorites: api.favorites, onToggleFav: { api.toggleFavorite(songId: $0) })
             }
         }
@@ -728,6 +733,7 @@ struct NewestPage: View {
 struct CategoryPage: View {
     @ObservedObject var api: KTVAPIClient
     let onBack: () -> Void
+    let onAdd: (Song) -> Void
     @State private var selectedLang: String? = nil
     @State private var selectedGenre: String? = nil
     @State private var currentPage = 1
@@ -782,7 +788,7 @@ struct CategoryPage: View {
                 // Song list (exact .song-list-2col)
                 ScrollView {
                     TwoColSongList(songs: pagedSongs, startIndex: (currentPage - 1) * pageSize,
-                                  showRank: false, onAdd: { api.addToQueue(songId: $0.id) },
+                                  showRank: false, onAdd: onAdd,
                                   favorites: api.favorites, onToggleFav: { api.toggleFavorite(songId: $0) })
                 }
             }
@@ -823,3 +829,4 @@ struct WrapView<Data: RandomAccessCollection, Content: View>: View where Data.El
         }
     }
 }
+

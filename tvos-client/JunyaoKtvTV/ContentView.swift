@@ -757,7 +757,8 @@ struct ContentView: View {
     private func panelView(_ panel: PanelType) -> some View {
         switch panel {
         case .search:
-            SearchPanel(api: api, onClose: { activePanel = nil })
+            SearchPanel(api: api, onClose: { activePanel = nil },
+                        onAdd: { song in api.addToQueue(songId: song.id); showToast("已点: \(song.displayTitle)") })
         case .queue:
             QueuePanel(api: api, onClose: { activePanel = nil }, onPlay: { activePanel = nil; showingPlayer = true })
         case .settings:
@@ -783,17 +784,23 @@ struct ContentView: View {
                 activePage = .artistSongs
             })
         case .artistSongs:
-            ArtistSongsPage(api: api, artist: selectedArtist, onBack: { activePage = .artists })
+            ArtistSongsPage(api: api, artist: selectedArtist, onBack: { activePage = .artists },
+                            onAdd: { song in api.addToQueue(songId: song.id); showToast("已点: \(song.displayTitle)") })
         case .charts:
-            ChartsPage(api: api, onBack: { activePage = nil })
+            ChartsPage(api: api, onBack: { activePage = nil },
+                       onAdd: { song in api.addToQueue(songId: song.id); showToast("已点: \(song.displayTitle)") })
         case .favorites:
-            FavoritesPage(api: api, onBack: { activePage = nil })
+            FavoritesPage(api: api, onBack: { activePage = nil },
+                          onAdd: { song in api.addToQueue(songId: song.id); showToast("已点: \(song.displayTitle)") })
         case .history:
-            HistoryPage(api: api, onBack: { activePage = nil })
+            HistoryPage(api: api, onBack: { activePage = nil },
+                        onAdd: { song in api.addToQueue(songId: song.id); showToast("已点: \(song.displayTitle)") })
         case .newest:
-            NewestPage(api: api, onBack: { activePage = nil })
+            NewestPage(api: api, onBack: { activePage = nil },
+                       onAdd: { song in api.addToQueue(songId: song.id); showToast("已点: \(song.displayTitle)") })
         case .category:
-            CategoryPage(api: api, onBack: { activePage = nil })
+            CategoryPage(api: api, onBack: { activePage = nil },
+                         onAdd: { song in api.addToQueue(songId: song.id); showToast("已点: \(song.displayTitle)") })
         }
     }
 
