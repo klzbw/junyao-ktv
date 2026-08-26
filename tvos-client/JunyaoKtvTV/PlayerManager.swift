@@ -22,7 +22,7 @@ class PlayerManager: ObservableObject {
     private var statusObserver: NSKeyValueObservation?
     private var itemStatusObserver: NSKeyValueObservation?
     private var endObserver: NSObjectProtocol?
-    private var mediaGroupObserver: NSObjectProtocol?
+    private var voiceApplyWorkItem: DispatchWorkItem?
 
     private init() {}
 
@@ -73,19 +73,11 @@ class PlayerManager: ObservableObject {
             if playerItem.status == .readyToPlay {
                 DispatchQueue.main.async {
                     self?.applyVoiceModeIfNeeded()
+                    // Single deferred attempt: HLS master playlist may finish parsing
+                    // shortly after readyToPlay. One retry only — no loop, no stutter.
+                    self?.scheduleSingleVoiceApply()
                 }
             }
-        }
-
-        // Listen for media selection group becoming available (HLS tracks load async).
-        // This is the correct AVFoundation signal — equivalent to hls.js MANIFEST_PARSED
-        // / AUDIO_TRACKS_UPDATED in the web VoiceManager.
-        mediaGroupObserver = NotificationCenter.default.addObserver(
-            forName: AVPlayerItem.mediaSelectionGroupDidChangeNotification,
-            object: playerItem,
-            queue: .main
-        ) { [weak self] _ in
-            self?.applyVoiceModeIfNeeded()
         }
 
         // Playback end observer
@@ -157,9 +149,9 @@ class PlayerManager: ObservableObject {
     // MARK: - Voice Toggle (Original / Accompaniment)
     // Mirrors web VoiceManager.applyTracks(): hls.audioTrack = want is called exactly once.
     // AVPlayerItem.select(_:in:) is the equivalent — it switches the audio rendition
-    // without interrupting video. Calling it repeatedly causes rebuffering/stutter,
-    // so we call it ONCE and rely on mediaSelectionGroupDidChangeNotification for
-    // the async-loading case.
+    // without interrupting video. The old 5-retry loop caused repeated select() calls
+    // and rebuffering/stutter; now we call select() once at readyToPlay plus at most
+    // ONE deferred attempt 0.8s later for the async HLS playlist parsing case.
     var currentAudioTracks: Int = 1
     private var loadedAudioTrackIndex: Int = 0
     private var pendingVoiceSwitch: Bool = false
@@ -170,6 +162,7 @@ class PlayerManager: ObservableObject {
         loadedAudioTrackIndex = -1
         pendingVoiceSwitch = true
         applyVoiceModeIfNeeded()
+        scheduleSingleVoiceApply()
     }
 
     func setVoiceMode(_ original: Bool) {
@@ -177,11 +170,12 @@ class PlayerManager: ObservableObject {
         loadedAudioTrackIndex = -1
         pendingVoiceSwitch = true
         applyVoiceModeIfNeeded()
+        scheduleSingleVoiceApply()
     }
 
     /// Apply voice mode if we have a pending switch and tracks are available.
     /// Called from: setupPlayer, itemStatusObserver (readyToPlay),
-    /// mediaSelectionGroupDidChangeNotification, and toggleVoice/setVoiceMode.
+    /// scheduleSingleVoiceApply, and toggleVoice/setVoiceMode.
     private func applyVoiceModeIfNeeded() {
         guard let playerItem = player?.currentItem else { return }
         let targetIndex = isOriginalVoice ? 0 : 1
@@ -189,14 +183,23 @@ class PlayerManager: ObservableObject {
         // Already on the correct track — nothing to do (matches web: want === _loadedTrack)
         if loadedAudioTrackIndex == targetIndex && !pendingVoiceSwitch { return }
 
-        // Try to select now. If the group isn't available yet, the notification
-        // observer will call this again when it arrives.
+        // Try to select now. If the group isn't available yet, scheduleSingleVoiceApply
+        // will make one more attempt after a short delay.
         if selectAudioTrack(for: playerItem, targetIndex: targetIndex) {
             loadedAudioTrackIndex = targetIndex
             pendingVoiceSwitch = false
         }
-        // If select failed (group not ready), leave pendingVoiceSwitch = true;
-        // mediaSelectionGroupDidChangeNotification will retry — exactly ONCE.
+    }
+
+    /// Schedule a single deferred voice apply attempt (cancellable).
+    /// This replaces the old 5-retry loop that caused stuttering.
+    private func scheduleSingleVoiceApply() {
+        voiceApplyWorkItem?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            self?.applyVoiceModeIfNeeded()
+        }
+        voiceApplyWorkItem = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8, execute: work)
     }
 
     /// Attempt to select the audio track. Returns true if selection was made.
@@ -219,6 +222,8 @@ class PlayerManager: ObservableObject {
     }
 
     func cleanup() {
+        voiceApplyWorkItem?.cancel()
+        voiceApplyWorkItem = nil
         if let observer = timeObserver {
             player?.removeTimeObserver(observer)
             timeObserver = nil
@@ -227,10 +232,6 @@ class PlayerManager: ObservableObject {
         statusObserver = nil
         itemStatusObserver?.invalidate()
         itemStatusObserver = nil
-        if let observer = mediaGroupObserver {
-            NotificationCenter.default.removeObserver(observer)
-            mediaGroupObserver = nil
-        }
         if let endObserver = endObserver {
             NotificationCenter.default.removeObserver(endObserver)
             self.endObserver = nil
