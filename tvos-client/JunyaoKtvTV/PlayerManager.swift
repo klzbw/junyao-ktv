@@ -179,9 +179,6 @@ class PlayerManager: ObservableObject {
         voiceSession += 1
         let session = voiceSession
 
-        // Prevent AVPlayer from auto-overriding our selection based on system language
-        playerItem.appliesMediaSelectionCriteriaAutomatically = false
-
         // First try synchronous access (works if playlist already parsed)
         if let group = playerItem.asset.mediaSelectionGroup(forMediaCharacteristic: .audible) {
             let msg = doSelectTrack(for: playerItem, group: group, targetIndex: targetIndex, wantOriginal: wantOriginal)
