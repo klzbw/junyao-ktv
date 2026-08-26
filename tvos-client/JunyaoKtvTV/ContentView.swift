@@ -830,18 +830,28 @@ struct OrderSongsPage: View {
     let onBack: () -> Void
     let onAdd: (Song) -> Void
     @State private var currentPage = 0
-    @State private var inputLetters = "" // Multi-letter pinyin initials input
+    @State private var inputText = "" // Pinyin initials (ABC) or digits (123)
+    @State private var keyboardMode: KeyboardMode = .abc
     @State private var songPinyin: [Int: String] = [:] // Precomputed pinyin initials
     @State private var isCacheReady = false
     private let pageSize = 32
-    private let letterRows: [[String]] = [
-        ["A","B","C","D","E"],
-        ["F","G","H","I","J"],
-        ["K","L","M","N","O"],
-        ["P","Q","R","S","T"],
-        ["U","V","W","X","Y"],
-        ["Z","DEL"]
+    private enum KeyboardMode { case abc, num }
+    // 歌名键盘：完整 A-Z 26 字母（与网页端一致）
+    private let abcKeys: [String] = [
+        "A","B","C","D","E",
+        "F","G","H","I","J",
+        "K","L","M","N","O",
+        "P","Q","R","S","T",
+        "U","V","W","X","Y",
+        "Z","DEL"
     ]
+    private let numKeys: [String] = [
+        "1","2","3","4","5",
+        "6","7","8","9","0",
+        "DEL"
+    ]
+    private var activeKeys: [String] { keyboardMode == .abc ? abcKeys : numKeys }
+    private func keySpan(_ key: String) -> Int { key == "DEL" ? 2 : 1 }
 
     private func computePinyinInitials(_ text: String) -> String {
         var result = ""
@@ -896,11 +906,18 @@ struct OrderSongsPage: View {
     }
 
     var filteredSongs: [Song] {
-        if inputLetters.isEmpty { return api.songs }
-        guard isCacheReady else { return [] }
-        return api.songs.filter { song in
-            guard let pinyin = songPinyin[song.id] else { return false }
-            return pinyin.hasPrefix(inputLetters) || pinyin.contains(inputLetters)
+        if inputText.isEmpty { return api.songs }
+        switch keyboardMode {
+        case .abc:
+            guard isCacheReady else { return [] }
+            return api.songs.filter { song in
+                guard let pinyin = songPinyin[song.id] else { return false }
+                return pinyin.hasPrefix(inputText)
+            }
+        case .num:
+            return api.songs.filter { song in
+                song.displayTitle.localizedCaseInsensitiveContains(inputText)
+            }
         }
     }
 
@@ -956,95 +973,79 @@ struct OrderSongsPage: View {
                 }
                 .frame(maxWidth: .infinity)
 
-                // Right: alphabet search panel
+                // Right: search panel (keyboard)
                 VStack(spacing: 0) {
-                    // Panel header with input display
+                    // Panel header: search icon + title/input + mode toggle button
                     HStack {
                         Image(systemName: "magnifyingglass")
                             .font(.system(size: 20))
                             .foregroundColor(WebColors.sub)
-                        Text("歌名搜索")
+                        Text(inputText.isEmpty ? "歌名搜索" : inputText)
                             .font(.system(size: 22, weight: .bold))
                             .foregroundColor(.white)
+                            .lineLimit(1)
                         Spacer()
-                        if inputLetters.isEmpty {
-                            Text("全部")
+                        // 单按钮切换：ABC 模式显示"123"，123 模式显示"ABC"
+                        Button(action: {
+                            keyboardMode = (keyboardMode == .abc ? .num : .abc)
+                            inputText = ""
+                            currentPage = 0
+                        }) {
+                            Text(keyboardMode == .abc ? "123" : "ABC")
                                 .font(.system(size: 18, weight: .bold))
                                 .foregroundColor(.white)
-                                .padding(EdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14))
+                                .padding(.horizontal, 18).padding(.vertical, 7)
                                 .background(Color.white.opacity(0.15))
                                 .cornerRadius(999)
-                        } else {
-                            Text(inputLetters)
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(.white)
-                                .padding(EdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14))
-                                .background(Color(hex: UInt32(0xb91c5c)).opacity(0.8))
-                                .cornerRadius(999)
                         }
+                        .buttonStyle(.plain)
                     }
                     .padding(.horizontal, 16).padding(.vertical, 14)
 
-                    // Alphabet grid (5 cols)
-                    VStack(spacing: 10) {
-                        ForEach(letterRows, id: \.self) { row in
-                            HStack(spacing: 10) {
-                                ForEach(row, id: \.self) { letter in
-                                    Button(action: {
-                                        if letter == "DEL" {
-                                            if !inputLetters.isEmpty {
-                                                inputLetters.removeLast()
-                                            }
-                                        } else {
-                                            inputLetters.append(letter)
-                                        }
-                                        currentPage = 0
-                                    }) {
-                                        if letter == "DEL" {
-                                            HStack(spacing: 6) {
-                                                Image(systemName: "delete.left")
-                                                    .font(.system(size: 20, weight: .bold))
-                                                Text("删除")
-                                                    .font(.system(size: 20, weight: .bold))
-                                            }
-                                            .foregroundColor(.white)
-                                            .frame(maxWidth: .infinity)
-                                            .frame(height: 56)
-                                            .background(Color(hex: 0x2a2a3a))
-                                            .cornerRadius(10)
-                                        } else {
-                                            Text(letter)
-                                                .font(.system(size: 24, weight: .bold))
-                                                .foregroundColor(.white)
-                                                .frame(maxWidth: .infinity)
-                                                .frame(height: 56)
-                                                .background(Color(hex: 0x2a2a3a))
-                                                .cornerRadius(10)
-                                        }
+                    // Keyboard grid (5 cols, DEL spans 2)
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 5),
+                              spacing: 10) {
+                        ForEach(activeKeys, id: \.self) { key in
+                            Button(action: {
+                                if key == "DEL" {
+                                    if !inputText.isEmpty { inputText.removeLast() }
+                                } else {
+                                    inputText.append(key)
+                                }
+                                currentPage = 0
+                            }) {
+                                if key == "DEL" {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "delete.left")
+                                            .font(.system(size: 20, weight: .bold))
+                                        Text("删除")
+                                            .font(.system(size: 20, weight: .bold))
                                     }
-                                    .buttonStyle(.plain)
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 56)
+                                    .background(Color(hex: UInt32(0xb91c5c)).opacity(0.35))
+                                    .overlay(RoundedRectangle(cornerRadius: 10)
+                                        .stroke(Color(hex: UInt32(0xb91c5c)).opacity(0.5), lineWidth: 1.5))
+                                    .cornerRadius(10)
+                                } else {
+                                    Text(key)
+                                        .font(.system(size: 24, weight: .bold))
+                                        .foregroundColor(.white)
+                                        .frame(maxWidth: .infinity)
+                                        .frame(height: 56)
+                                        .background(Color(hex: 0x2a2a3a))
+                                        .overlay(RoundedRectangle(cornerRadius: 10)
+                                            .stroke(Color.white.opacity(0.12), lineWidth: 1.5))
+                                        .cornerRadius(10)
                                 }
                             }
+                            .buttonStyle(.plain)
+                            .gridCellColumns(keySpan(key))
                         }
                     }
                     .padding(.horizontal, 16)
                     .padding(.bottom, 16)
-
-                    // Clear button
-                    if !inputLetters.isEmpty {
-                        Button(action: { inputLetters = ""; currentPage = 0 }) {
-                            Text("清空")
-                                .font(.system(size: 18, weight: .medium))
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 44)
-                                .background(Color.white.opacity(0.1))
-                                .cornerRadius(10)
-                        }
-                        .buttonStyle(.plain)
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 12)
-                    }
 
                     Spacer()
                 }

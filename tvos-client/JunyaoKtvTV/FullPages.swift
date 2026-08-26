@@ -186,14 +186,15 @@ struct ArtistsPage: View {
     @State private var isCacheReady = false
     @State private var isLoading = true
     private let pageSize = 18
-    private let letterRows: [[String]] = [
-        ["A","B","C","D","E"],
-        ["F","G","H","I","J"],
-        ["K","L","M","N","O"],
-        ["P","Q","R","S","T"],
-        ["U","V","W","X","Y"],
-        ["Z","DEL"]
+    // 歌手键盘：拼音首字母不会出现 I/U/V，与网页端一致（23 键）
+    private let abcKeys: [String] = [
+        "A","B","C","D","E",
+        "F","G","H","J","K",
+        "L","M","N","O","P",
+        "Q","R","S","T","W",
+        "X","Y","Z","DEL"
     ]
+    private func keySpan(_ key: String) -> Int { key == "DEL" ? 2 : 1 }
 
     private static var pinyinCharCache: [Character: String] = [:]
     private static let pinyinCacheLock = NSLock()
@@ -253,8 +254,7 @@ struct ArtistsPage: View {
         guard isCacheReady else { return [] }
         return api.artists.filter { artist in
             guard let pinyin = artistPinyin[artist.artist] else { return false }
-            return pinyin.hasPrefix(inputLetters) || pinyin.contains(inputLetters) ||
-                   artist.displayName.localizedCaseInsensitiveContains(inputLetters)
+            return pinyin.hasPrefix(inputLetters)
         }
     }
 
@@ -347,91 +347,58 @@ struct ArtistsPage: View {
                         Image(systemName: "magnifyingglass")
                             .font(.system(size: 20))
                             .foregroundColor(WebColors.sub)
-                        Text("歌星搜索")
+                        Text(inputLetters.isEmpty ? "歌星搜索" : inputLetters)
                             .font(.system(size: 22, weight: .bold))
                             .foregroundColor(.white)
+                            .lineLimit(1)
                         Spacer()
-                        if inputLetters.isEmpty {
-                            Text("全部")
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(.white)
-                                .padding(EdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14))
-                                .background(Color.white.opacity(0.15))
-                                .cornerRadius(999)
-                        } else {
-                            Text(inputLetters)
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(.white)
-                                .padding(EdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14))
-                                .background(Color(hex: UInt32(0xb91c5c)).opacity(0.8))
-                                .cornerRadius(999)
-                        }
                     }
                     .padding(.horizontal, 16).padding(.vertical, 14)
 
-                    // Alphabet grid
-                    VStack(spacing: 10) {
-                        ForEach(letterRows, id: \.self) { row in
-                            HStack(spacing: 10) {
-                                ForEach(row, id: \.self) { letter in
-                                    Button(action: {
-                                        if letter == "DEL" {
-                                            if !inputLetters.isEmpty {
-                                                inputLetters.removeLast()
-                                            }
-                                        } else {
-                                            inputLetters.append(letter)
-                                        }
-                                        currentPage = 1
-                                    }) {
-                                        if letter == "DEL" {
-                                            HStack(spacing: 6) {
-                                                Image(systemName: "delete.left")
-                                                    .font(.system(size: 20, weight: .bold))
-                                                Text("删除")
-                                                    .font(.system(size: 20, weight: .bold))
-                                            }
-                                            .foregroundColor(.white)
-                                            .frame(maxWidth: .infinity)
-                                            .frame(height: 56)
-                                            .background(Color(hex: 0x2a2a3a))
-                                            .cornerRadius(10)
-                                        } else {
-                                            Text(letter)
-                                                .font(.system(size: 24, weight: .bold))
-                                                .foregroundColor(.white)
-                                                .frame(maxWidth: .infinity)
-                                                .frame(height: 56)
-                                                .background(Color(hex: 0x2a2a3a))
-                                                .cornerRadius(10)
-                                        }
+                    // Keyboard grid (5 cols, DEL spans 2)
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 5),
+                              spacing: 10) {
+                        ForEach(abcKeys, id: \.self) { key in
+                            Button(action: {
+                                if key == "DEL" {
+                                    if !inputLetters.isEmpty { inputLetters.removeLast() }
+                                } else {
+                                    inputLetters.append(key)
+                                }
+                                currentPage = 1
+                            }) {
+                                if key == "DEL" {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "delete.left")
+                                            .font(.system(size: 20, weight: .bold))
+                                        Text("删除")
+                                            .font(.system(size: 20, weight: .bold))
                                     }
-                                    .buttonStyle(.plain)
-                                    if letter == "Z" {
-                                        Spacer().frame(maxWidth: .infinity)
-                                    }
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 56)
+                                    .background(Color(hex: UInt32(0xb91c5c)).opacity(0.35))
+                                    .overlay(RoundedRectangle(cornerRadius: 10)
+                                        .stroke(Color(hex: UInt32(0xb91c5c)).opacity(0.5), lineWidth: 1.5))
+                                    .cornerRadius(10)
+                                } else {
+                                    Text(key)
+                                        .font(.system(size: 24, weight: .bold))
+                                        .foregroundColor(.white)
+                                        .frame(maxWidth: .infinity)
+                                        .frame(height: 56)
+                                        .background(Color(hex: 0x2a2a3a))
+                                        .overlay(RoundedRectangle(cornerRadius: 10)
+                                            .stroke(Color.white.opacity(0.12), lineWidth: 1.5))
+                                        .cornerRadius(10)
                                 }
                             }
+                            .buttonStyle(.plain)
+                            .gridCellColumns(keySpan(key))
                         }
                     }
                     .padding(.horizontal, 16)
                     .padding(.bottom, 16)
-
-                    // Clear button
-                    if !inputLetters.isEmpty {
-                        Button(action: { inputLetters = ""; currentPage = 1 }) {
-                            Text("清空")
-                                .font(.system(size: 18, weight: .medium))
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 44)
-                                .background(Color.white.opacity(0.1))
-                                .cornerRadius(10)
-                        }
-                        .buttonStyle(.plain)
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 12)
-                    }
 
                     Spacer()
                 }
