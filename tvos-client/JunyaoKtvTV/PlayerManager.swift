@@ -66,11 +66,11 @@ class PlayerManager: ObservableObject {
             }
         }
 
-        // Item status observer - start voice poll when item is ready to play
+        // Item status observer - apply voice mode when item is ready to play
         itemStatusObserver = playerItem.observe(\.status, options: [.new]) { [weak self] _, _ in
             if playerItem.status == .readyToPlay {
                 DispatchQueue.main.async {
-                    self?.startVoicePoll()
+                    self?.applyVoiceModeAsync()
                 }
             }
         }
@@ -87,8 +87,8 @@ class PlayerManager: ObservableObject {
         player.play()
         isPlaying = true
 
-        // Start voice poll — will select target track once HLS audio group is ready
-        startVoicePoll()
+        // Apply voice mode — async load handles HLS audio group availability
+        applyVoiceModeAsync()
     }
 
     /// Attach player layer to the current host view
@@ -141,78 +141,85 @@ class PlayerManager: ObservableObject {
     }
 
     // MARK: - Voice Toggle (Original / Accompaniment)
-    // Strategy: HLS audio media selection group becomes available asynchronously
-    // after the item starts playing. We poll until the group is ready, then call
-    // select(_:in:) exactly ONCE — matching web's hls.audioTrack = want semantics.
-    // Repeated select() calls cause AVPlayer to rebuffer audio = stutter, so we
-    // never call it more than once per target.
+    // Mirrors web VoiceManager: hls.audioTrack = want is called exactly once.
+    // For HLS, AVAsset.mediaSelectionGroup(for:) must be loaded ASYNCHRONOUSLY —
+    // the synchronous variant often returns nil for HLS streams on tvOS.
     var currentAudioTracks: Int = 1
     private var loadedAudioTrackIndex: Int = 0
-    private var voicePollTimer: Timer?
-    private var voicePollAttempts = 0
+    private var voiceSwitchTask: Task<Void, Never>?
 
     func toggleVoice() {
         isOriginalVoice.toggle()
         loadedAudioTrackIndex = -1  // force re-apply
-        startVoicePoll()
+        applyVoiceModeAsync()
     }
 
     func setVoiceMode(_ original: Bool) {
         isOriginalVoice = original
         loadedAudioTrackIndex = -1
-        startVoicePoll()
+        applyVoiceModeAsync()
     }
 
-    /// Poll until audio group is available, then select target track once.
-    private func startVoicePoll() {
-        voicePollTimer?.invalidate()
-        voicePollAttempts = 0
-        // Try immediately first
-        if trySelectIfReady() { return }
-        // Poll every 0.4s for up to ~6s (15 attempts)
-        voicePollTimer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: true) { [weak self] _ in
+    private func applyVoiceModeAsync() {
+        voiceSwitchTask?.cancel()
+        voiceSwitchTask = Task { [weak self] in
             guard let self = self else { return }
-            self.voicePollAttempts += 1
-            if self.trySelectIfReady() || self.voicePollAttempts >= 15 {
-                self.voicePollTimer?.invalidate()
-                self.voicePollTimer = nil
+            let targetIndex = self.isOriginalVoice ? 0 : 1
+
+            // Try up to 4 times with increasing delays (0s, 0.5s, 1.5s, 3s)
+            // Each attempt uses async load — select() is called at most once.
+            let delays: [UInt64] = [0, 500_000_000, 1_500_000_000, 3_000_000_000]
+            for delay in delays {
+                if Task.isCancelled { return }
+                if delay > 0 {
+                    try? await Task.sleep(nanoseconds: delay)
+                }
+                if Task.isCancelled { return }
+                if self.loadedAudioTrackIndex == targetIndex { return }
+
+                guard let playerItem = self.player?.currentItem else { return }
+
+                // Async load is required for HLS streams on tvOS
+                if let group = try? await playerItem.asset.loadMediaSelectionGroup(for: .audible) {
+                    if Task.isCancelled { return }
+                    let options = group.options
+                    if options.count > targetIndex {
+                        let targetOption = options[targetIndex]
+                        await MainActor.run {
+                            let current = playerItem.selectedMediaOption(in: group)
+                            if current != targetOption {
+                                playerItem.select(targetOption, in: group)
+                            }
+                            self.loadedAudioTrackIndex = targetIndex
+                        }
+                        return
+                    }
+                }
+
+                // Fallback: synchronous method (works for non-HLS / already-loaded assets)
+                await MainActor.run {
+                    self.trySelectSynchronous(playerItem: playerItem, targetIndex: targetIndex)
+                }
+                if self.loadedAudioTrackIndex == targetIndex { return }
             }
         }
-        RunLoop.main.add(voicePollTimer!, forMode: .common)
     }
 
-    /// Returns true if selection was applied (or already on target), false if group not ready.
-    @discardableResult
-    private func trySelectIfReady() -> Bool {
-        guard let playerItem = player?.currentItem else {
-            voicePollTimer?.invalidate(); voicePollTimer = nil
-            return true
-        }
-        let targetIndex = isOriginalVoice ? 0 : 1
-        if loadedAudioTrackIndex == targetIndex {
-            voicePollTimer?.invalidate(); voicePollTimer = nil
-            return true
-        }
-        guard let audioGroup = playerItem.asset.mediaSelectionGroup(forMediaCharacteristic: .audible) else {
-            return false  // group not ready yet, keep polling
-        }
+    private func trySelectSynchronous(playerItem: AVPlayerItem, targetIndex: Int) {
+        guard let audioGroup = playerItem.asset.mediaSelectionGroup(forMediaCharacteristic: .audible) else { return }
         let options = audioGroup.options
-        guard options.count > targetIndex else {
-            return false  // tracks not loaded yet
-        }
+        guard options.count > targetIndex else { return }
         let targetOption = options[targetIndex]
         let current = playerItem.selectedMediaOption(in: audioGroup)
         if current != targetOption {
-            // Single select call — AVPlayer handles rendition switch smoothly
             playerItem.select(targetOption, in: audioGroup)
         }
         loadedAudioTrackIndex = targetIndex
-        return true
     }
 
     func cleanup() {
-        voicePollTimer?.invalidate()
-        voicePollTimer = nil
+        voiceSwitchTask?.cancel()
+        voiceSwitchTask = nil
         if let observer = timeObserver {
             player?.removeTimeObserver(observer)
             timeObserver = nil
