@@ -87,7 +87,7 @@ class PlayerManager: ObservableObject {
         player.play()
         isPlaying = true
 
-        // Apply voice mode — async loader fires when HLS tracks are available
+        // Apply voice mode immediately and with retries (HLS tracks load async)
         applyVoiceMode()
     }
 
@@ -143,101 +143,85 @@ class PlayerManager: ObservableObject {
     // MARK: - Voice Toggle (Original / Accompaniment)
     var currentAudioTracks: Int = 1
     private var loadedAudioTrackIndex: Int = 0
-    private var voiceSession: Int = 0
-    /// Last diagnostic message from voice switching (for toast display)
+    private var voiceRetryCount = 0
+    /// Diagnostic message for toast display
     @Published var voiceDiagnostic: String = ""
 
     @discardableResult
     func toggleVoice() -> String {
         isOriginalVoice.toggle()
+        // Reset track marker so retries will actually apply (matches web _loadedTrack logic)
         loadedAudioTrackIndex = -1
-        return applyVoiceMode()
+        voiceRetryCount = 0
+        voiceDiagnostic = "切换中..."
+        applyVoiceMode()
+        return voiceDiagnostic
     }
 
     @discardableResult
     func setVoiceMode(_ original: Bool) -> String {
         isOriginalVoice = original
         loadedAudioTrackIndex = -1
-        return applyVoiceMode()
+        voiceRetryCount = 0
+        voiceDiagnostic = "切换中..."
+        applyVoiceMode()
+        return voiceDiagnostic
     }
 
-    /// Returns a diagnostic string describing what happened.
-    @discardableResult
-    private func applyVoiceMode() -> String {
+    private func applyVoiceMode() {
         guard let playerItem = player?.currentItem else {
             voiceDiagnostic = "无播放项"
-            return voiceDiagnostic
+            return
         }
-        let wantOriginal = isOriginalVoice
-        let targetIndex = wantOriginal ? 0 : 1
-
+        let targetIndex = isOriginalVoice ? 0 : 1
+        // Skip if already on target track (matches web _loadedTrack check)
         if loadedAudioTrackIndex == targetIndex {
-            voiceDiagnostic = wantOriginal ? "已是原唱" : "已是伴唱"
-            return voiceDiagnostic
+            voiceDiagnostic = isOriginalVoice ? "已是原唱" : "已是伴唱"
+            return
         }
 
-        voiceSession += 1
-        let session = voiceSession
+        trySelectAudioTrack(for: playerItem, targetIndex: targetIndex)
 
-        // First try synchronous access (works if playlist already parsed)
-        if let group = playerItem.asset.mediaSelectionGroup(forMediaCharacteristic: .audible) {
-            let msg = doSelectTrack(for: playerItem, group: group, targetIndex: targetIndex, wantOriginal: wantOriginal)
-            if loadedAudioTrackIndex == targetIndex { return msg }
-        }
-
-        // Async load for HLS (master playlist may not be parsed yet)
-        playerItem.asset.loadMediaSelectionGroup(for: .audible) { [weak self] audioGroup, error in
-            DispatchQueue.main.async {
-                guard let self = self else { return }
-                guard session == self.voiceSession else { return }
-                guard let item = self.player?.currentItem else { return }
-                guard let audioGroup = audioGroup else {
-                    self.voiceDiagnostic = "音轨组不可用"
-                    return
+        // Retry as HLS audio tracks load asynchronously (matches web retry pattern)
+        let delays: [Double] = [0.3, 0.8, 1.5, 2.5, 4.0]
+        for delay in delays {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                guard let self = self, let item = self.player?.currentItem else { return }
+                if self.loadedAudioTrackIndex != targetIndex {
+                    self.trySelectAudioTrack(for: item, targetIndex: targetIndex)
                 }
-                _ = self.doSelectTrack(for: item, group: audioGroup, targetIndex: targetIndex, wantOriginal: wantOriginal)
             }
         }
-
-        voiceDiagnostic = "切换中..."
-        return voiceDiagnostic
     }
 
-    private func doSelectTrack(for item: AVPlayerItem, group: AVMediaSelectionGroup, targetIndex: Int, wantOriginal: Bool) -> String {
-        let options = group.options
-        let targetName = wantOriginal ? "原唱" : "伴唱"
-
-        // Match by name first (HLS declares NAME="原唱"/NAME="伴唱"), fall back to index
-        var targetOption: AVMediaSelectionOption? = options.first { opt in
-            opt.displayName.contains(targetName)
+    private func trySelectAudioTrack(for playerItem: AVPlayerItem, targetIndex: Int) {
+        guard let audioGroup = playerItem.asset.mediaSelectionGroup(forMediaCharacteristic: .audible) else {
+            voiceDiagnostic = "音轨组不可用"
+            return
         }
-        if targetOption == nil && options.count > targetIndex {
-            targetOption = options[targetIndex]
-        }
-        guard let option = targetOption else {
+        let options = audioGroup.options
+        guard options.count > targetIndex else {
             voiceDiagnostic = "音轨不足(\(options.count))"
-            return voiceDiagnostic
+            return
         }
-
-        let current = item.selectedMediaOption(in: group)
-        if current != option {
-            item.select(option, in: group)
+        let targetOption = options[targetIndex]
+        let current = playerItem.selectedMediaOption(in: audioGroup)
+        if current != targetOption {
+            playerItem.select(targetOption, in: audioGroup)
         }
-
-        // Verify selection took effect
-        let after = item.selectedMediaOption(in: group)
-        if after == option {
-            loadedAudioTrackIndex = targetIndex
-            voiceDiagnostic = targetName
-        } else {
-            voiceDiagnostic = "切换失败(\(options.count)轨)"
+        // Only mark as loaded if selection actually took effect
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+            guard let self = self else { return }
+            if playerItem.selectedMediaOption(in: audioGroup) == targetOption {
+                self.loadedAudioTrackIndex = targetIndex
+                self.voiceDiagnostic = self.isOriginalVoice ? "原唱" : "伴唱"
+            } else {
+                self.voiceDiagnostic = "切换失败(\(options.count)轨)"
+            }
         }
-        return voiceDiagnostic
     }
 
     func cleanup() {
-        // Invalidate any pending async voice-load callback
-        voiceSession += 1
         if let observer = timeObserver {
             player?.removeTimeObserver(observer)
             timeObserver = nil
@@ -259,3 +243,4 @@ class PlayerManager: ObservableObject {
         duration = 0
     }
 }
+

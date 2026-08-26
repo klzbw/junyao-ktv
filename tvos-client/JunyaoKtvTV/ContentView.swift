@@ -1169,3 +1169,4 @@ struct VideoPreview: UIViewRepresentable {
         var playerLayer: AVPlayerLayer?
     }
 }
+
