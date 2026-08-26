@@ -481,8 +481,8 @@ struct ContentView: View {
             case "repeat":
                 playerManager.restart()
             case "voice":
-                playerManager.toggleVoice()
-                showToast(playerManager.isOriginalVoice ? "原唱" : "伴唱")
+                let msg = playerManager.toggleVoice()
+                showToast(msg)
             case "eq":
                 if let name = payload["name"] as? String {
                     showToast("均衡器: \(name)")
@@ -574,9 +574,9 @@ struct ContentView: View {
         HStack(spacing: 6) {
             MVButton(icon: "slider.horizontal.3", title: "均衡器") { activePanel = .eq }
             MVButton(icon: "mic", title: playerManager.isOriginalVoice ? "原唱" : "伴唱") {
-                playerManager.toggleVoice()
+                let msg = playerManager.toggleVoice()
                 api.toggleVoice()
-                showToast(playerManager.isOriginalVoice ? "原唱" : "伴唱")
+                showToast(msg)
             }
             MVButton(icon: "speaker.minus", title: "音量-") {
                 volume = max(0, volume - 0.1)
