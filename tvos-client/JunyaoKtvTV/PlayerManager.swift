@@ -66,11 +66,11 @@ class PlayerManager: ObservableObject {
             }
         }
 
-        // Item status observer - apply voice mode when item is ready to play
+        // Item status observer - start voice poll when item is ready to play
         itemStatusObserver = playerItem.observe(\.status, options: [.new]) { [weak self] _, _ in
             if playerItem.status == .readyToPlay {
                 DispatchQueue.main.async {
-                    self?.applyVoiceMode()
+                    self?.startVoicePoll()
                 }
             }
         }
@@ -87,8 +87,8 @@ class PlayerManager: ObservableObject {
         player.play()
         isPlaying = true
 
-        // Apply voice mode immediately and with retries (HLS tracks load async)
-        applyVoiceMode()
+        // Start voice poll — will select target track once HLS audio group is ready
+        startVoicePoll()
     }
 
     /// Attach player layer to the current host view
@@ -141,66 +141,78 @@ class PlayerManager: ObservableObject {
     }
 
     // MARK: - Voice Toggle (Original / Accompaniment)
-    // Mirrors web VoiceManager: hls.audioTrack = want is called exactly once.
-    // AVPlayer.select(_:in:) likewise switches audio rendition without interrupting
-    // video; calling it repeatedly causes rebuffering/stutter, so NO retry loop.
+    // Strategy: HLS audio media selection group becomes available asynchronously
+    // after the item starts playing. We poll until the group is ready, then call
+    // select(_:in:) exactly ONCE — matching web's hls.audioTrack = want semantics.
+    // Repeated select() calls cause AVPlayer to rebuffer audio = stutter, so we
+    // never call it more than once per target.
     var currentAudioTracks: Int = 1
     private var loadedAudioTrackIndex: Int = 0
-    private var voiceRetryWorkItem: DispatchWorkItem?
+    private var voicePollTimer: Timer?
+    private var voicePollAttempts = 0
 
     func toggleVoice() {
         isOriginalVoice.toggle()
-        // Force re-apply even if we think we're already on that track
-        loadedAudioTrackIndex = -1
-        applyVoiceMode()
+        loadedAudioTrackIndex = -1  // force re-apply
+        startVoicePoll()
     }
 
     func setVoiceMode(_ original: Bool) {
         isOriginalVoice = original
         loadedAudioTrackIndex = -1
-        applyVoiceMode()
+        startVoicePoll()
     }
 
-    private func applyVoiceMode() {
-        guard let playerItem = player?.currentItem else { return }
-        let targetIndex = isOriginalVoice ? 0 : 1
-        // Skip if already on target track (matches web: if (want === _loadedTrack) return)
-        if loadedAudioTrackIndex == targetIndex { return }
-
-        // Only attempt if item is ready; status observer will call again when ready
-        if playerItem.status == .readyToPlay {
-            selectAudioTrack(for: playerItem, targetIndex: targetIndex)
-        }
-
-        // Single deferred attempt for the case where tracks aren't available yet
-        // (e.g. HLS master playlist still parsing). One retry only — no loop.
-        voiceRetryWorkItem?.cancel()
-        let work = DispatchWorkItem { [weak self] in
-            guard let self = self, let item = self.player?.currentItem else { return }
-            if self.loadedAudioTrackIndex != targetIndex {
-                self.selectAudioTrack(for: item, targetIndex: targetIndex)
+    /// Poll until audio group is available, then select target track once.
+    private func startVoicePoll() {
+        voicePollTimer?.invalidate()
+        voicePollAttempts = 0
+        // Try immediately first
+        if trySelectIfReady() { return }
+        // Poll every 0.4s for up to ~6s (15 attempts)
+        voicePollTimer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            self.voicePollAttempts += 1
+            if self.trySelectIfReady() || self.voicePollAttempts >= 15 {
+                self.voicePollTimer?.invalidate()
+                self.voicePollTimer = nil
             }
         }
-        voiceRetryWorkItem = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: work)
+        RunLoop.main.add(voicePollTimer!, forMode: .common)
     }
 
-    private func selectAudioTrack(for playerItem: AVPlayerItem, targetIndex: Int) {
-        guard let audioGroup = playerItem.asset.mediaSelectionGroup(forMediaCharacteristic: .audible) else { return }
+    /// Returns true if selection was applied (or already on target), false if group not ready.
+    @discardableResult
+    private func trySelectIfReady() -> Bool {
+        guard let playerItem = player?.currentItem else {
+            voicePollTimer?.invalidate(); voicePollTimer = nil
+            return true
+        }
+        let targetIndex = isOriginalVoice ? 0 : 1
+        if loadedAudioTrackIndex == targetIndex {
+            voicePollTimer?.invalidate(); voicePollTimer = nil
+            return true
+        }
+        guard let audioGroup = playerItem.asset.mediaSelectionGroup(forMediaCharacteristic: .audible) else {
+            return false  // group not ready yet, keep polling
+        }
         let options = audioGroup.options
-        guard options.count > targetIndex else { return }
+        guard options.count > targetIndex else {
+            return false  // tracks not loaded yet
+        }
         let targetOption = options[targetIndex]
         let current = playerItem.selectedMediaOption(in: audioGroup)
         if current != targetOption {
-            // Single call — AVPlayer handles rendition switch smoothly, just like hls.audioTrack = want
+            // Single select call — AVPlayer handles rendition switch smoothly
             playerItem.select(targetOption, in: audioGroup)
         }
         loadedAudioTrackIndex = targetIndex
+        return true
     }
 
     func cleanup() {
-        voiceRetryWorkItem?.cancel()
-        voiceRetryWorkItem = nil
+        voicePollTimer?.invalidate()
+        voicePollTimer = nil
         if let observer = timeObserver {
             player?.removeTimeObserver(observer)
             timeObserver = nil
