@@ -481,7 +481,11 @@ struct ContentView: View {
             case "repeat":
                 playerManager.restart()
             case "voice":
-                playerManager.toggleVoice()
+                // Server broadcasts control messages back to ALL clients including
+                // the sender; ignore our own echo so we don't toggle twice.
+                if (payload["clientId"] as? String) != api.clientId {
+                    playerManager.toggleVoice()
+                }
                 showToast(playerManager.isOriginalVoice ? "原唱" : "伴唱")
             case "eq":
                 if let name = payload["name"] as? String {
@@ -1169,3 +1173,4 @@ struct VideoPreview: UIViewRepresentable {
         var playerLayer: AVPlayerLayer?
     }
 }
+
