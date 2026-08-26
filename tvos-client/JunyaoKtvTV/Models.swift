@@ -1,14 +1,4 @@
-import Foundation
-
-/// Strip filename prefix like "N5c6d89ad::" that leaks into artist/title fields
-private func cleanName(_ raw: String?) -> String? {
-    guard var s = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty else { return raw }
-    // Remove prefix pattern: N + 8 hex chars + "::"
-    if let range = s.range(of: #"^N[0-9a-fA-F]{8}::"#, options: .regularExpression) {
-        s = String(s[range.upperBound...])
-    }
-    return s
-}
+﻿import Foundation
 
 struct Song: Codable, Identifiable, Hashable {
     let id: Int
@@ -25,8 +15,8 @@ struct Song: Codable, Identifiable, Hashable {
     let language: String?
     let source: String?
 
-    var displayTitle: String { cleanName(title) ?? cleanName(filename) ?? "未知歌曲" }
-    var displayArtist: String { cleanName(artist) ?? "未知歌手" }
+    var displayTitle: String { title ?? filename ?? "未知歌曲" }
+    var displayArtist: String { artist ?? "未知歌手" }
     var hasMultiTrack: Bool { (audio_tracks ?? 1) >= 2 }
     var durationText: String {
         guard let d = duration else { return "" }
@@ -48,8 +38,8 @@ struct QueueItem: Codable, Identifiable, Hashable {
     let audio_tracks: Int?
 
     var id: Int { queue_id }
-    var displayTitle: String { cleanName(title) ?? cleanName(filename) ?? "未知歌曲" }
-    var displayArtist: String { cleanName(artist) ?? "未知歌手" }
+    var displayTitle: String { title ?? filename ?? "未知歌曲" }
+    var displayArtist: String { artist ?? "未知歌手" }
     var isPlaying: Bool { status == "playing" }
     var isTop: Bool { (is_top ?? 0) == 1 }
     var hasMultiTrack: Bool { (audio_tracks ?? 1) >= 2 }
@@ -59,7 +49,7 @@ struct Artist: Codable, Identifiable, Hashable {
     let artist: String
     let count: Int
     var id: String { artist }
-    var displayName: String { cleanName(artist) ?? "未知歌手" }
+    var displayName: String { artist.isEmpty ? "未知歌手" : artist }
 }
 
 struct Category: Identifiable, Hashable {
@@ -84,3 +74,4 @@ struct AutoplaySettings: Codable {
     var enabled: Bool
     var localOnly: Bool
 }
+
