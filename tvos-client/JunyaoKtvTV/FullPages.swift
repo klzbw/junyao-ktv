@@ -52,7 +52,7 @@ struct FullPageContainer<Content: View>: View {
                         .scaleEffect(backFocused ? 1.08 : 1.0)
                         .animation(.easeOut(duration: 0.2), value: backFocused)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.plain).focusEffectDisabled()
                     .focused($backFocused)
                 }
                 .padding(.horizontal, 20).padding(.vertical, 14)
@@ -70,7 +70,7 @@ struct FullPageContainer<Content: View>: View {
                                 .font(.system(size: 28))
                                 .foregroundColor(currentPage > 1 ? WebColors.ac : WebColors.sub)
                         }
-                        .buttonStyle(.plain).disabled(currentPage <= 1)
+                        .buttonStyle(.plain).focusEffectDisabled().disabled(currentPage <= 1)
 
                         Text("第 \(currentPage) / \(max(1, totalPages)) 页")
                             .font(.system(size: 15)).foregroundColor(WebColors.sub)
@@ -80,7 +80,7 @@ struct FullPageContainer<Content: View>: View {
                                 .font(.system(size: 28))
                                 .foregroundColor(currentPage < totalPages ? WebColors.ac : WebColors.sub)
                         }
-                        .buttonStyle(.plain).disabled(currentPage >= totalPages)
+                        .buttonStyle(.plain).focusEffectDisabled().disabled(currentPage >= totalPages)
                     }
                     .padding(.vertical, 10).frame(maxWidth: .infinity)
                     .background(WebColors.topbarBg)
@@ -141,7 +141,7 @@ struct WebSongRow: View {
                     .padding(.horizontal, 16).padding(.vertical, 8)
                     .background(LinearGradient.g6).foregroundColor(.white).cornerRadius(10)
             }
-            .buttonStyle(.card)
+            .buttonStyle(.plain).focusEffectDisabled()
         }
         .padding(.horizontal, 16).padding(.vertical, 12)
         .background(WebColors.cardBg)
@@ -298,7 +298,7 @@ struct ArtistsPage: View {
                     .background(Color.white.opacity(0.1))
                     .cornerRadius(999)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.plain).focusEffectDisabled()
             }
             .padding(.horizontal, 24).padding(.vertical, 14)
             .background(WebColors.topbarBg)
@@ -331,7 +331,7 @@ struct ArtistsPage: View {
                                 }
                                 .frame(maxWidth: .infinity)
                             }
-                            .buttonStyle(.card)
+                            .buttonStyle(.plain).focusEffectDisabled()
                         }
                     }
                     .padding(.horizontal, 16)
@@ -404,7 +404,7 @@ struct ArtistsPage: View {
                                                 .cornerRadius(10)
                                         }
                                     }
-                                    .buttonStyle(.plain)
+                                    .buttonStyle(.plain).focusEffectDisabled()
                                     if letter == "Z" {
                                         Spacer().frame(maxWidth: .infinity)
                                     }
@@ -426,7 +426,7 @@ struct ArtistsPage: View {
                                 .background(Color.white.opacity(0.1))
                                 .cornerRadius(10)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.plain).focusEffectDisabled()
                         .padding(.horizontal, 16)
                         .padding(.bottom, 12)
                     }
@@ -451,7 +451,7 @@ struct ArtistsPage: View {
                     .background(currentPage > 1 ? Color.white.opacity(0.12) : Color.clear)
                     .cornerRadius(999)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.plain).focusEffectDisabled()
                 .disabled(currentPage == 1)
 
                 Text("第 \(currentPage)/\(totalPages) (共\(filteredArtists.count)位)")
@@ -469,7 +469,7 @@ struct ArtistsPage: View {
                     .background(currentPage < totalPages ? Color.white.opacity(0.12) : Color.clear)
                     .cornerRadius(999)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.plain).focusEffectDisabled()
                 .disabled(currentPage >= totalPages)
             }
             .padding(.vertical, 12)
@@ -511,7 +511,7 @@ struct AlphaKeyboard: View {
                         .font(.system(size: 14)).foregroundColor(WebColors.ac2)
                         .padding(.horizontal, 8).padding(.vertical, 4)
                         .background(WebColors.cardBg).cornerRadius(6)
-                }.buttonStyle(.plain)
+                }.buttonStyle(.plain).focusEffectDisabled()
             }
             .padding(.horizontal, 12).padding(.vertical, 10)
             .background(WebColors.cardBg).cornerRadius(8)
@@ -532,7 +532,7 @@ struct AlphaKeyboard: View {
                                 .padding(.vertical, 16)
                                 .background(WebColors.cardBg)
                                 .cornerRadius(6)
-                        }.buttonStyle(.plain)
+                        }.buttonStyle(.plain).focusEffectDisabled()
                     }
                     Button(action: { if !input.isEmpty { input.removeLast() } }) {
                         Text("删除")
@@ -542,7 +542,7 @@ struct AlphaKeyboard: View {
                             .padding(.vertical, 10)
                             .background(WebColors.pink.opacity(0.15))
                             .cornerRadius(6)
-                    }.buttonStyle(.plain)
+                    }.buttonStyle(.plain).focusEffectDisabled()
                 }
             }
         }
@@ -782,7 +782,7 @@ struct CategoryPage: View {
                 .cornerRadius(999)
                 .overlay(RoundedRectangle(cornerRadius: 999)
                     .stroke(isSelected ? .clear : Color.white.opacity(0.12), lineWidth: 1.5))
-        }.buttonStyle(.plain)
+        }.buttonStyle(.plain).focusEffectDisabled()
     }
 }
 

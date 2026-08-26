@@ -73,12 +73,12 @@ struct FullPlayerView: View {
                             Button(action: { onClose() }) {
                                 controlContent(icon: "house", title: "主页")
                             }
-                            .buttonStyle(.card)
+                            .buttonStyle(.plain).focusEffectDisabled().focusEffectDisabled()
 
                             Button(action: { playerManager.restart() }) {
                                 controlContent(icon: "gobackward", title: "重唱")
                             }
-                            .buttonStyle(.card)
+                            .buttonStyle(.plain).focusEffectDisabled().focusEffectDisabled()
 
                             Button(action: { playerManager.togglePlayPause() }) {
                                 controlContent(
@@ -86,28 +86,28 @@ struct FullPlayerView: View {
                                     title: playerManager.isPlaying ? "暂停" : "播放"
                                 )
                             }
-                            .buttonStyle(.card)
+                            .buttonStyle(.plain).focusEffectDisabled().focusEffectDisabled()
                             .focused($playButtonFocused)
 
                             Button(action: { toggleVoice() }) {
                                 controlContent(icon: "mic.fill", title: voiceMode.label)
                             }
-                            .buttonStyle(.card)
+                            .buttonStyle(.plain).focusEffectDisabled().focusEffectDisabled()
 
                             Button(action: { onNext() }) {
                                 controlContent(icon: "forward.end.fill", title: "切歌")
                             }
-                            .buttonStyle(.card)
+                            .buttonStyle(.plain).focusEffectDisabled().focusEffectDisabled()
 
                             Button(action: { showQueue = true }) {
                                 controlContent(icon: "list.bullet", title: "队列")
                             }
-                            .buttonStyle(.card)
+                            .buttonStyle(.plain).focusEffectDisabled().focusEffectDisabled()
 
                             Button(action: { showQR = true }) {
                                 controlContent(icon: "qrcode", title: "扫码")
                             }
-                            .buttonStyle(.card)
+                            .buttonStyle(.plain).focusEffectDisabled().focusEffectDisabled()
                         }
                         .padding(.horizontal, 10)
                     }
@@ -136,7 +136,7 @@ struct FullPlayerView: View {
                     Color.clear
                         .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.plain).focusEffectDisabled()
                 .ignoresSafeArea()
             }
 
@@ -231,7 +231,7 @@ struct FullPlayerView: View {
                                 .frame(width: 36, height: 36)
                                 .background(Color.white.opacity(0.1))
                                 .clipShape(Circle())
-                        }.buttonStyle(.plain)
+                        }.buttonStyle(.plain).focusEffectDisabled()
                     }
                     .padding(.horizontal, 16).padding(.vertical, 12)
                     .background(WebColors.topbarBg)
@@ -267,13 +267,13 @@ struct FullPlayerView: View {
                                                 .font(.system(size: 14))
                                                 .foregroundColor(WebColors.ac2)
                                                 .frame(width: 32, height: 32)
-                                        }.buttonStyle(.plain)
+                                        }.buttonStyle(.plain).focusEffectDisabled()
                                         Button(action: { api.removeFromQueue(queueId: item.queue_id) }) {
                                             Image(systemName: "trash")
                                                 .font(.system(size: 14))
                                                 .foregroundColor(WebColors.pink)
                                                 .frame(width: 32, height: 32)
-                                        }.buttonStyle(.plain)
+                                        }.buttonStyle(.plain).focusEffectDisabled()
                                     }
                                 }
                                 .padding(.horizontal, 12).padding(.vertical, 8)
@@ -324,7 +324,7 @@ struct FullPlayerView: View {
                         .padding(.horizontal, 24).padding(.vertical, 10)
                         .background(WebColors.ac)
                         .cornerRadius(999)
-                }.buttonStyle(.plain)
+                }.buttonStyle(.plain).focusEffectDisabled()
             }
             .padding(30)
             .background(WebColors.panelBg)

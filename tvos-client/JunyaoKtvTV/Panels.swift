@@ -18,7 +18,7 @@ struct PanelOverlay<Content: View>: View {
                     Spacer()
                     Button(action: onClose) {
                         Image(systemName: "xmark").foregroundColor(theme.subText)
-                    }.buttonStyle(.plain)
+                    }.buttonStyle(.plain).focusEffectDisabled()
                 }
                 .padding()
                 .background(theme.panelBg)
@@ -81,7 +81,7 @@ struct SearchPanel: View {
 
                     Button(action: onClose) {
                         Image(systemName: "xmark").foregroundColor(WebColors.sub)
-                    }.buttonStyle(.plain)
+                    }.buttonStyle(.plain).focusEffectDisabled()
                     .focused($closeFocused)
                 }
                 .padding(.horizontal, 20).padding(.vertical, 14)
@@ -116,7 +116,7 @@ struct SearchPanel: View {
                         Image(systemName: "chevron.left.circle")
                             .font(.system(size: 28))
                             .foregroundColor(currentPage > 0 ? WebColors.ac : WebColors.sub)
-                    }.buttonStyle(.plain).disabled(currentPage == 0)
+                    }.buttonStyle(.plain).focusEffectDisabled().disabled(currentPage == 0)
 
                     Text("第 \(currentPage + 1) / \(max(1, (filteredSongs.count + pageSize - 1) / pageSize)) 页")
                         .font(.system(size: 15)).foregroundColor(WebColors.sub)
@@ -127,7 +127,7 @@ struct SearchPanel: View {
                         Image(systemName: "chevron.right.circle")
                             .font(.system(size: 28))
                             .foregroundColor((currentPage + 1) * pageSize < filteredSongs.count ? WebColors.ac : WebColors.sub)
-                    }.buttonStyle(.plain)
+                    }.buttonStyle(.plain).focusEffectDisabled()
                 }
                 .padding(.vertical, 10).frame(maxWidth: .infinity)
                 .background(WebColors.topbarBg)
@@ -169,7 +169,7 @@ struct SearchPanel: View {
             .padding(.horizontal, 12).padding(.vertical, 8)
             .background(WebColors.cardBg).cornerRadius(10)
         }
-        .buttonStyle(.card)
+        .buttonStyle(.plain).focusEffectDisabled()
     }
 }
 
@@ -200,11 +200,11 @@ struct QueuePanel: View {
                             .font(.system(size: 15))
                             .padding(.horizontal, 14).padding(.vertical, 6)
                             .background(LinearGradient.g6).foregroundColor(.white).cornerRadius(8)
-                        }.buttonStyle(.plain)
+                        }.buttonStyle(.plain).focusEffectDisabled()
                     }
                     Button(action: onClose) {
                         Image(systemName: "xmark").foregroundColor(WebColors.sub)
-                    }.buttonStyle(.plain)
+                    }.buttonStyle(.plain).focusEffectDisabled()
                     .focused($closeFocused)
                 }
                 .padding(.horizontal, 20).padding(.vertical, 14)
@@ -263,13 +263,13 @@ struct QueuePanel: View {
                         .font(.system(size: 14)).foregroundColor(WebColors.ac2)
                         .frame(width: 32, height: 32)
                         .background(WebColors.cardBg).cornerRadius(6)
-                }.buttonStyle(.plain)
+                }.buttonStyle(.plain).focusEffectDisabled()
                 Button(action: { api.removeFromQueue(queueId: item.queue_id) }) {
                     Image(systemName: "trash")
                         .font(.system(size: 14)).foregroundColor(WebColors.pink)
                         .frame(width: 32, height: 32)
                         .background(WebColors.cardBg).cornerRadius(6)
-                }.buttonStyle(.plain)
+                }.buttonStyle(.plain).focusEffectDisabled()
             } else {
                 Text("播放中").font(.system(size: 12)).foregroundColor(WebColors.ac2)
             }
@@ -318,7 +318,7 @@ struct SettingsPanel: View {
                             .frame(width: 42, height: 42)
                             .background(Color.white.opacity(0.08))
                             .clipShape(Circle())
-                    }.buttonStyle(.plain)
+                    }.buttonStyle(.plain).focusEffectDisabled()
                     .focused($closeFocused)
                 }
                 .padding(.horizontal, 20).padding(.vertical, 14)
@@ -342,7 +342,7 @@ struct SettingsPanel: View {
                                 .padding(.horizontal, 12).padding(.vertical, 10)
                                 .background(WebColors.cardBg)
                                 .cornerRadius(8)
-                            }.buttonStyle(.plain)
+                            }.buttonStyle(.plain).focusEffectDisabled()
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -407,7 +407,7 @@ struct SettingsPanel: View {
                                 .padding(.horizontal, 12).padding(.vertical, 10)
                                 .background(WebColors.cardBg)
                                 .cornerRadius(8)
-                            }.buttonStyle(.plain)
+                            }.buttonStyle(.plain).focusEffectDisabled()
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
@@ -459,7 +459,7 @@ struct SettingsPanel: View {
                 .cornerRadius(10)
                 .overlay(RoundedRectangle(cornerRadius: 10)
                     .stroke(isSelected ? Color.white.opacity(0.25) : Color.white.opacity(0.14), lineWidth: 1))
-        }.buttonStyle(.plain)
+        }.buttonStyle(.plain).focusEffectDisabled()
     }
 }
 
@@ -489,7 +489,7 @@ struct EQPanel: View {
                             .font(.system(size: 20)).foregroundColor(.white)
                             .frame(width: 42, height: 42)
                             .background(Color.white.opacity(0.08)).clipShape(Circle())
-                    }.buttonStyle(.plain)
+                    }.buttonStyle(.plain).focusEffectDisabled()
                     .focused($closeFocused)
                 }
                 .padding(.horizontal, 20).padding(.vertical, 14)
@@ -516,7 +516,7 @@ struct EQPanel: View {
                                 .cornerRadius(12)
                                 .overlay(RoundedRectangle(cornerRadius: 12)
                                     .stroke(selectedEQ == preset.id ? Color.white.opacity(0.25) : Color.white.opacity(0.14), lineWidth: 1))
-                        }.buttonStyle(.plain)
+                        }.buttonStyle(.plain).focusEffectDisabled()
                     }
                 }
                 .padding(20)

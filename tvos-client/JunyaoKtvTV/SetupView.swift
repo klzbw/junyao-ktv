@@ -69,7 +69,7 @@ struct SetupView: View {
                             .foregroundColor(WebColors.bg)
                             .cornerRadius(10)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.plain).focusEffectDisabled()
                     .disabled(testing || inputAddress.isEmpty)
                     .opacity(testing || inputAddress.isEmpty ? 0.5 : 1.0)
 

@@ -46,7 +46,7 @@ struct SongRow: View {
                 Image(systemName: isFavorite ? "heart.fill" : "heart")
                     .foregroundColor(isFavorite ? theme.pink : theme.subText)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.plain).focusEffectDisabled()
             Button(action: onAdd) {
                 Text("点歌")
                     .font(.caption)
@@ -55,7 +55,7 @@ struct SongRow: View {
                     .foregroundColor(.white)
                     .cornerRadius(6)
             }
-            .buttonStyle(.card)
+            .buttonStyle(.plain).focusEffectDisabled().focusEffectDisabled()
         }
         .padding(.horizontal, 12).padding(.vertical, 8)
         .background(theme.cardBg)
@@ -95,11 +95,11 @@ struct QueueRow: View {
                 Button(action: onTop) {
                     Image(systemName: "arrow.up.to.line")
                         .font(.system(size: 18))
-                }.buttonStyle(.plain).foregroundColor(theme.subText)
+                }.buttonStyle(.plain).focusEffectDisabled().foregroundColor(theme.subText)
                 Button(action: onDelete) {
                     Image(systemName: "trash")
                         .font(.system(size: 18))
-                }.buttonStyle(.plain).foregroundColor(theme.pink)
+                }.buttonStyle(.plain).focusEffectDisabled().foregroundColor(theme.pink)
             }
         }
         .padding(.horizontal, 12).padding(.vertical, 8)
@@ -133,7 +133,7 @@ struct CategoryChip: View {
             }
             .frame(width: 80)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.plain).focusEffectDisabled()
     }
 }
 

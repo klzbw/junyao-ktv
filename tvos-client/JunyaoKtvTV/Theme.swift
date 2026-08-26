@@ -83,7 +83,7 @@ struct NavButton: View {
             .background(focused ? WebColors.nbFocusBg : WebColors.nbBg)
             .foregroundColor(focused ? WebColors.ac : .white)
             .cornerRadius(999)
-            .scaleEffect(focused ? 1.06 : 1.0)
+            .scaleEffect(focused ? 1.03 : 1.0)
             .animation(.easeOut(duration: 0.2), value: focused)
         }
         .buttonStyle(.plain)
@@ -128,7 +128,7 @@ struct MVButton: View {
         .buttonStyle(.plain)
         .focused($focused)
         .focusEffectDisabled()
-        .scaleEffect(focused ? 1.08 : 1.0)
+        .scaleEffect(focused ? 1.03 : 1.0)
         .animation(Animation.easeOut(duration: 0.18), value: focused)
     }
 }
@@ -153,11 +153,12 @@ struct MidCard: View {
                 }
             }
             .frame(height: 80)
-            .scaleEffect(focused ? 1.05 : 1.0)
+            .scaleEffect(focused ? 1.02 : 1.0)
             .animation(.easeOut(duration: 0.2), value: focused)
         }
         .buttonStyle(.plain)
         .focused($focused)
+        .focusEffectDisabled()
     }
 }
 
@@ -180,11 +181,12 @@ struct QuickMiniCard: View {
             .padding(.horizontal, 16).padding(.vertical, 14)
             .background(gradient.opacity(focused ? 1.0 : 0.8))
             .cornerRadius(12)
-            .scaleEffect(focused ? 1.03 : 1.0)
+            .scaleEffect(focused ? 1.02 : 1.0)
             .animation(.easeOut(duration: 0.2), value: focused)
         }
         .buttonStyle(.plain)
         .focused($focused)
+        .focusEffectDisabled()
     }
 }
 

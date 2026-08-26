@@ -83,7 +83,7 @@ struct LoginView: View {
                             Spacer()
                         }
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.plain).focusEffectDisabled()
                     .padding(.horizontal, 2)
                     .padding(.bottom, 18)
 
@@ -107,7 +107,7 @@ struct LoginView: View {
                             .foregroundColor(WebColors.bg)
                             .cornerRadius(10)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.plain).focusEffectDisabled()
                     .disabled(loading || username.isEmpty || password.isEmpty)
                     .opacity(loading || username.isEmpty || password.isEmpty ? 0.5 : 1.0)
 
@@ -117,7 +117,7 @@ struct LoginView: View {
                             .font(.system(size: 12))
                             .foregroundColor(Color(hex: 0x8888aa))
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.plain).focusEffectDisabled()
                     .padding(.top, 12)
 
                     // No user tip (exact #no-user-tip)

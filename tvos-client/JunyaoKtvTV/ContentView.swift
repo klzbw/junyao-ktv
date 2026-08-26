@@ -594,7 +594,7 @@ struct ContentView: View {
         .buttonStyle(.plain)
         .focused($focused)
         .focusEffectDisabled()
-        .scaleEffect(focused ? 1.06 : 1.0)
+        .scaleEffect(focused ? 1.02 : 1.0)
         .animation(Animation.easeOut(duration: 0.18), value: focused)
     }
 
@@ -638,7 +638,7 @@ struct ContentView: View {
         .buttonStyle(.plain)
         .focused($focused)
         .focusEffectDisabled()
-        .scaleEffect(focused ? 1.04 : 1.0)
+        .scaleEffect(focused ? 1.02 : 1.0)
         .animation(Animation.easeOut(duration: 0.15), value: focused)
     }
 
@@ -873,6 +873,7 @@ struct OrderSongsPage: View {
                     .cornerRadius(999)
                 }
                 .buttonStyle(.plain)
+                .focusEffectDisabled()
             }
             .padding(.horizontal, 24).padding(.vertical, 14)
             .background(WebColors.topbarBg)
@@ -959,6 +960,7 @@ struct OrderSongsPage: View {
                                         }
                                     }
                                     .buttonStyle(.plain)
+                                    .focusEffectDisabled()
                                 }
                             }
                         }
@@ -978,6 +980,7 @@ struct OrderSongsPage: View {
                                 .cornerRadius(10)
                         }
                         .buttonStyle(.plain)
+                        .focusEffectDisabled()
                         .padding(.horizontal, 16)
                         .padding(.bottom, 12)
                     }
@@ -1003,6 +1006,7 @@ struct OrderSongsPage: View {
                     .cornerRadius(999)
                 }
                 .buttonStyle(.plain)
+                .focusEffectDisabled()
                 .disabled(currentPage == 0)
 
                 Text("第 \(currentPage + 1)/\(totalPages) (共\(filteredSongs.count)首)")
@@ -1021,6 +1025,7 @@ struct OrderSongsPage: View {
                     .cornerRadius(999)
                 }
                 .buttonStyle(.plain)
+                .focusEffectDisabled()
                 .disabled(currentPage + 1 >= totalPages)
             }
             .padding(.vertical, 12)
@@ -1073,6 +1078,7 @@ struct OrderSongsPage: View {
                     .frame(width: 36, height: 36)
             }
             .buttonStyle(.plain)
+            .focusEffectDisabled()
 
             // Add button
             Button(action: { onAdd(song) }) {
@@ -1084,7 +1090,8 @@ struct OrderSongsPage: View {
                     .foregroundColor(.white)
                     .cornerRadius(8)
             }
-            .buttonStyle(.card)
+            .buttonStyle(.plain)
+            .focusEffectDisabled()
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
