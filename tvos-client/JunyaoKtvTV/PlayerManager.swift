@@ -22,6 +22,7 @@ class PlayerManager: ObservableObject {
     private var statusObserver: NSKeyValueObservation?
     private var itemStatusObserver: NSKeyValueObservation?
     private var endObserver: NSObjectProtocol?
+    private var mediaGroupObserver: NSObjectProtocol?
 
     private init() {}
 
@@ -36,6 +37,7 @@ class PlayerManager: ObservableObject {
 
         // New song defaults to original voice (track 0), matching web _loadedTrack = 0
         loadedAudioTrackIndex = 0
+        pendingVoiceSwitch = false
 
         let playerItem = AVPlayerItem(url: url)
         let player = AVPlayer(playerItem: playerItem)
@@ -70,9 +72,20 @@ class PlayerManager: ObservableObject {
         itemStatusObserver = playerItem.observe(\.status, options: [.new]) { [weak self] _, _ in
             if playerItem.status == .readyToPlay {
                 DispatchQueue.main.async {
-                    self?.applyVoiceModeAsync()
+                    self?.applyVoiceModeIfNeeded()
                 }
             }
+        }
+
+        // Listen for media selection group becoming available (HLS tracks load async).
+        // This is the correct AVFoundation signal — equivalent to hls.js MANIFEST_PARSED
+        // / AUDIO_TRACKS_UPDATED in the web VoiceManager.
+        mediaGroupObserver = NotificationCenter.default.addObserver(
+            forName: AVPlayerItem.mediaSelectionGroupDidChangeNotification,
+            object: playerItem,
+            queue: .main
+        ) { [weak self] _ in
+            self?.applyVoiceModeIfNeeded()
         }
 
         // Playback end observer
@@ -87,8 +100,9 @@ class PlayerManager: ObservableObject {
         player.play()
         isPlaying = true
 
-        // Apply voice mode — async load handles HLS audio group availability
-        applyVoiceModeAsync()
+        // Apply voice mode immediately (may no-op if tracks not loaded yet;
+        // the notification observer above will apply when they become available)
+        applyVoiceModeIfNeeded()
     }
 
     /// Attach player layer to the current host view
@@ -141,85 +155,70 @@ class PlayerManager: ObservableObject {
     }
 
     // MARK: - Voice Toggle (Original / Accompaniment)
-    // Mirrors web VoiceManager: hls.audioTrack = want is called exactly once.
-    // For HLS, AVAsset.mediaSelectionGroup(for:) must be loaded ASYNCHRONOUSLY —
-    // the synchronous variant often returns nil for HLS streams on tvOS.
+    // Mirrors web VoiceManager.applyTracks(): hls.audioTrack = want is called exactly once.
+    // AVPlayerItem.select(_:in:) is the equivalent — it switches the audio rendition
+    // without interrupting video. Calling it repeatedly causes rebuffering/stutter,
+    // so we call it ONCE and rely on mediaSelectionGroupDidChangeNotification for
+    // the async-loading case.
     var currentAudioTracks: Int = 1
     private var loadedAudioTrackIndex: Int = 0
-    private var voiceSwitchTask: Task<Void, Never>?
+    private var pendingVoiceSwitch: Bool = false
 
     func toggleVoice() {
         isOriginalVoice.toggle()
-        loadedAudioTrackIndex = -1  // force re-apply
-        applyVoiceModeAsync()
+        // Force re-apply regardless of what we think is loaded
+        loadedAudioTrackIndex = -1
+        pendingVoiceSwitch = true
+        applyVoiceModeIfNeeded()
     }
 
     func setVoiceMode(_ original: Bool) {
         isOriginalVoice = original
         loadedAudioTrackIndex = -1
-        applyVoiceModeAsync()
+        pendingVoiceSwitch = true
+        applyVoiceModeIfNeeded()
     }
 
-    private func applyVoiceModeAsync() {
-        voiceSwitchTask?.cancel()
-        voiceSwitchTask = Task { [weak self] in
-            guard let self = self else { return }
-            let targetIndex = self.isOriginalVoice ? 0 : 1
+    /// Apply voice mode if we have a pending switch and tracks are available.
+    /// Called from: setupPlayer, itemStatusObserver (readyToPlay),
+    /// mediaSelectionGroupDidChangeNotification, and toggleVoice/setVoiceMode.
+    private func applyVoiceModeIfNeeded() {
+        guard let playerItem = player?.currentItem else { return }
+        let targetIndex = isOriginalVoice ? 0 : 1
 
-            // Try up to 4 times with increasing delays (0s, 0.5s, 1.5s, 3s)
-            // Each attempt uses async load — select() is called at most once.
-            let delays: [UInt64] = [0, 500_000_000, 1_500_000_000, 3_000_000_000]
-            for delay in delays {
-                if Task.isCancelled { return }
-                if delay > 0 {
-                    try? await Task.sleep(nanoseconds: delay)
-                }
-                if Task.isCancelled { return }
-                if self.loadedAudioTrackIndex == targetIndex { return }
+        // Already on the correct track — nothing to do (matches web: want === _loadedTrack)
+        if loadedAudioTrackIndex == targetIndex && !pendingVoiceSwitch { return }
 
-                guard let playerItem = self.player?.currentItem else { return }
-
-                // Async load is required for HLS streams on tvOS
-                if let group = try? await playerItem.asset.loadMediaSelectionGroup(for: .audible) {
-                    if Task.isCancelled { return }
-                    let options = group.options
-                    if options.count > targetIndex {
-                        let targetOption = options[targetIndex]
-                        await MainActor.run {
-                            let current = playerItem.selectedMediaOption(in: group)
-                            if current != targetOption {
-                                playerItem.select(targetOption, in: group)
-                            }
-                            self.loadedAudioTrackIndex = targetIndex
-                        }
-                        return
-                    }
-                }
-
-                // Fallback: synchronous method (works for non-HLS / already-loaded assets)
-                await MainActor.run {
-                    self.trySelectSynchronous(playerItem: playerItem, targetIndex: targetIndex)
-                }
-                if self.loadedAudioTrackIndex == targetIndex { return }
-            }
+        // Try to select now. If the group isn't available yet, the notification
+        // observer will call this again when it arrives.
+        if selectAudioTrack(for: playerItem, targetIndex: targetIndex) {
+            loadedAudioTrackIndex = targetIndex
+            pendingVoiceSwitch = false
         }
+        // If select failed (group not ready), leave pendingVoiceSwitch = true;
+        // mediaSelectionGroupDidChangeNotification will retry — exactly ONCE.
     }
 
-    private func trySelectSynchronous(playerItem: AVPlayerItem, targetIndex: Int) {
-        guard let audioGroup = playerItem.asset.mediaSelectionGroup(forMediaCharacteristic: .audible) else { return }
+    /// Attempt to select the audio track. Returns true if selection was made.
+    @discardableResult
+    private func selectAudioTrack(for playerItem: AVPlayerItem, targetIndex: Int) -> Bool {
+        guard let audioGroup = playerItem.asset.mediaSelectionGroup(forMediaCharacteristic: .audible) else {
+            return false
+        }
         let options = audioGroup.options
-        guard options.count > targetIndex else { return }
+        guard options.count > targetIndex else { return false }
+
         let targetOption = options[targetIndex]
         let current = playerItem.selectedMediaOption(in: audioGroup)
         if current != targetOption {
+            // Single call — AVPlayer handles rendition switch smoothly,
+            // just like hls.audioTrack = want in the web version.
             playerItem.select(targetOption, in: audioGroup)
         }
-        loadedAudioTrackIndex = targetIndex
+        return true
     }
 
     func cleanup() {
-        voiceSwitchTask?.cancel()
-        voiceSwitchTask = nil
         if let observer = timeObserver {
             player?.removeTimeObserver(observer)
             timeObserver = nil
@@ -228,6 +227,10 @@ class PlayerManager: ObservableObject {
         statusObserver = nil
         itemStatusObserver?.invalidate()
         itemStatusObserver = nil
+        if let observer = mediaGroupObserver {
+            NotificationCenter.default.removeObserver(observer)
+            mediaGroupObserver = nil
+        }
         if let endObserver = endObserver {
             NotificationCenter.default.removeObserver(endObserver)
             self.endObserver = nil
