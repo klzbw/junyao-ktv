@@ -148,8 +148,7 @@ struct SearchPanel: View {
 
     @ViewBuilder
     private func searchSongRow(_ song: Song, index: Int) -> some View {
-        @FocusState var focused: Bool
-        return Button(action: { api.addToQueue(songId: song.id); onClose() }) {
+        Button(action: { api.addToQueue(songId: song.id); onClose() }) {
             HStack(spacing: 10) {
                 Text("\(index + 1)").font(.system(size: 14)).foregroundColor(WebColors.sub).frame(width: 28)
                 VStack(alignment: .leading, spacing: 3) {
@@ -168,17 +167,9 @@ struct SearchPanel: View {
                     .background(LinearGradient.g6).foregroundColor(.white).cornerRadius(8)
             }
             .padding(.horizontal, 12).padding(.vertical, 8)
-            .background(focused ? WebColors.ac.opacity(0.25) : WebColors.cardBg)
-            .cornerRadius(10)
+            .background(WebColors.cardBg).cornerRadius(10)
         }
-        .padding(2)
-        .background(focused ? Color.white.opacity(0.12) : Color.clear)
-        .cornerRadius(12)
-        .buttonStyle(.plain)
-        .focused($focused)
-        .focusEffectDisabled()
-        .scaleEffect(focused ? 1.03 : 1.0)
-        .animation(.easeOut(duration: 0.15), value: focused)
+        .buttonStyle(.card)
     }
 }
 

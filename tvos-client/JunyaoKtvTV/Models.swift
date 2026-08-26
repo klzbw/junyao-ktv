@@ -1,4 +1,4 @@
-﻿import Foundation
+import Foundation
 
 struct Song: Codable, Identifiable, Hashable {
     let id: Int
@@ -11,7 +11,6 @@ struct Song: Codable, Identifiable, Hashable {
     let audio_tracks: Int?
     let play_count: Int?
     let category: String?
-    let genre: String?
     let language: String?
     let source: String?
 
@@ -74,4 +73,3 @@ struct AutoplaySettings: Codable {
     var enabled: Bool
     var localOnly: Bool
 }
-

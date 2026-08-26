@@ -45,17 +45,15 @@ struct FullPageContainer<Content: View>: View {
                         }
                         .font(.system(size: 17))
                         .padding(.horizontal, 18).padding(.vertical, 7)
+                        .foregroundColor(backFocused ? WebColors.ac : .white)
+                        .cornerRadius(999)
+                        .overlay(RoundedRectangle(cornerRadius: 999)
+                            .stroke(backFocused ? WebColors.ac : Color.white.opacity(0.25), lineWidth: 1))
+                        .scaleEffect(backFocused ? 1.08 : 1.0)
+                        .animation(.easeOut(duration: 0.2), value: backFocused)
                     }
-                    .background(backFocused ? WebColors.ac.opacity(0.4) : Color.clear)
-                    .foregroundColor(backFocused ? .white : Color.white.opacity(0.85))
-                    .cornerRadius(999)
-                    .overlay(RoundedRectangle(cornerRadius: 999)
-                        .stroke(backFocused ? WebColors.ac : Color.white.opacity(0.25), lineWidth: 1))
                     .buttonStyle(.plain)
                     .focused($backFocused)
-                    .focusEffectDisabled()
-                    .scaleEffect(backFocused ? 1.06 : 1.0)
-                    .animation(.easeOut(duration: 0.2), value: backFocused)
                 }
                 .padding(.horizontal, 20).padding(.vertical, 14)
                 .background(WebColors.topbarBg)
@@ -494,42 +492,6 @@ struct ArtistsPage: View {
 }
 
 // MARK: - Alpha Keyboard (exact .alpha-panel)
-struct AlphaKey: View {
-    let label: String
-    var isDelete: Bool = false
-    let action: () -> Void
-    @FocusState private var focused: Bool
-
-    var body: some View {
-        Button(action: action) {
-            Text(label)
-                .font(.system(size: isDelete ? 14 : 26, weight: .bold))
-                .foregroundColor(focused ? .white : (isDelete ? WebColors.pink : Color.white.opacity(0.8)))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, isDelete ? 10 : 16)
-                .background(
-                    Group {
-                        if focused {
-                            RoundedRectangle(cornerRadius: 6).fill(WebColors.ac.opacity(0.6))
-                        } else if isDelete {
-                            RoundedRectangle(cornerRadius: 6).fill(WebColors.pink.opacity(0.15))
-                        } else {
-                            RoundedRectangle(cornerRadius: 6).fill(Color.white.opacity(0.08))
-                        }
-                    }
-                )
-        }
-        .padding(2)
-        .background(focused ? Color.white.opacity(0.15) : Color.clear)
-        .cornerRadius(8)
-        .buttonStyle(.plain)
-        .focused($focused)
-        .focusEffectDisabled()
-        .scaleEffect(focused ? 1.08 : 1.0)
-        .animation(.easeOut(duration: 0.15), value: focused)
-    }
-}
-
 struct AlphaKeyboard: View {
     @Binding var input: String
     @State private var isNumMode = false
@@ -549,9 +511,7 @@ struct AlphaKeyboard: View {
                         .font(.system(size: 14)).foregroundColor(WebColors.ac2)
                         .padding(.horizontal, 8).padding(.vertical, 4)
                         .background(WebColors.cardBg).cornerRadius(6)
-                }
-                .buttonStyle(.plain)
-                .focusEffectDisabled()
+                }.buttonStyle(.plain)
             }
             .padding(.horizontal, 12).padding(.vertical, 10)
             .background(WebColors.cardBg).cornerRadius(8)
@@ -564,9 +524,25 @@ struct AlphaKeyboard: View {
                                     GridItem(.flexible())], spacing: 6) {
                     let keys = isNumMode ? numbers : letters
                     ForEach(keys, id: \.self) { ch in
-                        AlphaKey(label: String(ch), action: { input.append(ch) })
+                        Button(action: { input.append(ch) }) {
+                            Text(String(ch))
+                                .font(.system(size: 26, weight: .bold))
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(WebColors.cardBg)
+                                .cornerRadius(6)
+                        }.buttonStyle(.plain)
                     }
-                    AlphaKey(label: "删除", isDelete: true, action: { if !input.isEmpty { input.removeLast() } })
+                    Button(action: { if !input.isEmpty { input.removeLast() } }) {
+                        Text("删除")
+                            .font(.system(size: 14))
+                            .foregroundColor(WebColors.pink)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                            .background(WebColors.pink.opacity(0.15))
+                            .cornerRadius(6)
+                    }.buttonStyle(.plain)
                 }
             }
         }

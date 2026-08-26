@@ -20,7 +20,6 @@ struct ContentView: View {
     @State private var volume: Float = 0.7
     @State private var showQR = false
     @State private var shouldResumePlaying = true
-    @State private var lastAutoNextQueueId: Int? = nil
     private let playerManager = PlayerManager.shared
 
     enum PanelType { case search, queue, settings, eq }
@@ -37,10 +36,6 @@ struct ContentView: View {
                 SetupView(serverAddress: $serverAddress, onSave: {
                     api.updateBaseURL(serverAddress)
                     showingSetup = false
-                    api.fetchAll()
-                    api.connectWebSocket()
-                    setupControlHandler()
-                    setupPlaybackEndHandler()
                 })
             } else if let page = activePage {
                 pageView(page)
@@ -59,7 +54,6 @@ struct ContentView: View {
                 api.fetchAll()
                 api.connectWebSocket()
                 setupControlHandler()
-                setupPlaybackEndHandler()
             } else {
                 showingSetup = true
             }
@@ -169,7 +163,7 @@ struct ContentView: View {
                     .font(.system(size: 24))
                     .foregroundStyle(LinearGradient(colors: [WebColors.ac2, WebColors.ac, WebColors.pink],
                                                     startPoint: .leading, endPoint: .trailing))
-                Text("墨墨爱K歌")
+                Text("骏耀K歌")
                     .font(.system(size: 22, weight: .bold))
                     .foregroundColor(.white)
             }
@@ -281,12 +275,10 @@ struct ContentView: View {
             quickCard(title: "最新入库", icon: "tray.full.fill", gradient: LinearGradient(colors: [Color(hex: 0x1a7bff), Color(hex: 0x36d9f7)], startPoint: .leading, endPoint: .trailing)) { activePage = .newest }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .focusSection()
     }
 
     private func quickCard(title: String, icon: String, gradient: LinearGradient, action: @escaping () -> Void) -> some View {
-        @FocusState var focused: Bool
-        return Button(action: action) {
+        Button(action: action) {
             HStack(spacing: 6) {
                 Text(title)
                     .font(.system(size: 24, weight: .bold))
@@ -300,17 +292,11 @@ struct ContentView: View {
             }
             .padding(.horizontal, 14)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(gradient.opacity(focused ? 1.0 : 0.7))
+            .background(gradient)
             .cornerRadius(12)
         }
-        .padding(3)
-        .background(focused ? Color.white.opacity(0.15) : Color.clear)
-        .cornerRadius(15)
         .buttonStyle(.plain)
-        .focused($focused)
         .focusEffectDisabled()
-        .scaleEffect(focused ? 1.06 : 1.0)
-        .animation(Animation.easeOut(duration: 0.18), value: focused)
     }
 
     // MARK: - QR Code View (exact #now-qr-code2)
@@ -345,8 +331,7 @@ struct ContentView: View {
 
     // MARK: - Now Panel (exact #now-panel with video preview)
     private var nowPanel: some View {
-        @FocusState var panelFocused: Bool
-        return Button(action: {
+        Button(action: {
             if api.queue.contains(where: { $0.isPlaying }) {
                 showingPlayer = true
             }
@@ -355,100 +340,92 @@ struct ContentView: View {
                 RoundedRectangle(cornerRadius: 16)
                     .fill(Color.black)
 
-            if let playing = api.queue.first(where: { $0.isPlaying }),
-               let hlsURL = api.hlsURL(songId: playing.song_id) {
-                // Video preview using shared player
-                // Use id to force rebuild when returning from fullscreen
-                SharedVideoView(playerManager: playerManager)
-                    .id("preview-\(showingPlayer ? "fs" : "normal")")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .onAppear {
-                        playerManager.currentAudioTracks = playing.audio_tracks ?? 1
-                        playerManager.setupPlayer(for: hlsURL)
-                        playerManager.setVolume(volume)
-                        // Re-attach layer after setup to ensure video shows
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                            playerManager.attachLayerToCurrentHost()
+                if let playing = api.queue.first(where: { $0.isPlaying }),
+                   let hlsURL = api.hlsURL(songId: playing.song_id) {
+                    // Video preview using shared player
+                    // Use id to force rebuild when returning from fullscreen
+                    SharedVideoView(playerManager: playerManager)
+                        .id("preview-\(showingPlayer ? "fs" : "normal")")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .onAppear {
+                            playerManager.currentAudioTracks = playing.audio_tracks ?? 1
+                            playerManager.setupPlayer(for: hlsURL)
+                            playerManager.setVolume(volume)
+                            // Re-attach layer after setup to ensure video shows
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                playerManager.attachLayerToCurrentHost()
+                            }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                playerManager.attachLayerToCurrentHost()
+                            }
                         }
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                            playerManager.attachLayerToCurrentHost()
-                        }
+
+                    // Song intro animation (exact #song-intro)
+                    if showSongIntro, let intro = introSong {
+                        songIntroView(song: intro)
+                            .transition(.opacity)
                     }
 
-                // Song intro animation (exact #song-intro)
-                if showSongIntro, let intro = introSong {
-                    songIntroView(song: intro)
-                        .transition(.opacity)
-                }
-
-                // Bottom gradient info (exact #now-info)
-                VStack {
-                    Spacer()
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(playing.displayTitle)
-                            .font(.system(size: 22, weight: .semibold))
-                            .foregroundColor(.white)
-                            .lineLimit(1)
-                        Text(playing.displayArtist)
-                            .font(.system(size: 17))
-                            .foregroundColor(WebColors.sub)
-                            .lineLimit(1)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 14)
-                    .background(LinearGradient(colors: [Color.black.opacity(0.85), .clear],
-                                               startPoint: .bottom, endPoint: .top))
-                }
-            } else {
-                // Idle state (exact #now-idle)
-                VStack(spacing: 10) {
-                    Text("墨墨爱K歌")
-                        .font(.system(size: 36, weight: .heavy))
-                        .foregroundStyle(LinearGradient(colors: [WebColors.ac2, WebColors.ac, WebColors.pink],
-                                                        startPoint: .leading, endPoint: .trailing))
-                    Text("扫码点歌 · 大屏沉浸演唱")
-                        .font(.system(size: 14))
-                        .foregroundColor(WebColors.sub)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(
-                    RadialGradient(colors: [WebColors.ac.opacity(0.2), .clear],
-                                   center: UnitPoint(x: 0.3, y: 0.5), startRadius: 0, endRadius: 200)
-                    .overlay(WebColors.navy)
-                )
-            }
-
-            // QR Code corner (exact #now-qr-corner)
-            if showQR {
-                VStack {
-                    HStack {
+                    // Bottom gradient info (exact #now-info)
+                    VStack {
                         Spacer()
-                        qrCodeView
-                            .padding(10)
-                            .background(Color.white.opacity(0.95))
-                            .cornerRadius(10)
-                            .padding(10)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(playing.displayTitle)
+                                .font(.system(size: 22, weight: .semibold))
+                                .foregroundColor(.white)
+                                .lineLimit(1)
+                            Text(playing.displayArtist)
+                                .font(.system(size: 17))
+                                .foregroundColor(WebColors.sub)
+                                .lineLimit(1)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 14)
+                        .background(LinearGradient(colors: [Color.black.opacity(0.85), .clear],
+                                                   startPoint: .bottom, endPoint: .top))
                     }
-                    Spacer()
+                } else {
+                    // Idle state (exact #now-idle)
+                    VStack(spacing: 10) {
+                        Text("骏耀K歌")
+                            .font(.system(size: 36, weight: .heavy))
+                            .foregroundStyle(LinearGradient(colors: [WebColors.ac2, WebColors.ac, WebColors.pink],
+                                                            startPoint: .leading, endPoint: .trailing))
+                        Text("扫码点歌 · 大屏沉浸演唱")
+                            .font(.system(size: 14))
+                            .foregroundColor(WebColors.sub)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(
+                        RadialGradient(colors: [WebColors.ac.opacity(0.2), .clear],
+                                       center: UnitPoint(x: 0.3, y: 0.5), startRadius: 0, endRadius: 200)
+                        .overlay(WebColors.navy)
+                    )
                 }
-                .transition(.opacity)
-            }
+
+                // QR Code corner (exact #now-qr-corner)
+                if showQR {
+                    VStack {
+                        HStack {
+                            Spacer()
+                            qrCodeView
+                                .padding(10)
+                                .background(Color.white.opacity(0.95))
+                                .cornerRadius(10)
+                                .padding(10)
+                        }
+                        Spacer()
+                    }
+                    .transition(.opacity)
+                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .cornerRadius(16)
         }
-        .padding(3)
-        .background(panelFocused ? Color.white.opacity(0.15) : Color.clear)
-        .cornerRadius(19)
         .buttonStyle(.plain)
-        .focused($panelFocused)
         .focusEffectDisabled()
-        .scaleEffect(panelFocused ? 1.03 : 1.0)
-        .animation(.easeOut(duration: 0.18), value: panelFocused)
         .onChange(of: api.queue.first(where: { $0.isPlaying })?.song_id) { newId in
-            // Reset auto-next guard when song changes
-            lastAutoNextQueueId = nil
             if let playing = api.queue.first(where: { $0.isPlaying }) {
                 introSong = playing
                 showSongIntro = true
@@ -468,7 +445,6 @@ struct ContentView: View {
             isPlaying = playerManager.isPlaying
             shouldResumePlaying = true
         }
-        .focusSection()
     }
 
     private func setupControlHandler() {
@@ -481,8 +457,8 @@ struct ContentView: View {
             case "repeat":
                 playerManager.restart()
             case "voice":
-                let msg = playerManager.toggleVoice()
-                showToast(msg)
+                playerManager.toggleVoice()
+                showToast(playerManager.isOriginalVoice ? "原唱" : "伴唱")
             case "eq":
                 if let name = payload["name"] as? String {
                     showToast("均衡器: \(name)")
@@ -497,26 +473,6 @@ struct ContentView: View {
                 api.nextSong()
             default:
                 break
-            }
-        }
-    }
-
-    private func setupPlaybackEndHandler() {
-        playerManager.onPlaybackEnd = {
-            DispatchQueue.main.async {
-                guard let curSong = self.api.queue.first(where: { $0.isPlaying }) else {
-                    if self.showingPlayer { self.showingPlayer = false }
-                    return
-                }
-                // Prevent duplicate next calls for the same song
-                if self.lastAutoNextQueueId == curSong.id { return }
-                let hasMore = self.api.queue.contains(where: { !$0.isPlaying })
-                if hasMore {
-                    self.lastAutoNextQueueId = curSong.id
-                    self.api.nextSong()
-                } else if self.showingPlayer {
-                    self.showingPlayer = false
-                }
             }
         }
     }
@@ -574,19 +530,19 @@ struct ContentView: View {
         HStack(spacing: 6) {
             MVButton(icon: "slider.horizontal.3", title: "均衡器") { activePanel = .eq }
             MVButton(icon: "mic", title: playerManager.isOriginalVoice ? "原唱" : "伴唱") {
-                let msg = playerManager.toggleVoice()
+                playerManager.toggleVoice()
                 api.toggleVoice()
-                showToast(msg)
-            }
-            MVButton(icon: "speaker.minus", title: "音量-") {
-                volume = max(0, volume - 0.1)
-                playerManager.setVolume(volume)
-                showToast("音量: \(Int(volume * 100))%")
+                showToast(playerManager.isOriginalVoice ? "原唱" : "伴唱")
             }
             MVButton(icon: playerManager.isPlaying ? "pause.fill" : "play.fill",
                     title: playerManager.isPlaying ? "暂停" : "播放", isCenter: true) {
                 playerManager.togglePlayPause()
                 isPlaying = playerManager.isPlaying
+            }
+            MVButton(icon: "speaker.minus", title: "音量-") {
+                volume = max(0, volume - 0.1)
+                playerManager.setVolume(volume)
+                showToast("音量: \(Int(volume * 100))%")
             }
             MVButton(icon: "speaker.plus", title: "音量+") {
                 volume = min(1, volume + 0.1)
@@ -603,7 +559,6 @@ struct ContentView: View {
         .padding(.vertical, 6)
         .background(Color.white.opacity(0.04))
         .cornerRadius(14)
-        .focusSection()
     }
 
     // MARK: - Mid Cards (vertical column, 4 buttons fill height)
@@ -615,7 +570,6 @@ struct ContentView: View {
             bigRequestButton(title: "扫码点歌", icon: "qrcode", gradient: LinearGradient(colors: [Color(hex: 0x1a7bff), Color(hex: 0x36d9f7)], startPoint: .leading, endPoint: .trailing)) { showQR.toggle() }
         }
         .frame(maxHeight: .infinity)
-        .focusSection()
     }
 
     private func bigRequestButton(title: String, icon: String, gradient: LinearGradient, action: @escaping () -> Void) -> some View {
@@ -634,16 +588,13 @@ struct ContentView: View {
             }
             .padding(.horizontal, 18)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(gradient.opacity(focused ? 1.0 : 0.7))
+            .background(gradient.opacity(focused ? 1.0 : 0.85))
             .cornerRadius(16)
         }
-        .padding(3)
-        .background(focused ? Color.white.opacity(0.15) : Color.clear)
-        .cornerRadius(19)
         .buttonStyle(.plain)
         .focused($focused)
         .focusEffectDisabled()
-        .scaleEffect(focused ? 1.05 : 1.0)
+        .scaleEffect(focused ? 1.06 : 1.0)
         .animation(Animation.easeOut(duration: 0.18), value: focused)
     }
 
@@ -679,18 +630,15 @@ struct ContentView: View {
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
             .background(
-                item.isPlaying ? WebColors.ac.opacity(0.3) :
-                focused ? WebColors.ac.opacity(0.25) : Color.clear
+                item.isPlaying ? WebColors.ac.opacity(0.15) :
+                focused ? Color.white.opacity(0.1) : Color.clear
             )
             .cornerRadius(8)
         }
-        .padding(2)
-        .background(focused ? Color.white.opacity(0.12) : Color.clear)
-        .cornerRadius(10)
         .buttonStyle(.plain)
         .focused($focused)
         .focusEffectDisabled()
-        .scaleEffect(focused ? 1.03 : 1.0)
+        .scaleEffect(focused ? 1.04 : 1.0)
         .animation(Animation.easeOut(duration: 0.15), value: focused)
     }
 
@@ -745,7 +693,6 @@ struct ContentView: View {
         .cornerRadius(16)
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(
             appThemeRaw == 2 ? WebColors.ac.opacity(0.3) : Color.white.opacity(0.08), lineWidth: 1))
-        .focusSection()
     }
 
     // MARK: - Panel Views
@@ -1169,4 +1116,3 @@ struct VideoPreview: UIViewRepresentable {
         var playerLayer: AVPlayerLayer?
     }
 }
-

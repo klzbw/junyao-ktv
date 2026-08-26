@@ -75,14 +75,12 @@ struct FullPlayerView: View {
                             }
                             .buttonStyle(.card)
 
-                            Button(action: { playerManager.restart(); api.restartSong() }) {
+                            Button(action: { playerManager.restart() }) {
                                 controlContent(icon: "gobackward", title: "重唱")
                             }
                             .buttonStyle(.card)
 
-                            Button(action: {
-                                playerManager.togglePlayPause()
-                            }) {
+                            Button(action: { playerManager.togglePlayPause() }) {
                                 controlContent(
                                     icon: playerManager.isPlaying ? "pause.fill" : "play.fill",
                                     title: playerManager.isPlaying ? "暂停" : "播放"
@@ -127,19 +125,19 @@ struct FullPlayerView: View {
                 }
             }
 
-            // Transparent focusable area to receive select button when controls are hidden
+            // Transparent button to receive select button when controls are hidden
             if !showControls && !showQueue && !showQR {
-                Color.black.opacity(0.001)
-                    .contentShape(Rectangle())
-                    .focusable(true)
-                    .focusEffectDisabled()
-                    .onTapGesture {
-                        withAnimation(.easeOut(duration: 0.2)) {
-                            showControls = true
-                        }
-                        resetHideTimer()
+                Button(action: {
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        showControls = true
                     }
-                    .ignoresSafeArea()
+                    resetHideTimer()
+                }) {
+                    Color.clear
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .ignoresSafeArea()
             }
 
             // Queue panel overlay
@@ -198,6 +196,15 @@ struct FullPlayerView: View {
         resetHideTimer()
         hasAutoExited = false
         voiceMode = playerManager.isOriginalVoice ? .original : .accompaniment
+        // Set playback end callback to auto-exit
+        playerManager.onPlaybackEnd = {
+            DispatchQueue.main.async {
+                if !hasAutoExited {
+                    hasAutoExited = true
+                    onClose()
+                }
+            }
+        }
     }
 
     // MARK: - Queue Panel
@@ -340,6 +347,7 @@ struct FullPlayerView: View {
     private func cleanup() {
         hideTimer?.invalidate()
         hideTimer = nil
+        playerManager.onPlaybackEnd = nil
     }
 
     private func toggleVoice() {

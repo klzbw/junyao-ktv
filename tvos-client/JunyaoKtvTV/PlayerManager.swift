@@ -20,7 +20,6 @@ class PlayerManager: ObservableObject {
 
     private var timeObserver: Any?
     private var statusObserver: NSKeyValueObservation?
-    private var itemStatusObserver: NSKeyValueObservation?
     private var endObserver: NSObjectProtocol?
 
     private init() {}
@@ -33,9 +32,6 @@ class PlayerManager: ObservableObject {
         }
 
         cleanup()
-
-        // New song defaults to original voice (track 0), matching web _loadedTrack = 0
-        loadedAudioTrackIndex = 0
 
         let playerItem = AVPlayerItem(url: url)
         let player = AVPlayer(playerItem: playerItem)
@@ -66,15 +62,6 @@ class PlayerManager: ObservableObject {
             }
         }
 
-        // Item status observer - apply voice mode when item is ready to play
-        itemStatusObserver = playerItem.observe(\.status, options: [.new]) { [weak self] _, _ in
-            if playerItem.status == .readyToPlay {
-                DispatchQueue.main.async {
-                    self?.applyVoiceMode()
-                }
-            }
-        }
-
         // Playback end observer
         endObserver = NotificationCenter.default.addObserver(
             forName: .AVPlayerItemDidPlayToEndTime,
@@ -87,8 +74,13 @@ class PlayerManager: ObservableObject {
         player.play()
         isPlaying = true
 
-        // Apply voice mode immediately and with retries (HLS tracks load async)
+        // Apply current voice mode after tracks load
         applyVoiceMode()
+
+        // Apply voice mode after tracks are loaded
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.applyVoiceMode()
+        }
     }
 
     /// Attach player layer to the current host view
@@ -142,82 +134,45 @@ class PlayerManager: ObservableObject {
 
     // MARK: - Voice Toggle (Original / Accompaniment)
     var currentAudioTracks: Int = 1
-    private var loadedAudioTrackIndex: Int = 0
-    private var voiceRetryCount = 0
-    /// Diagnostic message for toast display
-    @Published var voiceDiagnostic: String = ""
 
-    @discardableResult
-    func toggleVoice() -> String {
+    func toggleVoice() {
         isOriginalVoice.toggle()
-        // Reset track marker so retries will actually apply (matches web _loadedTrack logic)
-        loadedAudioTrackIndex = -1
-        voiceRetryCount = 0
-        voiceDiagnostic = "切换中..."
         applyVoiceMode()
-        return voiceDiagnostic
     }
 
-    @discardableResult
-    func setVoiceMode(_ original: Bool) -> String {
+    func setVoiceMode(_ original: Bool) {
         isOriginalVoice = original
-        loadedAudioTrackIndex = -1
-        voiceRetryCount = 0
-        voiceDiagnostic = "切换中..."
         applyVoiceMode()
-        return voiceDiagnostic
     }
 
     private func applyVoiceMode() {
-        guard let playerItem = player?.currentItem else {
-            voiceDiagnostic = "无播放项"
-            return
-        }
-        let targetIndex = isOriginalVoice ? 0 : 1
-        // Skip if already on target track (matches web _loadedTrack check)
-        if loadedAudioTrackIndex == targetIndex {
-            voiceDiagnostic = isOriginalVoice ? "已是原唱" : "已是伴唱"
-            return
-        }
+        guard let playerItem = player?.currentItem else { return }
 
-        trySelectAudioTrack(for: playerItem, targetIndex: targetIndex)
+        // HLS multi-audio-track switching (same as web hls.audioTrack = want)
+        // Try immediately, then retry as tracks load
+        trySelectAudioTrack(for: playerItem)
 
-        // Retry as HLS audio tracks load asynchronously (matches web retry pattern)
-        let delays: [Double] = [0.3, 0.8, 1.5, 2.5, 4.0]
-        for delay in delays {
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
-                guard let self = self, let item = self.player?.currentItem else { return }
-                if self.loadedAudioTrackIndex != targetIndex {
-                    self.trySelectAudioTrack(for: item, targetIndex: targetIndex)
-                }
-            }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            guard let self = self, let item = self.player?.currentItem else { return }
+            self.trySelectAudioTrack(for: item)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+            guard let self = self, let item = self.player?.currentItem else { return }
+            self.trySelectAudioTrack(for: item)
         }
     }
 
-    private func trySelectAudioTrack(for playerItem: AVPlayerItem, targetIndex: Int) {
-        guard let audioGroup = playerItem.asset.mediaSelectionGroup(forMediaCharacteristic: .audible) else {
-            voiceDiagnostic = "音轨组不可用"
-            return
-        }
+    private func trySelectAudioTrack(for playerItem: AVPlayerItem) {
+        guard let audioGroup = playerItem.asset.mediaSelectionGroup(forMediaCharacteristic: .audible) else { return }
         let options = audioGroup.options
-        guard options.count > targetIndex else {
-            voiceDiagnostic = "音轨不足(\(options.count))"
-            return
-        }
+        guard options.count >= 2 else { return }
+
+        // track 0 = original, track 1 = accompaniment (matches web hls.audioTrack)
+        let targetIndex = isOriginalVoice ? 0 : min(1, options.count - 1)
         let targetOption = options[targetIndex]
-        let current = playerItem.selectedMediaOption(in: audioGroup)
-        if current != targetOption {
+
+        if playerItem.selectedMediaOption(in: audioGroup) != targetOption {
             playerItem.select(targetOption, in: audioGroup)
-        }
-        // Only mark as loaded if selection actually took effect
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
-            guard let self = self else { return }
-            if playerItem.selectedMediaOption(in: audioGroup) == targetOption {
-                self.loadedAudioTrackIndex = targetIndex
-                self.voiceDiagnostic = self.isOriginalVoice ? "原唱" : "伴唱"
-            } else {
-                self.voiceDiagnostic = "切换失败(\(options.count)轨)"
-            }
         }
     }
 
@@ -228,8 +183,6 @@ class PlayerManager: ObservableObject {
         }
         statusObserver?.invalidate()
         statusObserver = nil
-        itemStatusObserver?.invalidate()
-        itemStatusObserver = nil
         if let endObserver = endObserver {
             NotificationCenter.default.removeObserver(endObserver)
             self.endObserver = nil
@@ -243,4 +196,3 @@ class PlayerManager: ObservableObject {
         duration = 0
     }
 }
-
