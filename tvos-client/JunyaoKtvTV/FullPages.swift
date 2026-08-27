@@ -104,51 +104,69 @@ struct WebSongRow: View {
     let onToggleFav: () -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
-            if showRank {
-                Text("\(index + 1)")
-                    .font(.system(size: index < 3 ? 24 : 18, weight: index < 3 ? .bold : .medium))
-                    .foregroundColor(index < 3 ? WebColors.ac : WebColors.sub)
-                    .frame(width: 36)
-            } else {
-                Text("\(index + 1)").font(.system(size: 18, weight: .medium)).foregroundColor(WebColors.sub).frame(width: 36)
-            }
-
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 8) {
-                    Text(song.displayTitle).font(.system(size: 22, weight: .semibold)).foregroundColor(.white).lineLimit(1)
-                    if song.hasMultiTrack {
-                        Text("伴唱").font(.system(size: 13, weight: .medium))
-                            .padding(.horizontal, 6).padding(.vertical, 2)
-                            .background(WebColors.ac2.opacity(0.3)).foregroundColor(WebColors.ac2).cornerRadius(5)
+        HStack(spacing: 14) {
+            // 整行大按钮：序号 + 歌名/歌手 + 点歌
+            Button(action: onAdd) {
+                HStack(spacing: 14) {
+                    if showRank {
+                        Text("\(index + 1)")
+                            .font(.system(size: index < 3 ? 28 : 24, weight: .bold))
+                            .foregroundColor(index < 3 ? WebColors.ac : WebColors.sub)
+                            .frame(width: 48)
+                    } else {
+                        Text("\(index + 1)")
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundColor(WebColors.sub)
+                            .frame(width: 48)
                     }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 8) {
+                            Text(song.displayTitle)
+                                .font(.system(size: 28, weight: .semibold))
+                                .foregroundColor(.white)
+                                .lineLimit(1)
+                            if song.hasMultiTrack {
+                                Text("伴唱")
+                                    .font(.system(size: 15, weight: .medium))
+                                    .padding(.horizontal, 8).padding(.vertical, 3)
+                                    .background(WebColors.ac2.opacity(0.3))
+                                    .foregroundColor(WebColors.ac2)
+                                    .cornerRadius(6)
+                            }
+                        }
+                        Text(song.displayArtist)
+                            .font(.system(size: 22))
+                            .foregroundColor(WebColors.sub)
+                            .lineLimit(1)
+                    }
+
+                    Spacer(minLength: 0)
+
+                    Text("点歌")
+                        .font(.system(size: 24, weight: .semibold))
+                        .padding(.horizontal, 22).padding(.vertical, 10)
+                        .background(LinearGradient.g6)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
                 }
-                Text(song.displayArtist).font(.system(size: 18)).foregroundColor(WebColors.sub).lineLimit(1)
             }
-            Spacer()
+            .buttonStyle(.card)
 
             // Favorite button
             Button(action: onToggleFav) {
                 Image(systemName: isFavorite ? "heart.fill" : "heart")
-                    .font(.system(size: 22))
+                    .font(.system(size: 28))
                     .foregroundColor(isFavorite ? WebColors.pink : .white)
-                    .frame(width: 44, height: 44)
+                    .frame(width: 60, height: 60)
                     .background(isFavorite ? WebColors.pink.opacity(0.3) : WebColors.cardBg)
-                    .cornerRadius(9)
+                    .cornerRadius(10)
             }
-
-            // Add button
-            Button(action: onAdd) {
-                Text("点歌").font(.system(size: 18, weight: .semibold))
-                    .padding(.horizontal, 16).padding(.vertical, 8)
-                    .background(LinearGradient.g6).foregroundColor(.white).cornerRadius(10)
-            }
-            .buttonStyle(.card)
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, 16).padding(.vertical, 12)
         .background(WebColors.cardBg)
         .cornerRadius(12)
-        .focusSection()
     }
 }
 
@@ -163,15 +181,19 @@ struct TwoColSongList: View {
 
     var body: some View {
         LazyVGrid(columns: [GridItem(.flexible(), spacing: 16), GridItem(.flexible(), spacing: 16)],
-                  spacing: 10) {
+                  spacing: 12) {
             ForEach(Array(songs.enumerated()), id: \.element.id) { idx, song in
                 WebSongRow(song: song, index: startIndex + idx, showRank: showRank,
                            onAdd: { onAdd(song) },
                            isFavorite: favorites.contains { $0.id == song.id },
                            onToggleFav: { onToggleFav(song.id) })
+                    .gridCellColumns(
+                        (idx == songs.count - 1 && songs.count % 2 == 1) ? 2 : 1
+                    )
             }
         }
         .padding(.horizontal, 20).padding(.vertical, 12)
+        .focusSection()
     }
 }
 
@@ -595,6 +617,7 @@ struct ArtistSongsPage: View {
                               showRank: false, onAdd: onAdd,
                               favorites: api.favorites, onToggleFav: { api.toggleFavorite(songId: $0) })
             }
+            .focusSection()
         }
         .onAppear { api.fetchSongs(artist: artist) }
     }

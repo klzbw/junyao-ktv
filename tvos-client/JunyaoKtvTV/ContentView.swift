@@ -1140,19 +1140,19 @@ struct OrderSongsPage: View {
                         Circle()
                             .fill(LinearGradient(colors: [Color(hex: 0x9333ea), Color(hex: 0x6366f1)],
                                                  startPoint: .topLeading, endPoint: .bottomTrailing))
-                            .frame(width: 52, height: 52)
+                            .frame(width: 60, height: 60)
                         Text("\(index + 1)")
-                            .font(.system(size: 22, weight: .bold))
+                            .font(.system(size: 26, weight: .bold))
                             .foregroundColor(.white)
                     }
 
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 6) {
                         Text(song.displayTitle)
-                            .font(.system(size: 26, weight: .semibold))
+                            .font(.system(size: 32, weight: .semibold))
                             .foregroundColor(.white)
                             .lineLimit(1)
                         Text(song.displayArtist)
-                            .font(.system(size: 20))
+                            .font(.system(size: 24))
                             .foregroundColor(WebColors.sub)
                             .lineLimit(1)
                     }
@@ -1160,12 +1160,12 @@ struct OrderSongsPage: View {
                     Spacer(minLength: 0)
 
                     Text("点歌")
-                        .font(.system(size: 22, weight: .semibold))
-                        .padding(.horizontal, 22).padding(.vertical, 10)
+                        .font(.system(size: 26, weight: .semibold))
+                        .padding(.horizontal, 26).padding(.vertical, 12)
                         .background(LinearGradient(colors: [Color(hex: 0x9333ea), Color(hex: 0x7c3aed)],
                                                    startPoint: .leading, endPoint: .trailing))
                         .foregroundColor(.white)
-                        .cornerRadius(10)
+                        .cornerRadius(12)
                 }
             }
             .buttonStyle(.card)
@@ -1173,14 +1173,14 @@ struct OrderSongsPage: View {
             // Favorite
             Button(action: { api.toggleFavorite(songId: song.id) }) {
                 Image(systemName: api.favorites.contains { $0.id == song.id } ? "heart.fill" : "heart")
-                    .font(.system(size: 26))
+                    .font(.system(size: 30))
                     .foregroundColor(api.favorites.contains { $0.id == song.id } ? WebColors.pink : Color.white.opacity(0.6))
-                    .frame(width: 60, height: 60)
+                    .frame(width: 64, height: 64)
             }
             .buttonStyle(.plain)
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.vertical, 12)
         .background(Color(hex: 0x1e1e2e))
         .cornerRadius(12)
     }
