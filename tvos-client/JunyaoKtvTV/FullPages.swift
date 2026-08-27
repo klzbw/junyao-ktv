@@ -792,6 +792,7 @@ struct CategoryPage: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
+}
 
 // MARK: - Tight Focus Chip Button (focus frame only 2px larger than content)
 struct TightChipButton: View {
