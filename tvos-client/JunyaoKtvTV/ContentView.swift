@@ -1007,11 +1007,11 @@ struct OrderSongsPage: View {
                     .padding(.horizontal, 16).padding(.vertical, 14)
 
                     // Keyboard: 按键放大填满右侧面板（VStack 等高行 + GeometryReader 精确跨列）
-                    VStack(spacing: 10) {
+                    VStack(spacing: 8) {
                         ForEach(0..<activeRows.count, id: \.self) { r in
                             let row = activeRows[r]
                             GeometryReader { geo in
-                                let sp: CGFloat = 10
+                                let sp: CGFloat = 8
                                 let cw = (geo.size.width - sp * 4) / 5
                                 HStack(spacing: sp) {
                                     ForEach(0..<row.count, id: \.self) { c in
@@ -1026,25 +1026,25 @@ struct OrderSongsPage: View {
                                             currentPage = 0
                                         }) {
                                             if key == "DEL" {
-                                                HStack(spacing: 6) {
+                                                HStack(spacing: 8) {
                                                     Image(systemName: "delete.left")
-                                                        .font(.system(size: 22, weight: .bold))
+                                                        .font(.system(size: 30, weight: .bold))
                                                     Text("删除")
-                                                        .font(.system(size: 22, weight: .bold))
+                                                        .font(.system(size: 30, weight: .bold))
                                                 }
                                                 .foregroundColor(.white)
                                                 .frame(width: kw, height: geo.size.height)
                                                 .background(Color(hex: 0x2a2a3a))
-                                                .cornerRadius(10)
+                                                .cornerRadius(12)
                                             } else {
                                                 Text(key)
-                                                    .font(.system(size: 28, weight: .bold))
+                                                    .font(.system(size: 42, weight: .heavy))
                                                     .foregroundColor(.white)
                                                     .frame(width: kw, height: geo.size.height)
                                                     .background(Color(hex: 0x2a2a3a))
-                                                    .overlay(RoundedRectangle(cornerRadius: 10)
+                                                    .overlay(RoundedRectangle(cornerRadius: 12)
                                                         .stroke(Color.white.opacity(0.12), lineWidth: 1.5))
-                                                    .cornerRadius(10)
+                                                    .cornerRadius(12)
                                             }
                                         }
                                         .buttonStyle(.plain)
@@ -1057,23 +1057,23 @@ struct OrderSongsPage: View {
                         // Clear button（固定在键盘底部，键盘行平分剩余空间）
                         Button(action: { inputText = ""; currentPage = 0 }) {
                             Text("清空")
-                                .font(.system(size: 18, weight: .medium))
+                                .font(.system(size: 22, weight: .medium))
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
-                                .frame(height: 44)
+                                .frame(height: 50)
                                 .background(inputText.isEmpty ? Color.clear : Color.white.opacity(0.1))
-                                .cornerRadius(10)
+                                .cornerRadius(12)
                         }
                         .buttonStyle(.plain)
                         .disabled(inputText.isEmpty)
                         .opacity(inputText.isEmpty ? 0 : 1)
                     }
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, 10)
                     .padding(.top, 4)
-                    .padding(.bottom, 12)
+                    .padding(.bottom, 10)
                     .frame(maxHeight: .infinity)
                 }
-                .frame(width: 340)
+                .frame(width: 400)
                 .background(Color(hex: 0x15151f))
                 .focusSection()
             }
@@ -1132,27 +1132,27 @@ struct OrderSongsPage: View {
 
     @ViewBuilder
     private func songRow(_ song: Song, index: Int) -> some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 14) {
             // 整行大按钮：数字 + 歌名/歌手 + 点歌，焦点区域大，遥控器易选中
             Button(action: { onAdd(song) }) {
-                HStack(spacing: 10) {
+                HStack(spacing: 14) {
                     ZStack {
                         Circle()
                             .fill(LinearGradient(colors: [Color(hex: 0x9333ea), Color(hex: 0x6366f1)],
                                                  startPoint: .topLeading, endPoint: .bottomTrailing))
-                            .frame(width: 32, height: 32)
+                            .frame(width: 52, height: 52)
                         Text("\(index + 1)")
-                            .font(.system(size: 14, weight: .bold))
+                            .font(.system(size: 22, weight: .bold))
                             .foregroundColor(.white)
                     }
 
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: 4) {
                         Text(song.displayTitle)
-                            .font(.system(size: 17, weight: .medium))
+                            .font(.system(size: 26, weight: .semibold))
                             .foregroundColor(.white)
                             .lineLimit(1)
                         Text(song.displayArtist)
-                            .font(.system(size: 14))
+                            .font(.system(size: 20))
                             .foregroundColor(WebColors.sub)
                             .lineLimit(1)
                     }
@@ -1160,12 +1160,12 @@ struct OrderSongsPage: View {
                     Spacer(minLength: 0)
 
                     Text("点歌")
-                        .font(.system(size: 16, weight: .medium))
-                        .padding(.horizontal, 16).padding(.vertical, 7)
+                        .font(.system(size: 22, weight: .semibold))
+                        .padding(.horizontal, 22).padding(.vertical, 10)
                         .background(LinearGradient(colors: [Color(hex: 0x9333ea), Color(hex: 0x7c3aed)],
                                                    startPoint: .leading, endPoint: .trailing))
                         .foregroundColor(.white)
-                        .cornerRadius(8)
+                        .cornerRadius(10)
                 }
             }
             .buttonStyle(.card)
@@ -1173,16 +1173,16 @@ struct OrderSongsPage: View {
             // Favorite
             Button(action: { api.toggleFavorite(songId: song.id) }) {
                 Image(systemName: api.favorites.contains { $0.id == song.id } ? "heart.fill" : "heart")
-                    .font(.system(size: 18))
+                    .font(.system(size: 26))
                     .foregroundColor(api.favorites.contains { $0.id == song.id } ? WebColors.pink : Color.white.opacity(0.6))
-                    .frame(width: 44, height: 44)
+                    .frame(width: 60, height: 60)
             }
             .buttonStyle(.plain)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
         .background(Color(hex: 0x1e1e2e))
-        .cornerRadius(10)
+        .cornerRadius(12)
     }
 }
 

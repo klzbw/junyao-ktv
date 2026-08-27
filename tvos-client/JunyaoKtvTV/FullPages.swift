@@ -362,11 +362,11 @@ struct ArtistsPage: View {
                     .padding(.horizontal, 16).padding(.vertical, 14)
 
                     // Keyboard: 按键放大填满右侧面板
-                    VStack(spacing: 10) {
+                    VStack(spacing: 8) {
                         ForEach(0..<abcRows.count, id: \.self) { r in
                             let row = abcRows[r]
                             GeometryReader { geo in
-                                let sp: CGFloat = 10
+                                let sp: CGFloat = 8
                                 let cw = (geo.size.width - sp * 4) / 5
                                 HStack(spacing: sp) {
                                     ForEach(0..<row.count, id: \.self) { c in
@@ -381,25 +381,25 @@ struct ArtistsPage: View {
                                             currentPage = 1
                                         }) {
                                             if key == "DEL" {
-                                                HStack(spacing: 6) {
+                                                HStack(spacing: 8) {
                                                     Image(systemName: "delete.left")
-                                                        .font(.system(size: 22, weight: .bold))
+                                                        .font(.system(size: 30, weight: .bold))
                                                     Text("删除")
-                                                        .font(.system(size: 22, weight: .bold))
+                                                        .font(.system(size: 30, weight: .bold))
                                                 }
                                                 .foregroundColor(.white)
                                                 .frame(width: kw, height: geo.size.height)
                                                 .background(Color(hex: 0x2a2a3a))
-                                                .cornerRadius(10)
+                                                .cornerRadius(12)
                                             } else {
                                                 Text(key)
-                                                    .font(.system(size: 28, weight: .bold))
+                                                    .font(.system(size: 42, weight: .heavy))
                                                     .foregroundColor(.white)
                                                     .frame(width: kw, height: geo.size.height)
                                                     .background(Color(hex: 0x2a2a3a))
-                                                    .overlay(RoundedRectangle(cornerRadius: 10)
+                                                    .overlay(RoundedRectangle(cornerRadius: 12)
                                                         .stroke(Color.white.opacity(0.12), lineWidth: 1.5))
-                                                    .cornerRadius(10)
+                                                    .cornerRadius(12)
                                             }
                                         }
                                         .buttonStyle(.plain)
@@ -412,23 +412,23 @@ struct ArtistsPage: View {
                         // Clear button（固定底部，键盘行平分剩余空间）
                         Button(action: { inputLetters = ""; currentPage = 1 }) {
                             Text("清空")
-                                .font(.system(size: 18, weight: .medium))
+                                .font(.system(size: 22, weight: .medium))
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
-                                .frame(height: 44)
+                                .frame(height: 50)
                                 .background(inputLetters.isEmpty ? Color.clear : Color.white.opacity(0.1))
-                                .cornerRadius(10)
+                                .cornerRadius(12)
                         }
                         .buttonStyle(.plain)
                         .disabled(inputLetters.isEmpty)
                         .opacity(inputLetters.isEmpty ? 0 : 1)
                     }
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, 10)
                     .padding(.top, 4)
-                    .padding(.bottom, 12)
+                    .padding(.bottom, 10)
                     .frame(maxHeight: .infinity)
                 }
-                .frame(width: 340)
+                .frame(width: 400)
                 .background(Color(hex: 0x15151f))
                 .focusSection()
             }
