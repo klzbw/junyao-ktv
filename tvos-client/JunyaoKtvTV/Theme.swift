@@ -80,15 +80,15 @@ struct NavButton: View {
                 }
             }
             .padding(.horizontal, 10).padding(.vertical, 6)
-            .background(focused ? WebColors.nbFocusBg : WebColors.nbBg)
-            .foregroundColor(focused ? WebColors.ac : .white)
-            .cornerRadius(999)
-            .scaleEffect(focused ? 1.03 : 1.0)
-            .animation(.easeOut(duration: 0.2), value: focused)
         }
+        .background(focused ? WebColors.ac.opacity(0.4) : WebColors.nbBg)
+        .foregroundColor(focused ? .white : Color.white.opacity(0.85))
+        .cornerRadius(999)
         .buttonStyle(.plain)
         .focused($focused)
         .focusEffectDisabled()
+        .scaleEffect(focused ? 1.02 : 1.0)
+        .animation(.easeOut(duration: 0.2), value: focused)
     }
 }
 
@@ -114,21 +114,18 @@ struct MVButton: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(
-                Group {
-                    if focused {
-                        RoundedRectangle(cornerRadius: 14)
-                            .fill(WebColors.ac.opacity(0.35))
-                    } else {
-                        RoundedRectangle(cornerRadius: 14)
-                            .fill(Color.white.opacity(0.08))
-                    }
-                }
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(focused ? WebColors.ac.opacity(0.35) : Color.white.opacity(0.08))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(focused ? WebColors.ac.opacity(0.6) : Color.clear, lineWidth: 1.5)
             )
         }
         .buttonStyle(.plain)
         .focused($focused)
         .focusEffectDisabled()
-        .scaleEffect(focused ? 1.03 : 1.0)
+        .scaleEffect(focused ? 1.02 : 1.0)
         .animation(Animation.easeOut(duration: 0.18), value: focused)
     }
 }
@@ -153,12 +150,16 @@ struct MidCard: View {
                 }
             }
             .frame(height: 80)
-            .scaleEffect(focused ? 1.02 : 1.0)
-            .animation(.easeOut(duration: 0.2), value: focused)
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(focused ? Color.white.opacity(0.5) : Color.clear, lineWidth: 1.5)
+            )
         }
         .buttonStyle(.plain)
         .focused($focused)
         .focusEffectDisabled()
+        .scaleEffect(focused ? 1.02 : 1.0)
+        .animation(.easeOut(duration: 0.2), value: focused)
     }
 }
 
@@ -181,12 +182,40 @@ struct QuickMiniCard: View {
             .padding(.horizontal, 16).padding(.vertical, 14)
             .background(gradient.opacity(focused ? 1.0 : 0.8))
             .cornerRadius(12)
-            .scaleEffect(focused ? 1.02 : 1.0)
-            .animation(.easeOut(duration: 0.2), value: focused)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(focused ? Color.white.opacity(0.5) : Color.clear, lineWidth: 1.5)
+            )
         }
         .buttonStyle(.plain)
         .focused($focused)
         .focusEffectDisabled()
+        .scaleEffect(focused ? 1.02 : 1.0)
+        .animation(.easeOut(duration: 0.2), value: focused)
+    }
+}
+
+// MARK: - Focusable Close Button (xmark with focus feedback)
+struct FocusableCloseButton: View {
+    let action: () -> Void
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "xmark")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(focused ? .white : WebColors.sub)
+                .frame(width: 36, height: 36)
+                .background(
+                    Circle()
+                        .fill(focused ? WebColors.ac.opacity(0.4) : Color.white.opacity(0.08))
+                )
+        }
+        .buttonStyle(.plain)
+        .focused($focused)
+        .focusEffectDisabled()
+        .scaleEffect(focused ? 1.02 : 1.0)
+        .animation(.easeOut(duration: 0.15), value: focused)
     }
 }
 

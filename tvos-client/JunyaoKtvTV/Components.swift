@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 import AVKit
 
 // MARK: - Song Row
@@ -55,7 +55,7 @@ struct SongRow: View {
                     .foregroundColor(.white)
                     .cornerRadius(6)
             }
-            .buttonStyle(.plain).focusEffectDisabled().focusEffectDisabled()
+            .buttonStyle(.plain).focusEffectDisabled()
         }
         .padding(.horizontal, 12).padding(.vertical, 8)
         .background(theme.cardBg)

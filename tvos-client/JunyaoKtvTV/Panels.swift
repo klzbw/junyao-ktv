@@ -16,9 +16,7 @@ struct PanelOverlay<Content: View>: View {
                 HStack {
                     Text(title).font(.headline).foregroundColor(theme.text)
                     Spacer()
-                    Button(action: onClose) {
-                        Image(systemName: "xmark").foregroundColor(theme.subText)
-                    }.buttonStyle(.plain).focusEffectDisabled()
+                    FocusableCloseButton { onClose() }
                 }
                 .padding()
                 .background(theme.panelBg)
@@ -38,6 +36,7 @@ struct PanelOverlay<Content: View>: View {
 struct SearchPanel: View {
     @ObservedObject var api: KTVAPIClient
     let onClose: () -> Void
+    let onAdd: (Song) -> Void
     @State private var query = ""
     @State private var currentPage = 0
     @FocusState private var closeFocused: Bool
@@ -80,9 +79,15 @@ struct SearchPanel: View {
                     .frame(width: 280)
 
                     Button(action: onClose) {
-                        Image(systemName: "xmark").foregroundColor(WebColors.sub)
+                        Image(systemName: "xmark")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(closeFocused ? .white : WebColors.sub)
+                            .frame(width: 36, height: 36)
+                            .background(Circle().fill(closeFocused ? WebColors.ac.opacity(0.4) : Color.white.opacity(0.08)))
                     }.buttonStyle(.plain).focusEffectDisabled()
                     .focused($closeFocused)
+                    .scaleEffect(closeFocused ? 1.02 : 1.0)
+                    .animation(.easeOut(duration: 0.15), value: closeFocused)
                 }
                 .padding(.horizontal, 20).padding(.vertical, 14)
                 .background(WebColors.topbarBg)
@@ -148,7 +153,8 @@ struct SearchPanel: View {
 
     @ViewBuilder
     private func searchSongRow(_ song: Song, index: Int) -> some View {
-        Button(action: { api.addToQueue(songId: song.id); onClose() }) {
+        @FocusState var focused: Bool
+        return Button(action: { onAdd(song); onClose() }) {
             HStack(spacing: 10) {
                 Text("\(index + 1)").font(.system(size: 14)).foregroundColor(WebColors.sub).frame(width: 28)
                 VStack(alignment: .leading, spacing: 3) {
@@ -167,9 +173,13 @@ struct SearchPanel: View {
                     .background(LinearGradient.g6).foregroundColor(.white).cornerRadius(8)
             }
             .padding(.horizontal, 12).padding(.vertical, 8)
-            .background(WebColors.cardBg).cornerRadius(10)
+            .background(focused ? WebColors.ac.opacity(0.25) : WebColors.cardBg)
+            .cornerRadius(10)
         }
         .buttonStyle(.plain).focusEffectDisabled()
+        .focused($focused)
+        .scaleEffect(focused ? 1.02 : 1.0)
+        .animation(.easeOut(duration: 0.15), value: focused)
     }
 }
 
@@ -203,9 +213,15 @@ struct QueuePanel: View {
                         }.buttonStyle(.plain).focusEffectDisabled()
                     }
                     Button(action: onClose) {
-                        Image(systemName: "xmark").foregroundColor(WebColors.sub)
+                        Image(systemName: "xmark")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(closeFocused ? .white : WebColors.sub)
+                            .frame(width: 36, height: 36)
+                            .background(Circle().fill(closeFocused ? WebColors.ac.opacity(0.4) : Color.white.opacity(0.08)))
                     }.buttonStyle(.plain).focusEffectDisabled()
                     .focused($closeFocused)
+                    .scaleEffect(closeFocused ? 1.02 : 1.0)
+                    .animation(.easeOut(duration: 0.15), value: closeFocused)
                 }
                 .padding(.horizontal, 20).padding(.vertical, 14)
                 .background(WebColors.topbarBg)
@@ -313,13 +329,14 @@ struct SettingsPanel: View {
                     Spacer()
                     Button(action: onClose) {
                         Image(systemName: "xmark")
-                            .font(.system(size: 20))
-                            .foregroundColor(.white)
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundColor(closeFocused ? .white : Color.white.opacity(0.8))
                             .frame(width: 42, height: 42)
-                            .background(Color.white.opacity(0.08))
-                            .clipShape(Circle())
+                            .background(Circle().fill(closeFocused ? WebColors.ac.opacity(0.4) : Color.white.opacity(0.08)))
                     }.buttonStyle(.plain).focusEffectDisabled()
                     .focused($closeFocused)
+                    .scaleEffect(closeFocused ? 1.02 : 1.0)
+                    .animation(.easeOut(duration: 0.15), value: closeFocused)
                 }
                 .padding(.horizontal, 20).padding(.vertical, 14)
                 .background(WebColors.topbarBg)
@@ -486,11 +503,14 @@ struct EQPanel: View {
                     Spacer()
                     Button(action: onClose) {
                         Image(systemName: "xmark")
-                            .font(.system(size: 20)).foregroundColor(.white)
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundColor(closeFocused ? .white : Color.white.opacity(0.8))
                             .frame(width: 42, height: 42)
-                            .background(Color.white.opacity(0.08)).clipShape(Circle())
+                            .background(Circle().fill(closeFocused ? WebColors.ac.opacity(0.4) : Color.white.opacity(0.08)))
                     }.buttonStyle(.plain).focusEffectDisabled()
                     .focused($closeFocused)
+                    .scaleEffect(closeFocused ? 1.02 : 1.0)
+                    .animation(.easeOut(duration: 0.15), value: closeFocused)
                 }
                 .padding(.horizontal, 20).padding(.vertical, 14)
                 .background(WebColors.topbarBg)
@@ -535,3 +555,4 @@ struct EQPanel: View {
         }
     }
 }
+

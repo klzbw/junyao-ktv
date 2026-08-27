@@ -10,6 +10,8 @@ struct FullPageContainer<Content: View>: View {
     let onPageChange: (Int) -> Void
     @ViewBuilder let content: Content
     @FocusState private var backFocused: Bool
+    @FocusState private var prevFocused: Bool
+    @FocusState private var nextFocused: Bool
 
     init(title: String, onBack: @escaping () -> Void,
          showPagination: Bool = false, currentPage: Int = 1, totalPages: Int = 1,
@@ -45,15 +47,16 @@ struct FullPageContainer<Content: View>: View {
                         }
                         .font(.system(size: 17))
                         .padding(.horizontal, 18).padding(.vertical, 7)
-                        .foregroundColor(backFocused ? WebColors.ac : .white)
-                        .cornerRadius(999)
-                        .overlay(RoundedRectangle(cornerRadius: 999)
-                            .stroke(backFocused ? WebColors.ac : Color.white.opacity(0.25), lineWidth: 1))
-                        .scaleEffect(backFocused ? 1.08 : 1.0)
-                        .animation(.easeOut(duration: 0.2), value: backFocused)
                     }
+                    .background(backFocused ? WebColors.ac.opacity(0.4) : Color.clear)
+                    .foregroundColor(backFocused ? .white : Color.white.opacity(0.85))
+                    .cornerRadius(999)
+                    .overlay(RoundedRectangle(cornerRadius: 999)
+                        .stroke(backFocused ? WebColors.ac : Color.white.opacity(0.25), lineWidth: 1))
                     .buttonStyle(.plain).focusEffectDisabled()
                     .focused($backFocused)
+                    .scaleEffect(backFocused ? 1.02 : 1.0)
+                    .animation(.easeOut(duration: 0.2), value: backFocused)
                 }
                 .padding(.horizontal, 20).padding(.vertical, 14)
                 .background(WebColors.topbarBg)
@@ -67,24 +70,35 @@ struct FullPageContainer<Content: View>: View {
                     HStack(spacing: 16) {
                         Button(action: { if currentPage > 1 { onPageChange(currentPage - 1) } }) {
                             Image(systemName: "chevron.left.circle")
-                                .font(.system(size: 28))
+                                .font(.system(size: 32))
                                 .foregroundColor(currentPage > 1 ? WebColors.ac : WebColors.sub)
+                                .frame(width: 44, height: 44)
+                                .overlay(Circle().stroke(prevFocused && currentPage > 1 ? WebColors.ac.opacity(0.7) : .clear, lineWidth: 1.5))
                         }
                         .buttonStyle(.plain).focusEffectDisabled().disabled(currentPage <= 1)
+                        .focused($prevFocused)
+                        .scaleEffect(prevFocused ? 1.02 : 1.0)
+                        .animation(.easeOut(duration: 0.12), value: prevFocused)
 
                         Text("第 \(currentPage) / \(max(1, totalPages)) 页")
-                            .font(.system(size: 15)).foregroundColor(WebColors.sub)
+                            .font(.system(size: 18)).foregroundColor(WebColors.sub)
 
                         Button(action: { if currentPage < totalPages { onPageChange(currentPage + 1) } }) {
                             Image(systemName: "chevron.right.circle")
-                                .font(.system(size: 28))
+                                .font(.system(size: 32))
                                 .foregroundColor(currentPage < totalPages ? WebColors.ac : WebColors.sub)
+                                .frame(width: 44, height: 44)
+                                .overlay(Circle().stroke(nextFocused && currentPage < totalPages ? WebColors.ac.opacity(0.7) : .clear, lineWidth: 1.5))
                         }
                         .buttonStyle(.plain).focusEffectDisabled().disabled(currentPage >= totalPages)
+                        .focused($nextFocused)
+                        .scaleEffect(nextFocused ? 1.02 : 1.0)
+                        .animation(.easeOut(duration: 0.12), value: nextFocused)
                     }
                     .padding(.vertical, 10).frame(maxWidth: .infinity)
                     .background(WebColors.topbarBg)
                     .overlay(Rectangle().fill(WebColors.topbarBorder).frame(height: 1), alignment: .top)
+                    .focusSection()
                 }
             }
         }
@@ -102,51 +116,61 @@ struct WebSongRow: View {
     let onToggleFav: () -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
-            if showRank {
-                Text("\(index + 1)")
-                    .font(.system(size: index < 3 ? 24 : 18, weight: index < 3 ? .bold : .medium))
-                    .foregroundColor(index < 3 ? WebColors.ac : WebColors.sub)
-                    .frame(width: 36)
-            } else {
-                Text("\(index + 1)").font(.system(size: 18, weight: .medium)).foregroundColor(WebColors.sub).frame(width: 36)
-            }
-
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 8) {
-                    Text(song.displayTitle).font(.system(size: 22, weight: .semibold)).foregroundColor(.white).lineLimit(1)
-                    if song.hasMultiTrack {
-                        Text("伴唱").font(.system(size: 13, weight: .medium))
-                            .padding(.horizontal, 6).padding(.vertical, 2)
-                            .background(WebColors.ac2.opacity(0.3)).foregroundColor(WebColors.ac2).cornerRadius(5)
-                    }
-                }
-                Text(song.displayArtist).font(.system(size: 18)).foregroundColor(WebColors.sub).lineLimit(1)
-            }
-            Spacer()
-
-            // Favorite button
-            Button(action: onToggleFav) {
-                Image(systemName: isFavorite ? "heart.fill" : "heart")
-                    .font(.system(size: 22))
-                    .foregroundColor(isFavorite ? WebColors.pink : .white)
-                    .frame(width: 44, height: 44)
-                    .background(isFavorite ? WebColors.pink.opacity(0.3) : WebColors.cardBg)
-                    .cornerRadius(9)
-            }
-
-            // Add button
+        HStack(spacing: 14) {
+            // 整行大按钮：序号 + 歌名/歌手 + 点歌
             Button(action: onAdd) {
-                Text("点歌").font(.system(size: 18, weight: .semibold))
-                    .padding(.horizontal, 16).padding(.vertical, 8)
-                    .background(LinearGradient.g6).foregroundColor(.white).cornerRadius(10)
+                HStack(spacing: 14) {
+                    if showRank {
+                        Text("\(index + 1)")
+                            .font(.system(size: index < 3 ? 28 : 24, weight: .bold))
+                            .foregroundColor(index < 3 ? WebColors.ac : WebColors.sub)
+                            .frame(width: 48)
+                    } else {
+                        Text("\(index + 1)")
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundColor(WebColors.sub)
+                            .frame(width: 48)
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 8) {
+                            Text(song.displayTitle)
+                                .font(.system(size: 28, weight: .semibold))
+                                .foregroundColor(.white)
+                                .lineLimit(1)
+                            if song.hasMultiTrack {
+                                Text("伴唱")
+                                    .font(.system(size: 15, weight: .medium))
+                                    .padding(.horizontal, 8).padding(.vertical, 3)
+                                    .background(WebColors.ac2.opacity(0.3))
+                                    .foregroundColor(WebColors.ac2)
+                                    .cornerRadius(6)
+                            }
+                        }
+                        Text(song.displayArtist)
+                            .font(.system(size: 22))
+                            .foregroundColor(WebColors.sub)
+                            .lineLimit(1)
+                    }
+
+                    Spacer(minLength: 0)
+
+                    Text("点歌")
+                        .font(.system(size: 24, weight: .semibold))
+                        .padding(.horizontal, 22).padding(.vertical, 10)
+                        .background(LinearGradient.g6)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                }
             }
             .buttonStyle(.plain).focusEffectDisabled()
+
+            // Favorite button
+            TightFavButton(isFavorite: isFavorite, action: onToggleFav)
         }
         .padding(.horizontal, 16).padding(.vertical, 12)
         .background(WebColors.cardBg)
         .cornerRadius(12)
-        .focusSection()
     }
 }
 
@@ -161,15 +185,19 @@ struct TwoColSongList: View {
 
     var body: some View {
         LazyVGrid(columns: [GridItem(.flexible(), spacing: 16), GridItem(.flexible(), spacing: 16)],
-                  spacing: 10) {
+                  spacing: 12) {
             ForEach(Array(songs.enumerated()), id: \.element.id) { idx, song in
                 WebSongRow(song: song, index: startIndex + idx, showRank: showRank,
                            onAdd: { onAdd(song) },
                            isFavorite: favorites.contains { $0.id == song.id },
                            onToggleFav: { onToggleFav(song.id) })
+                    .gridCellColumns(
+                        (idx == songs.count - 1 && songs.count % 2 == 1) ? 2 : 1
+                    )
             }
         }
         .padding(.horizontal, 20).padding(.vertical, 12)
+        .focusSection()
     }
 }
 
@@ -184,13 +212,14 @@ struct ArtistsPage: View {
     @State private var isCacheReady = false
     @State private var isLoading = true
     private let pageSize = 18
-    private let letterRows: [[String]] = [
-        ["A","B","C","D","E"],
-        ["F","G","H","I","J"],
-        ["K","L","M","N","O"],
-        ["P","Q","R","S","T"],
-        ["U","V","W","X","Y"],
-        ["Z","DEL"]
+    // 歌手键盘：拼音首字母不会出现 I/U/V，与网页端一致（23 键）
+    // 5 行，最后一行 X Y Z + DEL（跨2列），填满整行
+    private let abcRows: [[(String, Int)]] = [
+        [("A",1),("B",1),("C",1),("D",1),("E",1)],
+        [("F",1),("G",1),("H",1),("J",1),("K",1)],
+        [("L",1),("M",1),("N",1),("O",1),("P",1)],
+        [("Q",1),("R",1),("S",1),("T",1),("W",1)],
+        [("X",1),("Y",1),("Z",1),("DEL",2)]
     ]
 
     private static var pinyinCharCache: [Character: String] = [:]
@@ -251,8 +280,7 @@ struct ArtistsPage: View {
         guard isCacheReady else { return [] }
         return api.artists.filter { artist in
             guard let pinyin = artistPinyin[artist.artist] else { return false }
-            return pinyin.hasPrefix(inputLetters) || pinyin.contains(inputLetters) ||
-                   artist.displayName.localizedCaseInsensitiveContains(inputLetters)
+            return pinyin.hasPrefix(inputLetters)
         }
     }
 
@@ -329,15 +357,21 @@ struct ArtistsPage: View {
                                         .font(.system(size: 14))
                                         .foregroundColor(WebColors.sub)
                                 }
-                                .frame(maxWidth: .infinity)
+                                .frame(maxWidth: .infinity, minHeight: 140)
+                                .background(Color(hex: 0x1e1e2e).opacity(0.001))
                             }
                             .buttonStyle(.plain).focusEffectDisabled()
+                            .gridCellColumns(
+                                (idx == pagedArtists.count - 1 && pagedArtists.count % 6 != 0)
+                                    ? (6 - pagedArtists.count % 6) : 1
+                            )
                         }
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 16)
                 }
                 .frame(maxWidth: .infinity)
+                .focusSection()
 
                 // Right: alphabet search panel
                 VStack(spacing: 0) {
@@ -345,98 +379,55 @@ struct ArtistsPage: View {
                         Image(systemName: "magnifyingglass")
                             .font(.system(size: 20))
                             .foregroundColor(WebColors.sub)
-                        Text("歌星搜索")
+                        Text(inputLetters.isEmpty ? "歌星搜索" : inputLetters)
                             .font(.system(size: 22, weight: .bold))
                             .foregroundColor(.white)
+                            .lineLimit(1)
                         Spacer()
-                        if inputLetters.isEmpty {
-                            Text("全部")
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(.white)
-                                .padding(EdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14))
-                                .background(Color.white.opacity(0.15))
-                                .cornerRadius(999)
-                        } else {
-                            Text(inputLetters)
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(.white)
-                                .padding(EdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14))
-                                .background(Color(hex: UInt32(0xb91c5c)).opacity(0.8))
-                                .cornerRadius(999)
-                        }
                     }
                     .padding(.horizontal, 16).padding(.vertical, 14)
 
-                    // Alphabet grid
-                    VStack(spacing: 10) {
-                        ForEach(letterRows, id: \.self) { row in
-                            HStack(spacing: 10) {
-                                ForEach(row, id: \.self) { letter in
-                                    Button(action: {
-                                        if letter == "DEL" {
-                                            if !inputLetters.isEmpty {
-                                                inputLetters.removeLast()
+                    // Keyboard: 按键放大填满右侧面板
+                    VStack(spacing: 8) {
+                        ForEach(0..<abcRows.count, id: \.self) { r in
+                            let row = abcRows[r]
+                            GeometryReader { geo in
+                                let sp: CGFloat = 8
+                                let cw = (geo.size.width - sp * 4) / 5
+                                HStack(spacing: sp) {
+                                    ForEach(0..<row.count, id: \.self) { c in
+                                        let (key, span) = row[c]
+                                        let kw = cw * CGFloat(span) + sp * CGFloat(span - 1)
+                                        TightKeyButton(key: key, width: kw, height: geo.size.height) {
+                                            if key == "DEL" {
+                                                if !inputLetters.isEmpty { inputLetters.removeLast() }
+                                            } else {
+                                                inputLetters.append(key)
                                             }
-                                        } else {
-                                            inputLetters.append(letter)
+                                            currentPage = 1
                                         }
-                                        currentPage = 1
-                                    }) {
-                                        if letter == "DEL" {
-                                            HStack(spacing: 6) {
-                                                Image(systemName: "delete.left")
-                                                    .font(.system(size: 20, weight: .bold))
-                                                Text("删除")
-                                                    .font(.system(size: 20, weight: .bold))
-                                            }
-                                            .foregroundColor(.white)
-                                            .frame(maxWidth: .infinity)
-                                            .frame(height: 56)
-                                            .background(Color(hex: 0x2a2a3a))
-                                            .cornerRadius(10)
-                                        } else {
-                                            Text(letter)
-                                                .font(.system(size: 24, weight: .bold))
-                                                .foregroundColor(.white)
-                                                .frame(maxWidth: .infinity)
-                                                .frame(height: 56)
-                                                .background(Color(hex: 0x2a2a3a))
-                                                .cornerRadius(10)
-                                        }
-                                    }
-                                    .buttonStyle(.plain).focusEffectDisabled()
-                                    if letter == "Z" {
-                                        Spacer().frame(maxWidth: .infinity)
                                     }
                                 }
                             }
+                            .frame(maxHeight: .infinity)
+                        }
+
+                        // Clear button（固定底部，键盘行平分剩余空间）
+                        TightClearButton(isEmpty: inputLetters.isEmpty) {
+                            inputLetters = ""; currentPage = 1
                         }
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 16)
-
-                    // Clear button
-                    if !inputLetters.isEmpty {
-                        Button(action: { inputLetters = ""; currentPage = 1 }) {
-                            Text("清空")
-                                .font(.system(size: 18, weight: .medium))
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 44)
-                                .background(Color.white.opacity(0.1))
-                                .cornerRadius(10)
-                        }
-                        .buttonStyle(.plain).focusEffectDisabled()
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 12)
-                    }
-
-                    Spacer()
+                    .padding(.horizontal, 10)
+                    .padding(.top, 4)
+                    .padding(.bottom, 10)
+                    .frame(maxHeight: .infinity)
                 }
-                .frame(width: 340)
+                .frame(width: 400)
                 .background(Color(hex: 0x15151f))
+                .focusSection()
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .focusSection()
 
             // Pagination footer
             HStack(spacing: 20) {
@@ -475,6 +466,7 @@ struct ArtistsPage: View {
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity)
             .background(WebColors.topbarBg)
+            .focusSection()
         }
         .background(WebColors.bg.ignoresSafeArea())
         .onAppear {
@@ -492,6 +484,38 @@ struct ArtistsPage: View {
 }
 
 // MARK: - Alpha Keyboard (exact .alpha-panel)
+struct AlphaKey: View {
+    let label: String
+    var isDelete: Bool = false
+    let action: () -> Void
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        Button(action: action) {
+            Text(label)
+                .font(.system(size: isDelete ? 14 : 26, weight: .bold))
+                .foregroundColor(focused ? .white : (isDelete ? WebColors.pink : Color.white.opacity(0.8)))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, isDelete ? 10 : 16)
+                .background(
+                    Group {
+                        if focused {
+                            RoundedRectangle(cornerRadius: 6).fill(WebColors.ac.opacity(0.6))
+                        } else if isDelete {
+                            RoundedRectangle(cornerRadius: 6).fill(WebColors.pink.opacity(0.15))
+                        } else {
+                            RoundedRectangle(cornerRadius: 6).fill(Color.white.opacity(0.08))
+                        }
+                    }
+                )
+        }
+        .buttonStyle(.plain).focusEffectDisabled()
+        .focused($focused)
+        .scaleEffect(focused ? 1.02 : 1.0)
+        .animation(.easeOut(duration: 0.15), value: focused)
+    }
+}
+
 struct AlphaKeyboard: View {
     @Binding var input: String
     @State private var isNumMode = false
@@ -511,7 +535,8 @@ struct AlphaKeyboard: View {
                         .font(.system(size: 14)).foregroundColor(WebColors.ac2)
                         .padding(.horizontal, 8).padding(.vertical, 4)
                         .background(WebColors.cardBg).cornerRadius(6)
-                }.buttonStyle(.plain).focusEffectDisabled()
+                }
+                .buttonStyle(.plain).focusEffectDisabled()
             }
             .padding(.horizontal, 12).padding(.vertical, 10)
             .background(WebColors.cardBg).cornerRadius(8)
@@ -524,25 +549,9 @@ struct AlphaKeyboard: View {
                                     GridItem(.flexible())], spacing: 6) {
                     let keys = isNumMode ? numbers : letters
                     ForEach(keys, id: \.self) { ch in
-                        Button(action: { input.append(ch) }) {
-                            Text(String(ch))
-                                .font(.system(size: 26, weight: .bold))
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(WebColors.cardBg)
-                                .cornerRadius(6)
-                        }.buttonStyle(.plain).focusEffectDisabled()
+                        AlphaKey(label: String(ch), action: { input.append(ch) })
                     }
-                    Button(action: { if !input.isEmpty { input.removeLast() } }) {
-                        Text("删除")
-                            .font(.system(size: 14))
-                            .foregroundColor(WebColors.pink)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
-                            .background(WebColors.pink.opacity(0.15))
-                            .cornerRadius(6)
-                    }.buttonStyle(.plain).focusEffectDisabled()
+                    AlphaKey(label: "删除", isDelete: true, action: { if !input.isEmpty { input.removeLast() } })
                 }
             }
         }
@@ -555,6 +564,7 @@ struct ArtistSongsPage: View {
     @ObservedObject var api: KTVAPIClient
     let artist: String
     let onBack: () -> Void
+    let onAdd: (Song) -> Void
     @State private var currentPage = 1
     private let pageSize = 50
 
@@ -571,9 +581,10 @@ struct ArtistSongsPage: View {
                          onPageChange: { currentPage = $0 }) {
             ScrollView {
                 TwoColSongList(songs: pagedSongs, startIndex: (currentPage - 1) * pageSize,
-                              showRank: false, onAdd: { api.addToQueue(songId: $0.id) },
+                              showRank: false, onAdd: onAdd,
                               favorites: api.favorites, onToggleFav: { api.toggleFavorite(songId: $0) })
             }
+            .focusSection()
         }
         .onAppear { api.fetchSongs(artist: artist) }
     }
@@ -583,12 +594,13 @@ struct ArtistSongsPage: View {
 struct ChartsPage: View {
     @ObservedObject var api: KTVAPIClient
     let onBack: () -> Void
+    let onAdd: (Song) -> Void
 
     var body: some View {
         FullPageContainer(title: "🏆 热歌榜单", onBack: onBack) {
             ScrollView {
                 TwoColSongList(songs: api.charts, startIndex: 0, showRank: true,
-                              onAdd: { api.addToQueue(songId: $0.id) },
+                              onAdd: onAdd,
                               favorites: api.favorites, onToggleFav: { api.toggleFavorite(songId: $0) })
             }
         }
@@ -600,6 +612,7 @@ struct ChartsPage: View {
 struct FavoritesPage: View {
     @ObservedObject var api: KTVAPIClient
     let onBack: () -> Void
+    let onAdd: (Song) -> Void
     @State private var currentPage = 1
     private let pageSize = 50
 
@@ -625,7 +638,7 @@ struct FavoritesPage: View {
             } else {
                 ScrollView {
                     TwoColSongList(songs: pagedSongs, startIndex: (currentPage - 1) * pageSize,
-                                  showRank: false, onAdd: { api.addToQueue(songId: $0.id) },
+                                  showRank: false, onAdd: onAdd,
                                   favorites: api.favorites, onToggleFav: { api.toggleFavorite(songId: $0) })
                 }
             }
@@ -638,6 +651,7 @@ struct FavoritesPage: View {
 struct HistoryPage: View {
     @ObservedObject var api: KTVAPIClient
     let onBack: () -> Void
+    let onAdd: (Song) -> Void
     @State private var currentPage = 1
     private let pageSize = 50
 
@@ -663,7 +677,7 @@ struct HistoryPage: View {
             } else {
                 ScrollView {
                     TwoColSongList(songs: pagedSongs, startIndex: (currentPage - 1) * pageSize,
-                                  showRank: false, onAdd: { api.addToQueue(songId: $0.id) },
+                                  showRank: false, onAdd: onAdd,
                                   favorites: api.favorites, onToggleFav: { api.toggleFavorite(songId: $0) })
                 }
             }
@@ -676,6 +690,7 @@ struct HistoryPage: View {
 struct NewestPage: View {
     @ObservedObject var api: KTVAPIClient
     let onBack: () -> Void
+    let onAdd: (Song) -> Void
     @State private var currentPage = 1
     private let pageSize = 18
 
@@ -692,7 +707,7 @@ struct NewestPage: View {
                          onPageChange: { currentPage = $0 }) {
             ScrollView {
                 TwoColSongList(songs: pagedSongs, startIndex: (currentPage - 1) * pageSize,
-                              showRank: false, onAdd: { api.addToQueue(songId: $0.id) },
+                              showRank: false, onAdd: onAdd,
                               favorites: api.favorites, onToggleFav: { api.toggleFavorite(songId: $0) })
             }
         }
@@ -704,6 +719,7 @@ struct NewestPage: View {
 struct CategoryPage: View {
     @ObservedObject var api: KTVAPIClient
     let onBack: () -> Void
+    let onAdd: (Song) -> Void
     @State private var selectedLang: String? = nil
     @State private var selectedGenre: String? = nil
     @State private var currentPage = 1
@@ -733,45 +749,58 @@ struct CategoryPage: View {
                          onPageChange: { currentPage = $0 }) {
             HStack(spacing: 0) {
                 // Category panel (exact .cat-panel)
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("语种").font(.system(size: 15, weight: .bold)).foregroundColor(WebColors.ac2)
-                    WrapView(items: languages) { lang in
-                        categoryChip(lang, isSelected: selectedLang == lang) {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("语种")
+                        .font(.system(size: 26, weight: .heavy))
+                        .foregroundColor(WebColors.ac2)
+                    WrapView(items: languages, minWidth: 110, spacing: 12) { lang in
+                        TightChipButton(title: lang, isSelected: selectedLang == lang) {
                             selectedLang = selectedLang == lang ? nil : lang
                             currentPage = 1
                         }
                     }
 
-                    Text("风格").font(.system(size: 15, weight: .bold)).foregroundColor(WebColors.ac2)
-                        .padding(.top, 8)
-                    WrapView(items: genres) { genre in
-                        categoryChip(genre, isSelected: selectedGenre == genre) {
+                    Text("风格")
+                        .font(.system(size: 26, weight: .heavy))
+                        .foregroundColor(WebColors.ac2)
+                        .padding(.top, 10)
+                    WrapView(items: genres, minWidth: 110, spacing: 12) { genre in
+                        TightChipButton(title: genre, isSelected: selectedGenre == genre) {
                             selectedGenre = selectedGenre == genre ? nil : genre
                             currentPage = 1
                         }
                     }
                 }
-                .frame(width: 280)
-                .padding(16)
+                .frame(width: 380)
+                .padding(20)
                 .background(Color.black.opacity(0.3))
 
                 // Song list (exact .song-list-2col)
                 ScrollView {
                     TwoColSongList(songs: pagedSongs, startIndex: (currentPage - 1) * pageSize,
-                                  showRank: false, onAdd: { api.addToQueue(songId: $0.id) },
+                                  showRank: false, onAdd: onAdd,
                                   favorites: api.favorites, onToggleFav: { api.toggleFavorite(songId: $0) })
                 }
+                .focusSection()
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
+}
 
-    private func categoryChip(_ title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+// MARK: - Tight Focus Chip Button (focus frame only 2px larger than content)
+struct TightChipButton: View {
+    let title: String
+    let isSelected: Bool
+    let action: () -> Void
+    @FocusState private var focused: Bool
+
+    var body: some View {
         Button(action: action) {
             Text(title)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(isSelected ? .white : WebColors.sub)
-                .padding(.horizontal, 14).padding(.vertical, 8)
+                .font(.system(size: 22, weight: .bold))
+                .foregroundColor(isSelected ? .white : (focused ? .white : WebColors.sub))
+                .padding(.horizontal, 24).padding(.vertical, 14)
                 .background {
                     if isSelected {
                         LinearGradient.g6
@@ -780,22 +809,132 @@ struct CategoryPage: View {
                     }
                 }
                 .cornerRadius(999)
-                .overlay(RoundedRectangle(cornerRadius: 999)
-                    .stroke(isSelected ? .clear : Color.white.opacity(0.12), lineWidth: 1.5))
-        }.buttonStyle(.plain).focusEffectDisabled()
+                .overlay(
+                    RoundedRectangle(cornerRadius: 999)
+                        .stroke(focused && !isSelected ? WebColors.ac.opacity(0.7) : Color.clear,
+                                lineWidth: 1.5)
+                )
+        }
+        .buttonStyle(.plain).focusEffectDisabled()
+        .focused($focused)
+        .scaleEffect(focused ? 1.02 : 1.0)
+        .animation(.easeOut(duration: 0.15), value: focused)
+    }
+}
+
+// MARK: - Tight Focus Key Button (focus frame only 2px larger than key)
+struct TightKeyButton: View {
+    let key: String
+    let width: CGFloat
+    let height: CGFloat
+    let action: () -> Void
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        Button(action: action) {
+            Group {
+                if key == "DEL" {
+                    HStack(spacing: 8) {
+                        Image(systemName: "delete.left")
+                            .font(.system(size: 30, weight: .bold))
+                        Text("删除")
+                            .font(.system(size: 30, weight: .bold))
+                    }
+                } else {
+                    Text(key)
+                        .font(.system(size: 42, weight: .heavy))
+                }
+            }
+            .foregroundColor(.white)
+            .frame(width: width, height: height)
+            .background(focused ? WebColors.ac.opacity(0.35) : Color(hex: 0x2a2a3a))
+            .cornerRadius(12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(focused ? WebColors.ac.opacity(0.7) : Color.white.opacity(0.12),
+                            lineWidth: 1.5)
+            )
+        }
+        .buttonStyle(.plain).focusEffectDisabled()
+        .focused($focused)
+        .focusEffectDisabled()
+        .scaleEffect(focused ? 1.02 : 1.0)
+        .animation(.easeOut(duration: 0.12), value: focused)
+    }
+}
+
+// MARK: - Tight Focus Favorite Button
+struct TightFavButton: View {
+    let isFavorite: Bool
+    let action: () -> Void
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: isFavorite ? "heart.fill" : "heart")
+                .font(.system(size: 30))
+                .foregroundColor(focused ? .white : (isFavorite ? WebColors.pink : Color.white.opacity(0.6)))
+                .frame(width: 64, height: 64)
+                .background(focused ? WebColors.ac.opacity(0.35) : (isFavorite ? WebColors.pink.opacity(0.3) : WebColors.cardBg))
+                .cornerRadius(10)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(focused ? WebColors.ac.opacity(0.7) : Color.clear, lineWidth: 1.5)
+                )
+        }
+        .buttonStyle(.plain).focusEffectDisabled()
+        .focused($focused)
+        .focusEffectDisabled()
+        .scaleEffect(focused ? 1.02 : 1.0)
+        .animation(.easeOut(duration: 0.12), value: focused)
+    }
+}
+
+// MARK: - Tight Focus Clear Button
+struct TightClearButton: View {
+    let isEmpty: Bool
+    let action: () -> Void
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        Button(action: action) {
+            Text("清空")
+                .font(.system(size: 22, weight: .medium))
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 50)
+                .background(isEmpty ? Color.clear : Color.white.opacity(focused ? 0.2 : 0.1))
+                .cornerRadius(12)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(focused && !isEmpty ? WebColors.ac.opacity(0.7) : Color.clear,
+                                lineWidth: 1.5)
+                )
+        }
+        .buttonStyle(.plain).focusEffectDisabled()
+        .disabled(isEmpty)
+        .opacity(isEmpty ? 0 : 1)
+        .focused($focused)
+        .focusEffectDisabled()
+        .scaleEffect(focused ? 1.02 : 1.0)
+        .animation(.easeOut(duration: 0.12), value: focused)
     }
 }
 
 // MARK: - Wrap View (for category chips)
 struct WrapView<Data: RandomAccessCollection, Content: View>: View where Data.Element: Hashable {
     let items: Data
+    var minWidth: CGFloat = 70
+    var spacing: CGFloat = 8
     let content: (Data.Element) -> Content
 
     var body: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 70), spacing: 8)], spacing: 8) {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: minWidth), spacing: spacing)],
+                  spacing: spacing) {
             ForEach(items, id: \.self) { item in
                 content(item)
             }
         }
     }
 }
+

@@ -15,7 +15,6 @@ struct FullPlayerView: View {
     @State private var hasAutoExited = false
     @State private var showQueue = false
     @State private var showQR = false
-    @FocusState private var playButtonFocused: Bool
 
     enum VoiceMode {
         case original, accompaniment
@@ -70,44 +69,15 @@ struct FullPlayerView: View {
 
                         // 7 control buttons - standard tvOS focusable buttons
                         HStack(spacing: 20) {
-                            Button(action: { onClose() }) {
-                                controlContent(icon: "house", title: "主页")
-                            }
-                            .buttonStyle(.plain).focusEffectDisabled().focusEffectDisabled()
-
-                            Button(action: { playerManager.restart() }) {
-                                controlContent(icon: "gobackward", title: "重唱")
-                            }
-                            .buttonStyle(.plain).focusEffectDisabled().focusEffectDisabled()
-
-                            Button(action: { playerManager.togglePlayPause() }) {
-                                controlContent(
-                                    icon: playerManager.isPlaying ? "pause.fill" : "play.fill",
-                                    title: playerManager.isPlaying ? "暂停" : "播放"
-                                )
-                            }
-                            .buttonStyle(.plain).focusEffectDisabled().focusEffectDisabled()
-                            .focused($playButtonFocused)
-
-                            Button(action: { toggleVoice() }) {
-                                controlContent(icon: "mic.fill", title: voiceMode.label)
-                            }
-                            .buttonStyle(.plain).focusEffectDisabled().focusEffectDisabled()
-
-                            Button(action: { onNext() }) {
-                                controlContent(icon: "forward.end.fill", title: "切歌")
-                            }
-                            .buttonStyle(.plain).focusEffectDisabled().focusEffectDisabled()
-
-                            Button(action: { showQueue = true }) {
-                                controlContent(icon: "list.bullet", title: "队列")
-                            }
-                            .buttonStyle(.plain).focusEffectDisabled().focusEffectDisabled()
-
-                            Button(action: { showQR = true }) {
-                                controlContent(icon: "qrcode", title: "扫码")
-                            }
-                            .buttonStyle(.plain).focusEffectDisabled().focusEffectDisabled()
+                            FocusableControlButton(icon: "house", title: "主页", isDefaultFocus: false) { onClose() }
+                            FocusableControlButton(icon: "gobackward", title: "重唱", isDefaultFocus: false) { playerManager.restart(); api.restartSong() }
+                            FocusableControlButton(icon: playerManager.isPlaying ? "pause.fill" : "play.fill",
+                                                   title: playerManager.isPlaying ? "暂停" : "播放",
+                                                   isDefaultFocus: true) { playerManager.togglePlayPause() }
+                            FocusableControlButton(icon: "mic.fill", title: voiceMode.label, isDefaultFocus: false) { toggleVoice() }
+                            FocusableControlButton(icon: "forward.end.fill", title: "切歌", isDefaultFocus: false) { onNext() }
+                            FocusableControlButton(icon: "list.bullet", title: "队列", isDefaultFocus: false) { showQueue = true }
+                            FocusableControlButton(icon: "qrcode", title: "扫码", isDefaultFocus: false) { showQR = true }
                         }
                         .padding(.horizontal, 10)
                     }
@@ -119,25 +89,23 @@ struct FullPlayerView: View {
                 }
                 .transition(.opacity)
                 .onAppear {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        playButtonFocused = true
-                    }
+                    // FocusableControlButton auto-focuses the play button
                 }
             }
 
-            // Transparent button to receive select button when controls are hidden
+            // Transparent focusable area to receive select button when controls are hidden
             if !showControls && !showQueue && !showQR {
-                Button(action: {
-                    withAnimation(.easeOut(duration: 0.2)) {
-                        showControls = true
+                Color.black.opacity(0.001)
+                    .contentShape(Rectangle())
+                    .focusable(true)
+                    .focusEffectDisabled()
+                    .onTapGesture {
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            showControls = true
+                        }
+                        resetHideTimer()
                     }
-                    resetHideTimer()
-                }) {
-                    Color.clear
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain).focusEffectDisabled()
-                .ignoresSafeArea()
+                    .ignoresSafeArea()
             }
 
             // Queue panel overlay
@@ -155,9 +123,7 @@ struct FullPlayerView: View {
             }
         }
         .onChange(of: showControls) { showing in
-            if !showing {
-                playButtonFocused = false
-            }
+            // Focus managed by FocusableControlButton internally
         }
         .onPlayPauseCommand {
             playerManager.togglePlayPause()
@@ -177,34 +143,11 @@ struct FullPlayerView: View {
         }
     }
 
-    private func controlContent(icon: String, title: String) -> some View {
-        VStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.system(size: 30, weight: .medium))
-                .foregroundColor(.white)
-            Text(title)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(.white)
-        }
-        .frame(width: 95, height: 95)
-        .background(Color.white.opacity(0.15))
-        .cornerRadius(16)
-    }
-
     private func setup() {
         showControls = true
         resetHideTimer()
         hasAutoExited = false
         voiceMode = playerManager.isOriginalVoice ? .original : .accompaniment
-        // Set playback end callback to auto-exit
-        playerManager.onPlaybackEnd = {
-            DispatchQueue.main.async {
-                if !hasAutoExited {
-                    hasAutoExited = true
-                    onClose()
-                }
-            }
-        }
     }
 
     // MARK: - Queue Panel
@@ -225,13 +168,7 @@ struct FullPlayerView: View {
                             .foregroundColor(WebColors.sub)
                             .padding(.leading, 8)
                         Spacer()
-                        Button(action: { showQueue = false }) {
-                            Image(systemName: "xmark")
-                                .foregroundColor(.white)
-                                .frame(width: 36, height: 36)
-                                .background(Color.white.opacity(0.1))
-                                .clipShape(Circle())
-                        }.buttonStyle(.plain).focusEffectDisabled()
+                        FocusableCloseButton { showQueue = false }
                     }
                     .padding(.horizontal, 16).padding(.vertical, 12)
                     .background(WebColors.topbarBg)
@@ -317,14 +254,7 @@ struct FullPlayerView: View {
                 Text("手机扫码即可点歌")
                     .font(.system(size: 16))
                     .foregroundColor(WebColors.sub)
-                Button(action: { showQR = false }) {
-                    Text("关闭")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 24).padding(.vertical, 10)
-                        .background(WebColors.ac)
-                        .cornerRadius(999)
-                }.buttonStyle(.plain).focusEffectDisabled()
+                FocusableTextButton(title: "关闭", color: WebColors.ac) { showQR = false }
             }
             .padding(30)
             .background(WebColors.panelBg)
@@ -347,7 +277,6 @@ struct FullPlayerView: View {
     private func cleanup() {
         hideTimer?.invalidate()
         hideTimer = nil
-        playerManager.onPlaybackEnd = nil
     }
 
     private func toggleVoice() {
@@ -387,5 +316,77 @@ struct RoundedCorner: Shape {
     func path(in rect: CGRect) -> Path {
         let path = UIBezierPath(roundedRect: rect, byRoundingCorners: corners, cornerRadii: CGSize(width: radius, height: radius))
         return Path(path.cgPath)
+    }
+}
+
+// MARK: - Focusable Control Button (fullscreen player 7 keys)
+struct FocusableControlButton: View {
+    let icon: String
+    let title: String
+    let isDefaultFocus: Bool
+    let action: () -> Void
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 30, weight: .medium))
+                    .foregroundColor(.white)
+                Text(title)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+            }
+            .frame(width: 95, height: 95)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(focused ? WebColors.ac.opacity(0.4) : Color.white.opacity(0.15))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(focused ? WebColors.ac.opacity(0.7) : Color.clear, lineWidth: 1.5)
+            )
+        }
+        .buttonStyle(.plain)
+        .focused($focused)
+        .focusEffectDisabled()
+        .scaleEffect(focused ? 1.02 : 1.0)
+        .animation(.easeOut(duration: 0.15), value: focused)
+        .onAppear {
+            if isDefaultFocus {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    focused = true
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Focusable Text Button
+struct FocusableTextButton: View {
+    let title: String
+    let color: Color
+    let action: () -> Void
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(.white)
+                .padding(.horizontal, 24).padding(.vertical, 10)
+                .background(color.opacity(focused ? 1.0 : 0.8))
+                .cornerRadius(999)
+                .overlay(
+                    Capsule().stroke(focused ? Color.white.opacity(0.5) : Color.clear, lineWidth: 1.5)
+                )
+        }
+        .buttonStyle(.plain)
+        .focused($focused)
+        .focusEffectDisabled()
+        .scaleEffect(focused ? 1.02 : 1.0)
+        .animation(.easeOut(duration: 0.15), value: focused)
     }
 }

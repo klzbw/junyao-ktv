@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct SetupView: View {
     @Binding var serverAddress: String
@@ -23,7 +23,7 @@ struct SetupView: View {
                 Spacer()
                 // Setup card (same style as login .box)
                 VStack(spacing: 0) {
-                    Text("骏耀K歌")
+                    Text("墨墨爱K歌")
                         .font(.system(size: 26, weight: .heavy))
                         .tracking(1)
                         .foregroundStyle(LinearGradient(colors: [WebColors.ac2, WebColors.ac, WebColors.pink],

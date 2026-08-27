@@ -20,6 +20,7 @@ struct ContentView: View {
     @State private var volume: Float = 0.7
     @State private var showQR = false
     @State private var shouldResumePlaying = true
+    @State private var lastAutoNextQueueId: Int? = nil
     private let playerManager = PlayerManager.shared
 
     enum PanelType { case search, queue, settings, eq }
@@ -36,6 +37,10 @@ struct ContentView: View {
                 SetupView(serverAddress: $serverAddress, onSave: {
                     api.updateBaseURL(serverAddress)
                     showingSetup = false
+                    api.fetchAll()
+                    api.connectWebSocket()
+                    setupControlHandler()
+                    setupPlaybackEndHandler()
                 })
             } else if let page = activePage {
                 pageView(page)
@@ -54,6 +59,7 @@ struct ContentView: View {
                 api.fetchAll()
                 api.connectWebSocket()
                 setupControlHandler()
+                setupPlaybackEndHandler()
             } else {
                 showingSetup = true
             }
@@ -163,7 +169,7 @@ struct ContentView: View {
                     .font(.system(size: 24))
                     .foregroundStyle(LinearGradient(colors: [WebColors.ac2, WebColors.ac, WebColors.pink],
                                                     startPoint: .leading, endPoint: .trailing))
-                Text("骏耀K歌")
+                Text("墨墨爱K歌")
                     .font(.system(size: 22, weight: .bold))
                     .foregroundColor(.white)
             }
@@ -275,10 +281,12 @@ struct ContentView: View {
             quickCard(title: "最新入库", icon: "tray.full.fill", gradient: LinearGradient(colors: [Color(hex: 0x1a7bff), Color(hex: 0x36d9f7)], startPoint: .leading, endPoint: .trailing)) { activePage = .newest }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .focusSection()
     }
 
     private func quickCard(title: String, icon: String, gradient: LinearGradient, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
+        @FocusState var focused: Bool
+        return Button(action: action) {
             HStack(spacing: 6) {
                 Text(title)
                     .font(.system(size: 24, weight: .bold))
@@ -292,11 +300,18 @@ struct ContentView: View {
             }
             .padding(.horizontal, 14)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(gradient)
+            .background(gradient.opacity(focused ? 1.0 : 0.7))
             .cornerRadius(12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(focused ? Color.white.opacity(0.4) : Color.clear, lineWidth: 1.5)
+            )
         }
         .buttonStyle(.plain)
+        .focused($focused)
         .focusEffectDisabled()
+        .scaleEffect(focused ? 1.02 : 1.0)
+        .animation(Animation.easeOut(duration: 0.18), value: focused)
     }
 
     // MARK: - QR Code View (exact #now-qr-code2)
@@ -331,7 +346,8 @@ struct ContentView: View {
 
     // MARK: - Now Panel (exact #now-panel with video preview)
     private var nowPanel: some View {
-        Button(action: {
+        @FocusState var panelFocused: Bool
+        return Button(action: {
             if api.queue.contains(where: { $0.isPlaying }) {
                 showingPlayer = true
             }
@@ -340,92 +356,101 @@ struct ContentView: View {
                 RoundedRectangle(cornerRadius: 16)
                     .fill(Color.black)
 
-                if let playing = api.queue.first(where: { $0.isPlaying }),
-                   let hlsURL = api.hlsURL(songId: playing.song_id) {
-                    // Video preview using shared player
-                    // Use id to force rebuild when returning from fullscreen
-                    SharedVideoView(playerManager: playerManager)
-                        .id("preview-\(showingPlayer ? "fs" : "normal")")
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .onAppear {
-                            playerManager.currentAudioTracks = playing.audio_tracks ?? 1
-                            playerManager.setupPlayer(for: hlsURL)
-                            playerManager.setVolume(volume)
-                            // Re-attach layer after setup to ensure video shows
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                playerManager.attachLayerToCurrentHost()
-                            }
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                playerManager.attachLayerToCurrentHost()
-                            }
-                        }
-
-                    // Song intro animation (exact #song-intro)
-                    if showSongIntro, let intro = introSong {
-                        songIntroView(song: intro)
-                            .transition(.opacity)
-                    }
-
-                    // Bottom gradient info (exact #now-info)
-                    VStack {
-                        Spacer()
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(playing.displayTitle)
-                                .font(.system(size: 22, weight: .semibold))
-                                .foregroundColor(.white)
-                                .lineLimit(1)
-                            Text(playing.displayArtist)
-                                .font(.system(size: 17))
-                                .foregroundColor(WebColors.sub)
-                                .lineLimit(1)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 14)
-                        .background(LinearGradient(colors: [Color.black.opacity(0.85), .clear],
-                                                   startPoint: .bottom, endPoint: .top))
-                    }
-                } else {
-                    // Idle state (exact #now-idle)
-                    VStack(spacing: 10) {
-                        Text("骏耀K歌")
-                            .font(.system(size: 36, weight: .heavy))
-                            .foregroundStyle(LinearGradient(colors: [WebColors.ac2, WebColors.ac, WebColors.pink],
-                                                            startPoint: .leading, endPoint: .trailing))
-                        Text("扫码点歌 · 大屏沉浸演唱")
-                            .font(.system(size: 14))
-                            .foregroundColor(WebColors.sub)
-                    }
+            if let playing = api.queue.first(where: { $0.isPlaying }),
+               let hlsURL = api.hlsURL(songId: playing.song_id) {
+                // Video preview using shared player
+                // Use id to force rebuild when returning from fullscreen
+                SharedVideoView(playerManager: playerManager)
+                    .id("preview-\(showingPlayer ? "fs" : "normal")")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(
-                        RadialGradient(colors: [WebColors.ac.opacity(0.2), .clear],
-                                       center: UnitPoint(x: 0.3, y: 0.5), startRadius: 0, endRadius: 200)
-                        .overlay(WebColors.navy)
-                    )
+                    .onAppear {
+                        playerManager.currentAudioTracks = playing.audio_tracks ?? 1
+                        playerManager.setupPlayer(for: hlsURL)
+                        playerManager.setVolume(volume)
+                        // Re-attach layer after setup to ensure video shows
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            playerManager.attachLayerToCurrentHost()
+                        }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            playerManager.attachLayerToCurrentHost()
+                        }
+                    }
+
+                // Song intro animation (exact #song-intro)
+                if showSongIntro, let intro = introSong {
+                    songIntroView(song: intro)
+                        .transition(.opacity)
                 }
 
-                // QR Code corner (exact #now-qr-corner)
-                if showQR {
-                    VStack {
-                        HStack {
-                            Spacer()
-                            qrCodeView
-                                .padding(10)
-                                .background(Color.white.opacity(0.95))
-                                .cornerRadius(10)
-                                .padding(10)
-                        }
-                        Spacer()
+                // Bottom gradient info (exact #now-info)
+                VStack {
+                    Spacer()
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(playing.displayTitle)
+                            .font(.system(size: 22, weight: .semibold))
+                            .foregroundColor(.white)
+                            .lineLimit(1)
+                        Text(playing.displayArtist)
+                            .font(.system(size: 17))
+                            .foregroundColor(WebColors.sub)
+                            .lineLimit(1)
                     }
-                    .transition(.opacity)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 14)
+                    .background(LinearGradient(colors: [Color.black.opacity(0.85), .clear],
+                                               startPoint: .bottom, endPoint: .top))
                 }
+            } else {
+                // Idle state (exact #now-idle)
+                VStack(spacing: 10) {
+                    Text("墨墨爱K歌")
+                        .font(.system(size: 36, weight: .heavy))
+                        .foregroundStyle(LinearGradient(colors: [WebColors.ac2, WebColors.ac, WebColors.pink],
+                                                        startPoint: .leading, endPoint: .trailing))
+                    Text("扫码点歌 · 大屏沉浸演唱")
+                        .font(.system(size: 14))
+                        .foregroundColor(WebColors.sub)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(
+                    RadialGradient(colors: [WebColors.ac.opacity(0.2), .clear],
+                                   center: UnitPoint(x: 0.3, y: 0.5), startRadius: 0, endRadius: 200)
+                    .overlay(WebColors.navy)
+                )
+            }
+
+            // QR Code corner (exact #now-qr-corner)
+            if showQR {
+                VStack {
+                    HStack {
+                        Spacer()
+                        qrCodeView
+                            .padding(10)
+                            .background(Color.white.opacity(0.95))
+                            .cornerRadius(10)
+                            .padding(10)
+                    }
+                    Spacer()
+                }
+                .transition(.opacity)
+            }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .cornerRadius(16)
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(panelFocused ? Color.white.opacity(0.4) : Color.clear, lineWidth: 1.5)
+            )
         }
         .buttonStyle(.plain)
+        .focused($panelFocused)
         .focusEffectDisabled()
+        .scaleEffect(panelFocused ? 1.02 : 1.0)
+        .animation(.easeOut(duration: 0.18), value: panelFocused)
         .onChange(of: api.queue.first(where: { $0.isPlaying })?.song_id) { newId in
+            // Reset auto-next guard when song changes
+            lastAutoNextQueueId = nil
             if let playing = api.queue.first(where: { $0.isPlaying }) {
                 introSong = playing
                 showSongIntro = true
@@ -445,6 +470,7 @@ struct ContentView: View {
             isPlaying = playerManager.isPlaying
             shouldResumePlaying = true
         }
+        .focusSection()
     }
 
     private func setupControlHandler() {
@@ -457,7 +483,11 @@ struct ContentView: View {
             case "repeat":
                 playerManager.restart()
             case "voice":
-                playerManager.toggleVoice()
+                // Server broadcasts control messages back to ALL clients including
+                // the sender; ignore our own echo so we don't toggle twice.
+                if (payload["clientId"] as? String) != api.clientId {
+                    playerManager.toggleVoice()
+                }
                 showToast(playerManager.isOriginalVoice ? "原唱" : "伴唱")
             case "eq":
                 if let name = payload["name"] as? String {
@@ -473,6 +503,26 @@ struct ContentView: View {
                 api.nextSong()
             default:
                 break
+            }
+        }
+    }
+
+    private func setupPlaybackEndHandler() {
+        playerManager.onPlaybackEnd = {
+            DispatchQueue.main.async {
+                guard let curSong = self.api.queue.first(where: { $0.isPlaying }) else {
+                    if self.showingPlayer { self.showingPlayer = false }
+                    return
+                }
+                // Prevent duplicate next calls for the same song
+                if self.lastAutoNextQueueId == curSong.id { return }
+                let hasMore = self.api.queue.contains(where: { !$0.isPlaying })
+                if hasMore {
+                    self.lastAutoNextQueueId = curSong.id
+                    self.api.nextSong()
+                } else if self.showingPlayer {
+                    self.showingPlayer = false
+                }
             }
         }
     }
@@ -534,15 +584,15 @@ struct ContentView: View {
                 api.toggleVoice()
                 showToast(playerManager.isOriginalVoice ? "原唱" : "伴唱")
             }
-            MVButton(icon: playerManager.isPlaying ? "pause.fill" : "play.fill",
-                    title: playerManager.isPlaying ? "暂停" : "播放", isCenter: true) {
-                playerManager.togglePlayPause()
-                isPlaying = playerManager.isPlaying
-            }
             MVButton(icon: "speaker.minus", title: "音量-") {
                 volume = max(0, volume - 0.1)
                 playerManager.setVolume(volume)
                 showToast("音量: \(Int(volume * 100))%")
+            }
+            MVButton(icon: playerManager.isPlaying ? "pause.fill" : "play.fill",
+                    title: playerManager.isPlaying ? "暂停" : "播放", isCenter: true) {
+                playerManager.togglePlayPause()
+                isPlaying = playerManager.isPlaying
             }
             MVButton(icon: "speaker.plus", title: "音量+") {
                 volume = min(1, volume + 0.1)
@@ -559,6 +609,7 @@ struct ContentView: View {
         .padding(.vertical, 6)
         .background(Color.white.opacity(0.04))
         .cornerRadius(14)
+        .focusSection()
     }
 
     // MARK: - Mid Cards (vertical column, 4 buttons fill height)
@@ -570,6 +621,7 @@ struct ContentView: View {
             bigRequestButton(title: "扫码点歌", icon: "qrcode", gradient: LinearGradient(colors: [Color(hex: 0x1a7bff), Color(hex: 0x36d9f7)], startPoint: .leading, endPoint: .trailing)) { showQR.toggle() }
         }
         .frame(maxHeight: .infinity)
+        .focusSection()
     }
 
     private func bigRequestButton(title: String, icon: String, gradient: LinearGradient, action: @escaping () -> Void) -> some View {
@@ -588,8 +640,12 @@ struct ContentView: View {
             }
             .padding(.horizontal, 18)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(gradient.opacity(focused ? 1.0 : 0.85))
+            .background(gradient.opacity(focused ? 1.0 : 0.7))
             .cornerRadius(16)
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(focused ? Color.white.opacity(0.4) : Color.clear, lineWidth: 1.5)
+            )
         }
         .buttonStyle(.plain)
         .focused($focused)
@@ -630,8 +686,8 @@ struct ContentView: View {
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
             .background(
-                item.isPlaying ? WebColors.ac.opacity(0.15) :
-                focused ? Color.white.opacity(0.1) : Color.clear
+                item.isPlaying ? WebColors.ac.opacity(0.3) :
+                focused ? WebColors.ac.opacity(0.25) : Color.clear
             )
             .cornerRadius(8)
         }
@@ -693,6 +749,7 @@ struct ContentView: View {
         .cornerRadius(16)
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(
             appThemeRaw == 2 ? WebColors.ac.opacity(0.3) : Color.white.opacity(0.08), lineWidth: 1))
+        .focusSection()
     }
 
     // MARK: - Panel Views
@@ -700,7 +757,8 @@ struct ContentView: View {
     private func panelView(_ panel: PanelType) -> some View {
         switch panel {
         case .search:
-            SearchPanel(api: api, onClose: { activePanel = nil })
+            SearchPanel(api: api, onClose: { activePanel = nil },
+                        onAdd: { song in api.addToQueue(songId: song.id); showToast("已点: \(song.displayTitle)") })
         case .queue:
             QueuePanel(api: api, onClose: { activePanel = nil }, onPlay: { activePanel = nil; showingPlayer = true })
         case .settings:
@@ -726,17 +784,23 @@ struct ContentView: View {
                 activePage = .artistSongs
             })
         case .artistSongs:
-            ArtistSongsPage(api: api, artist: selectedArtist, onBack: { activePage = .artists })
+            ArtistSongsPage(api: api, artist: selectedArtist, onBack: { activePage = .artists },
+                            onAdd: { song in api.addToQueue(songId: song.id); showToast("已点: \(song.displayTitle)") })
         case .charts:
-            ChartsPage(api: api, onBack: { activePage = nil })
+            ChartsPage(api: api, onBack: { activePage = nil },
+                       onAdd: { song in api.addToQueue(songId: song.id); showToast("已点: \(song.displayTitle)") })
         case .favorites:
-            FavoritesPage(api: api, onBack: { activePage = nil })
+            FavoritesPage(api: api, onBack: { activePage = nil },
+                          onAdd: { song in api.addToQueue(songId: song.id); showToast("已点: \(song.displayTitle)") })
         case .history:
-            HistoryPage(api: api, onBack: { activePage = nil })
+            HistoryPage(api: api, onBack: { activePage = nil },
+                        onAdd: { song in api.addToQueue(songId: song.id); showToast("已点: \(song.displayTitle)") })
         case .newest:
-            NewestPage(api: api, onBack: { activePage = nil })
+            NewestPage(api: api, onBack: { activePage = nil },
+                       onAdd: { song in api.addToQueue(songId: song.id); showToast("已点: \(song.displayTitle)") })
         case .category:
-            CategoryPage(api: api, onBack: { activePage = nil })
+            CategoryPage(api: api, onBack: { activePage = nil },
+                         onAdd: { song in api.addToQueue(songId: song.id); showToast("已点: \(song.displayTitle)") })
         }
     }
 
@@ -766,18 +830,30 @@ struct OrderSongsPage: View {
     let onBack: () -> Void
     let onAdd: (Song) -> Void
     @State private var currentPage = 0
-    @State private var inputLetters = "" // Multi-letter pinyin initials input
+    @State private var inputText = "" // Pinyin initials (ABC) or digits (123)
+    @State private var keyboardMode: KeyboardMode = .abc
     @State private var songPinyin: [Int: String] = [:] // Precomputed pinyin initials
     @State private var isCacheReady = false
+    @FocusState private var prevPageFocused: Bool
+    @FocusState private var nextPageFocused: Bool
     private let pageSize = 32
-    private let letterRows: [[String]] = [
-        ["A","B","C","D","E"],
-        ["F","G","H","I","J"],
-        ["K","L","M","N","O"],
-        ["P","Q","R","S","T"],
-        ["U","V","W","X","Y"],
-        ["Z","DEL"]
+    private enum KeyboardMode { case abc, num }
+    // 歌名键盘 ABC 模式：6 行，最后一行 Z 跨 2 列、DEL 跨 3 列，填满整行
+    private let abcRows: [[(String, Int)]] = [
+        [("A",1),("B",1),("C",1),("D",1),("E",1)],
+        [("F",1),("G",1),("H",1),("I",1),("J",1)],
+        [("K",1),("L",1),("M",1),("N",1),("O",1)],
+        [("P",1),("Q",1),("R",1),("S",1),("T",1)],
+        [("U",1),("V",1),("W",1),("X",1),("Y",1)],
+        [("Z",2),("DEL",3)]
     ]
+    // 歌名键盘数字模式：3 行，DEL 跨 5 列填满整行
+    private let numRows: [[(String, Int)]] = [
+        [("1",1),("2",1),("3",1),("4",1),("5",1)],
+        [("6",1),("7",1),("8",1),("9",1),("0",1)],
+        [("DEL",5)]
+    ]
+    private var activeRows: [[(String, Int)]] { keyboardMode == .abc ? abcRows : numRows }
 
     private func computePinyinInitials(_ text: String) -> String {
         var result = ""
@@ -832,11 +908,18 @@ struct OrderSongsPage: View {
     }
 
     var filteredSongs: [Song] {
-        if inputLetters.isEmpty { return api.songs }
-        guard isCacheReady else { return [] }
-        return api.songs.filter { song in
-            guard let pinyin = songPinyin[song.id] else { return false }
-            return pinyin.hasPrefix(inputLetters) || pinyin.contains(inputLetters)
+        if inputText.isEmpty { return api.songs }
+        switch keyboardMode {
+        case .abc:
+            guard isCacheReady else { return [] }
+            return api.songs.filter { song in
+                guard let pinyin = songPinyin[song.id] else { return false }
+                return pinyin.hasPrefix(inputText)
+            }
+        case .num:
+            return api.songs.filter { song in
+                song.displayTitle.localizedCaseInsensitiveContains(inputText)
+            }
         }
     }
 
@@ -886,111 +969,88 @@ struct OrderSongsPage: View {
                               spacing: 10) {
                         ForEach(Array(pagedSongs.enumerated()), id: \.element.id) { idx, song in
                             songRow(song, index: currentPage * pageSize + idx)
+                                .gridCellColumns(
+                                    (idx == pagedSongs.count - 1 && pagedSongs.count % 2 == 1) ? 2 : 1
+                                )
                         }
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
                 }
                 .frame(maxWidth: .infinity)
+                .focusSection()
 
-                // Right: alphabet search panel
+                // Right: search panel (keyboard)
                 VStack(spacing: 0) {
-                    // Panel header with input display
+                    // Panel header: search icon + title/input + mode toggle button
                     HStack {
                         Image(systemName: "magnifyingglass")
                             .font(.system(size: 20))
                             .foregroundColor(WebColors.sub)
-                        Text("歌名搜索")
+                        Text(inputText.isEmpty ? "歌名搜索" : inputText)
                             .font(.system(size: 22, weight: .bold))
                             .foregroundColor(.white)
+                            .lineLimit(1)
                         Spacer()
-                        if inputLetters.isEmpty {
-                            Text("全部")
+                        // 单按钮切换：ABC 模式显示"123"，123 模式显示"ABC"
+                        Button(action: {
+                            keyboardMode = (keyboardMode == .abc ? .num : .abc)
+                            inputText = ""
+                            currentPage = 0
+                        }) {
+                            Text(keyboardMode == .abc ? "123" : "ABC")
                                 .font(.system(size: 18, weight: .bold))
                                 .foregroundColor(.white)
-                                .padding(EdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14))
+                                .padding(.horizontal, 18).padding(.vertical, 7)
                                 .background(Color.white.opacity(0.15))
                                 .cornerRadius(999)
-                        } else {
-                            Text(inputLetters)
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(.white)
-                                .padding(EdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14))
-                                .background(Color(hex: UInt32(0xb91c5c)).opacity(0.8))
-                                .cornerRadius(999)
-                        }
-                    }
-                    .padding(.horizontal, 16).padding(.vertical, 14)
-
-                    // Alphabet grid (5 cols)
-                    VStack(spacing: 10) {
-                        ForEach(letterRows, id: \.self) { row in
-                            HStack(spacing: 10) {
-                                ForEach(row, id: \.self) { letter in
-                                    Button(action: {
-                                        if letter == "DEL" {
-                                            if !inputLetters.isEmpty {
-                                                inputLetters.removeLast()
-                                            }
-                                        } else {
-                                            inputLetters.append(letter)
-                                        }
-                                        currentPage = 0
-                                    }) {
-                                        if letter == "DEL" {
-                                            HStack(spacing: 6) {
-                                                Image(systemName: "delete.left")
-                                                    .font(.system(size: 20, weight: .bold))
-                                                Text("删除")
-                                                    .font(.system(size: 20, weight: .bold))
-                                            }
-                                            .foregroundColor(.white)
-                                            .frame(maxWidth: .infinity)
-                                            .frame(height: 56)
-                                            .background(Color(hex: 0x2a2a3a))
-                                            .cornerRadius(10)
-                                        } else {
-                                            Text(letter)
-                                                .font(.system(size: 24, weight: .bold))
-                                                .foregroundColor(.white)
-                                                .frame(maxWidth: .infinity)
-                                                .frame(height: 56)
-                                                .background(Color(hex: 0x2a2a3a))
-                                                .cornerRadius(10)
-                                        }
-                                    }
-                                    .buttonStyle(.plain)
-                                    .focusEffectDisabled()
-                                }
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 16)
-
-                    // Clear button
-                    if !inputLetters.isEmpty {
-                        Button(action: { inputLetters = ""; currentPage = 0 }) {
-                            Text("清空")
-                                .font(.system(size: 18, weight: .medium))
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 44)
-                                .background(Color.white.opacity(0.1))
-                                .cornerRadius(10)
                         }
                         .buttonStyle(.plain)
                         .focusEffectDisabled()
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 12)
                     }
+                    .padding(.horizontal, 16).padding(.vertical, 14)
 
-                    Spacer()
+                    // Keyboard: 按键放大填满右侧面板（VStack 等高行 + GeometryReader 精确跨列）
+                    VStack(spacing: 8) {
+                        ForEach(0..<activeRows.count, id: \.self) { r in
+                            let row = activeRows[r]
+                            GeometryReader { geo in
+                                let sp: CGFloat = 8
+                                let cw = (geo.size.width - sp * 4) / 5
+                                HStack(spacing: sp) {
+                                    ForEach(0..<row.count, id: \.self) { c in
+                                        let (key, span) = row[c]
+                                        let kw = cw * CGFloat(span) + sp * CGFloat(span - 1)
+                                        TightKeyButton(key: key, width: kw, height: geo.size.height) {
+                                            if key == "DEL" {
+                                                if !inputText.isEmpty { inputText.removeLast() }
+                                            } else {
+                                                inputText.append(key)
+                                            }
+                                            currentPage = 0
+                                        }
+                                    }
+                                }
+                            }
+                            .frame(maxHeight: .infinity)
+                        }
+
+                        // Clear button（固定在键盘底部，键盘行平分剩余空间）
+                        TightClearButton(isEmpty: inputText.isEmpty) {
+                            inputText = ""; currentPage = 0
+                        }
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.top, 4)
+                    .padding(.bottom, 10)
+                    .frame(maxHeight: .infinity)
                 }
-                .frame(width: 340)
+                .frame(width: 400)
                 .background(Color(hex: 0x15151f))
+                .focusSection()
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .focusSection()
 
             // Pagination footer
             HStack(spacing: 20) {
@@ -999,18 +1059,22 @@ struct OrderSongsPage: View {
                         Image(systemName: "chevron.left")
                         Text("上一页")
                     }
-                    .font(.system(size: 18, weight: .medium))
-                    .padding(.horizontal, 20).padding(.vertical, 8)
+                    .font(.system(size: 20, weight: .medium))
+                    .padding(.horizontal, 22).padding(.vertical, 10)
                     .foregroundColor(currentPage > 0 ? .white : WebColors.sub)
                     .background(currentPage > 0 ? Color.white.opacity(0.12) : Color.clear)
                     .cornerRadius(999)
+                    .overlay(Capsule().stroke(prevPageFocused && currentPage > 0 ? WebColors.ac.opacity(0.7) : .clear, lineWidth: 1.5))
                 }
                 .buttonStyle(.plain)
-                .focusEffectDisabled()
                 .disabled(currentPage == 0)
+                .focused($prevPageFocused)
+                .focusEffectDisabled()
+                .scaleEffect(prevPageFocused ? 1.02 : 1.0)
+                .animation(.easeOut(duration: 0.12), value: prevPageFocused)
 
                 Text("第 \(currentPage + 1)/\(totalPages) (共\(filteredSongs.count)首)")
-                    .font(.system(size: 18))
+                    .font(.system(size: 20))
                     .foregroundColor(.white)
 
                 Button(action: { if currentPage + 1 < totalPages { currentPage += 1 } }) {
@@ -1018,19 +1082,24 @@ struct OrderSongsPage: View {
                         Text("下一页")
                         Image(systemName: "chevron.right")
                     }
-                    .font(.system(size: 18, weight: .medium))
-                    .padding(.horizontal, 20).padding(.vertical, 8)
+                    .font(.system(size: 20, weight: .medium))
+                    .padding(.horizontal, 22).padding(.vertical, 10)
                     .foregroundColor(currentPage + 1 < totalPages ? .white : WebColors.sub)
                     .background(currentPage + 1 < totalPages ? Color.white.opacity(0.12) : Color.clear)
                     .cornerRadius(999)
+                    .overlay(Capsule().stroke(nextPageFocused && currentPage + 1 < totalPages ? WebColors.ac.opacity(0.7) : .clear, lineWidth: 1.5))
                 }
                 .buttonStyle(.plain)
-                .focusEffectDisabled()
                 .disabled(currentPage + 1 >= totalPages)
+                .focused($nextPageFocused)
+                .focusEffectDisabled()
+                .scaleEffect(nextPageFocused ? 1.02 : 1.0)
+                .animation(.easeOut(duration: 0.12), value: nextPageFocused)
             }
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity)
             .background(WebColors.topbarBg)
+            .focusSection()
         }
         .background(WebColors.bg.ignoresSafeArea())
         .onAppear {
@@ -1045,58 +1114,53 @@ struct OrderSongsPage: View {
 
     @ViewBuilder
     private func songRow(_ song: Song, index: Int) -> some View {
-        HStack(spacing: 10) {
-            // Number circle
-            ZStack {
-                Circle()
-                    .fill(LinearGradient(colors: [Color(hex: 0x9333ea), Color(hex: 0x6366f1)],
-                                         startPoint: .topLeading, endPoint: .bottomTrailing))
-                    .frame(width: 32, height: 32)
-                Text("\(index + 1)")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(.white)
-            }
+        HStack(spacing: 14) {
+            // 整行大按钮：数字 + 歌名/歌手 + 点歌，焦点区域大，遥控器易选中
+            Button(action: { onAdd(song) }) {
+                HStack(spacing: 14) {
+                    ZStack {
+                        Circle()
+                            .fill(LinearGradient(colors: [Color(hex: 0x9333ea), Color(hex: 0x6366f1)],
+                                                 startPoint: .topLeading, endPoint: .bottomTrailing))
+                            .frame(width: 60, height: 60)
+                        Text("\(index + 1)")
+                            .font(.system(size: 26, weight: .bold))
+                            .foregroundColor(.white)
+                    }
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(song.displayTitle)
-                    .font(.system(size: 17, weight: .medium))
-                    .foregroundColor(.white)
-                    .lineLimit(1)
-                Text(song.displayArtist)
-                    .font(.system(size: 14))
-                    .foregroundColor(WebColors.sub)
-                    .lineLimit(1)
-            }
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(song.displayTitle)
+                            .font(.system(size: 32, weight: .semibold))
+                            .foregroundColor(.white)
+                            .lineLimit(1)
+                        Text(song.displayArtist)
+                            .font(.system(size: 24))
+                            .foregroundColor(WebColors.sub)
+                            .lineLimit(1)
+                    }
 
-            Spacer()
+                    Spacer(minLength: 0)
+
+                    Text("点歌")
+                        .font(.system(size: 26, weight: .semibold))
+                        .padding(.horizontal, 26).padding(.vertical, 12)
+                        .background(LinearGradient(colors: [Color(hex: 0x9333ea), Color(hex: 0x7c3aed)],
+                                                   startPoint: .leading, endPoint: .trailing))
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
+                }
+            }
+            .buttonStyle(.plain).focusEffectDisabled()
 
             // Favorite
-            Button(action: { api.toggleFavorite(songId: song.id) }) {
-                Image(systemName: api.favorites.contains { $0.id == song.id } ? "heart.fill" : "heart")
-                    .font(.system(size: 18))
-                    .foregroundColor(api.favorites.contains { $0.id == song.id } ? WebColors.pink : Color.white.opacity(0.6))
-                    .frame(width: 36, height: 36)
+            TightFavButton(isFavorite: api.favorites.contains { $0.id == song.id }) {
+                api.toggleFavorite(songId: song.id)
             }
-            .buttonStyle(.plain)
-            .focusEffectDisabled()
-
-            // Add button
-            Button(action: { onAdd(song) }) {
-                Text("点歌")
-                    .font(.system(size: 16, weight: .medium))
-                    .padding(.horizontal, 16).padding(.vertical, 7)
-                    .background(LinearGradient(colors: [Color(hex: 0x9333ea), Color(hex: 0x7c3aed)],
-                                               startPoint: .leading, endPoint: .trailing))
-                    .foregroundColor(.white)
-                    .cornerRadius(8)
-            }
-            .buttonStyle(.plain)
-            .focusEffectDisabled()
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
         .background(Color(hex: 0x1e1e2e))
-        .cornerRadius(10)
+        .cornerRadius(12)
     }
 }
 
@@ -1123,3 +1187,4 @@ struct VideoPreview: UIViewRepresentable {
         var playerLayer: AVPlayerLayer?
     }
 }
+
