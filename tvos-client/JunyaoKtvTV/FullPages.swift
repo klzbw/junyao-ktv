@@ -334,12 +334,17 @@ struct ArtistsPage: View {
                                 .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(.card)
+                            .gridCellColumns(
+                                (idx == pagedArtists.count - 1 && pagedArtists.count % 6 != 0)
+                                    ? (6 - pagedArtists.count % 6) : 1
+                            )
                         }
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 16)
                 }
                 .frame(maxWidth: .infinity)
+                .focusSection()
 
                 // Right: alphabet search panel
                 VStack(spacing: 0) {
@@ -377,9 +382,7 @@ struct ArtistsPage: View {
                                     .foregroundColor(.white)
                                     .frame(maxWidth: .infinity)
                                     .frame(height: 56)
-                                    .background(Color(hex: UInt32(0xb91c5c)).opacity(0.35))
-                                    .overlay(RoundedRectangle(cornerRadius: 10)
-                                        .stroke(Color(hex: UInt32(0xb91c5c)).opacity(0.5), lineWidth: 1.5))
+                                    .background(Color(hex: 0x2a2a3a))
                                     .cornerRadius(10)
                                 } else {
                                     Text(key)
@@ -400,12 +403,30 @@ struct ArtistsPage: View {
                     .padding(.horizontal, 16)
                     .padding(.bottom, 16)
 
+                    // Clear button
+                    if !inputLetters.isEmpty {
+                        Button(action: { inputLetters = ""; currentPage = 1 }) {
+                            Text("清空")
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 44)
+                                .background(Color.white.opacity(0.1))
+                                .cornerRadius(10)
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 12)
+                    }
+
                     Spacer()
                 }
                 .frame(width: 340)
                 .background(Color(hex: 0x15151f))
+                .focusSection()
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .focusSection()
 
             // Pagination footer
             HStack(spacing: 20) {
@@ -444,6 +465,7 @@ struct ArtistsPage: View {
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity)
             .background(WebColors.topbarBg)
+            .focusSection()
         }
         .background(WebColors.bg.ignoresSafeArea())
         .onAppear {

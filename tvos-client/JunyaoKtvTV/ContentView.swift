@@ -966,12 +966,16 @@ struct OrderSongsPage: View {
                               spacing: 10) {
                         ForEach(Array(pagedSongs.enumerated()), id: \.element.id) { idx, song in
                             songRow(song, index: currentPage * pageSize + idx)
+                                .gridCellColumns(
+                                    (idx == pagedSongs.count - 1 && pagedSongs.count % 2 == 1) ? 2 : 1
+                                )
                         }
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
                 }
                 .frame(maxWidth: .infinity)
+                .focusSection()
 
                 // Right: search panel (keyboard)
                 VStack(spacing: 0) {
@@ -1024,9 +1028,7 @@ struct OrderSongsPage: View {
                                     .foregroundColor(.white)
                                     .frame(maxWidth: .infinity)
                                     .frame(height: 56)
-                                    .background(Color(hex: UInt32(0xb91c5c)).opacity(0.35))
-                                    .overlay(RoundedRectangle(cornerRadius: 10)
-                                        .stroke(Color(hex: UInt32(0xb91c5c)).opacity(0.5), lineWidth: 1.5))
+                                    .background(Color(hex: 0x2a2a3a))
                                     .cornerRadius(10)
                                 } else {
                                     Text(key)
@@ -1047,12 +1049,30 @@ struct OrderSongsPage: View {
                     .padding(.horizontal, 16)
                     .padding(.bottom, 16)
 
+                    // Clear button
+                    if !inputText.isEmpty {
+                        Button(action: { inputText = ""; currentPage = 0 }) {
+                            Text("清空")
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 44)
+                                .background(Color.white.opacity(0.1))
+                                .cornerRadius(10)
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 12)
+                    }
+
                     Spacer()
                 }
                 .frame(width: 340)
                 .background(Color(hex: 0x15151f))
+                .focusSection()
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .focusSection()
 
             // Pagination footer
             HStack(spacing: 20) {
@@ -1091,6 +1111,7 @@ struct OrderSongsPage: View {
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity)
             .background(WebColors.topbarBg)
+            .focusSection()
         }
         .background(WebColors.bg.ignoresSafeArea())
         .onAppear {
