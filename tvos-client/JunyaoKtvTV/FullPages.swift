@@ -187,14 +187,14 @@ struct ArtistsPage: View {
     @State private var isLoading = true
     private let pageSize = 18
     // 歌手键盘：拼音首字母不会出现 I/U/V，与网页端一致（23 键）
-    private let abcKeys: [String] = [
-        "A","B","C","D","E",
-        "F","G","H","J","K",
-        "L","M","N","O","P",
-        "Q","R","S","T","W",
-        "X","Y","Z","DEL"
+    // 5 行，最后一行 X Y Z + DEL（跨2列），填满整行
+    private let abcRows: [[(String, Int)]] = [
+        [("A",1),("B",1),("C",1),("D",1),("E",1)],
+        [("F",1),("G",1),("H",1),("J",1),("K",1)],
+        [("L",1),("M",1),("N",1),("O",1),("P",1)],
+        [("Q",1),("R",1),("S",1),("T",1),("W",1)],
+        [("X",1),("Y",1),("Z",1),("DEL",2)]
     ]
-    private func keySpan(_ key: String) -> Int { key == "DEL" ? 2 : 1 }
 
     private static var pinyinCharCache: [Character: String] = [:]
     private static let pinyinCacheLock = NSLock()
@@ -331,7 +331,8 @@ struct ArtistsPage: View {
                                         .font(.system(size: 14))
                                         .foregroundColor(WebColors.sub)
                                 }
-                                .frame(maxWidth: .infinity)
+                                .frame(maxWidth: .infinity, minHeight: 140)
+                                .background(Color(hex: 0x1e1e2e).opacity(0.001))
                             }
                             .buttonStyle(.card)
                             .gridCellColumns(
@@ -360,66 +361,72 @@ struct ArtistsPage: View {
                     }
                     .padding(.horizontal, 16).padding(.vertical, 14)
 
-                    // Keyboard grid (5 cols, DEL spans 2)
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 5),
-                              spacing: 10) {
-                        ForEach(abcKeys, id: \.self) { key in
-                            Button(action: {
-                                if key == "DEL" {
-                                    if !inputLetters.isEmpty { inputLetters.removeLast() }
-                                } else {
-                                    inputLetters.append(key)
-                                }
-                                currentPage = 1
-                            }) {
-                                if key == "DEL" {
-                                    HStack(spacing: 6) {
-                                        Image(systemName: "delete.left")
-                                            .font(.system(size: 20, weight: .bold))
-                                        Text("删除")
-                                            .font(.system(size: 20, weight: .bold))
+                    // Keyboard: 按键放大填满右侧面板
+                    VStack(spacing: 10) {
+                        ForEach(0..<abcRows.count, id: \.self) { r in
+                            let row = abcRows[r]
+                            GeometryReader { geo in
+                                let sp: CGFloat = 10
+                                let cw = (geo.size.width - sp * 4) / 5
+                                HStack(spacing: sp) {
+                                    ForEach(0..<row.count, id: \.self) { c in
+                                        let (key, span) = row[c]
+                                        let kw = cw * CGFloat(span) + sp * CGFloat(span - 1)
+                                        Button(action: {
+                                            if key == "DEL" {
+                                                if !inputLetters.isEmpty { inputLetters.removeLast() }
+                                            } else {
+                                                inputLetters.append(key)
+                                            }
+                                            currentPage = 1
+                                        }) {
+                                            if key == "DEL" {
+                                                HStack(spacing: 6) {
+                                                    Image(systemName: "delete.left")
+                                                        .font(.system(size: 22, weight: .bold))
+                                                    Text("删除")
+                                                        .font(.system(size: 22, weight: .bold))
+                                                }
+                                                .foregroundColor(.white)
+                                                .frame(width: kw, height: geo.size.height)
+                                                .background(Color(hex: 0x2a2a3a))
+                                                .cornerRadius(10)
+                                            } else {
+                                                Text(key)
+                                                    .font(.system(size: 28, weight: .bold))
+                                                    .foregroundColor(.white)
+                                                    .frame(width: kw, height: geo.size.height)
+                                                    .background(Color(hex: 0x2a2a3a))
+                                                    .overlay(RoundedRectangle(cornerRadius: 10)
+                                                        .stroke(Color.white.opacity(0.12), lineWidth: 1.5))
+                                                    .cornerRadius(10)
+                                            }
+                                        }
+                                        .buttonStyle(.plain)
                                     }
-                                    .foregroundColor(.white)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 56)
-                                    .background(Color(hex: 0x2a2a3a))
-                                    .cornerRadius(10)
-                                } else {
-                                    Text(key)
-                                        .font(.system(size: 24, weight: .bold))
-                                        .foregroundColor(.white)
-                                        .frame(maxWidth: .infinity)
-                                        .frame(height: 56)
-                                        .background(Color(hex: 0x2a2a3a))
-                                        .overlay(RoundedRectangle(cornerRadius: 10)
-                                            .stroke(Color.white.opacity(0.12), lineWidth: 1.5))
-                                        .cornerRadius(10)
                                 }
                             }
-                            .buttonStyle(.plain)
-                            .gridCellColumns(keySpan(key))
+                            .frame(maxHeight: .infinity)
                         }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 16)
 
-                    // Clear button
-                    if !inputLetters.isEmpty {
+                        // Clear button（固定底部，键盘行平分剩余空间）
                         Button(action: { inputLetters = ""; currentPage = 1 }) {
                             Text("清空")
                                 .font(.system(size: 18, weight: .medium))
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 44)
-                                .background(Color.white.opacity(0.1))
+                                .background(inputLetters.isEmpty ? Color.clear : Color.white.opacity(0.1))
                                 .cornerRadius(10)
                         }
                         .buttonStyle(.plain)
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 12)
+                        .disabled(inputLetters.isEmpty)
+                        .opacity(inputLetters.isEmpty ? 0 : 1)
                     }
-
-                    Spacer()
+                    .padding(.horizontal, 16)
+                    .padding(.top, 4)
+                    .padding(.bottom, 12)
+                    .frame(maxHeight: .infinity)
                 }
                 .frame(width: 340)
                 .background(Color(hex: 0x15151f))
