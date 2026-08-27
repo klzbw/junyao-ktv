@@ -641,9 +641,9 @@ struct ContentView: View {
             .background(gradient.opacity(focused ? 1.0 : 0.7))
             .cornerRadius(16)
         }
-        .padding(3)
+        .padding(2)
         .background(focused ? Color.white.opacity(0.15) : Color.clear)
-        .cornerRadius(19)
+        .cornerRadius(18)
         .buttonStyle(.plain)
         .focused($focused)
         .focusEffectDisabled()
@@ -834,6 +834,8 @@ struct OrderSongsPage: View {
     @State private var keyboardMode: KeyboardMode = .abc
     @State private var songPinyin: [Int: String] = [:] // Precomputed pinyin initials
     @State private var isCacheReady = false
+    @FocusState private var prevPageFocused: Bool
+    @FocusState private var nextPageFocused: Bool
     private let pageSize = 32
     private enum KeyboardMode { case abc, num }
     // 歌名键盘 ABC 模式：6 行，最后一行 Z 跨 2 列、DEL 跨 3 列，填满整行
@@ -1017,37 +1019,14 @@ struct OrderSongsPage: View {
                                     ForEach(0..<row.count, id: \.self) { c in
                                         let (key, span) = row[c]
                                         let kw = cw * CGFloat(span) + sp * CGFloat(span - 1)
-                                        Button(action: {
+                                        TightKeyButton(key: key, width: kw, height: geo.size.height) {
                                             if key == "DEL" {
                                                 if !inputText.isEmpty { inputText.removeLast() }
                                             } else {
                                                 inputText.append(key)
                                             }
                                             currentPage = 0
-                                        }) {
-                                            if key == "DEL" {
-                                                HStack(spacing: 8) {
-                                                    Image(systemName: "delete.left")
-                                                        .font(.system(size: 30, weight: .bold))
-                                                    Text("删除")
-                                                        .font(.system(size: 30, weight: .bold))
-                                                }
-                                                .foregroundColor(.white)
-                                                .frame(width: kw, height: geo.size.height)
-                                                .background(Color(hex: 0x2a2a3a))
-                                                .cornerRadius(12)
-                                            } else {
-                                                Text(key)
-                                                    .font(.system(size: 42, weight: .heavy))
-                                                    .foregroundColor(.white)
-                                                    .frame(width: kw, height: geo.size.height)
-                                                    .background(Color(hex: 0x2a2a3a))
-                                                    .overlay(RoundedRectangle(cornerRadius: 12)
-                                                        .stroke(Color.white.opacity(0.12), lineWidth: 1.5))
-                                                    .cornerRadius(12)
-                                            }
                                         }
-                                        .buttonStyle(.plain)
                                     }
                                 }
                             }
@@ -1055,18 +1034,9 @@ struct OrderSongsPage: View {
                         }
 
                         // Clear button（固定在键盘底部，键盘行平分剩余空间）
-                        Button(action: { inputText = ""; currentPage = 0 }) {
-                            Text("清空")
-                                .font(.system(size: 22, weight: .medium))
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 50)
-                                .background(inputText.isEmpty ? Color.clear : Color.white.opacity(0.1))
-                                .cornerRadius(12)
+                        TightClearButton(isEmpty: inputText.isEmpty) {
+                            inputText = ""; currentPage = 0
                         }
-                        .buttonStyle(.plain)
-                        .disabled(inputText.isEmpty)
-                        .opacity(inputText.isEmpty ? 0 : 1)
                     }
                     .padding(.horizontal, 10)
                     .padding(.top, 4)
@@ -1087,17 +1057,22 @@ struct OrderSongsPage: View {
                         Image(systemName: "chevron.left")
                         Text("上一页")
                     }
-                    .font(.system(size: 18, weight: .medium))
-                    .padding(.horizontal, 20).padding(.vertical, 8)
+                    .font(.system(size: 20, weight: .medium))
+                    .padding(.horizontal, 22).padding(.vertical, 10)
                     .foregroundColor(currentPage > 0 ? .white : WebColors.sub)
                     .background(currentPage > 0 ? Color.white.opacity(0.12) : Color.clear)
                     .cornerRadius(999)
+                    .overlay(Capsule().stroke(prevPageFocused && currentPage > 0 ? Color.white.opacity(0.9) : .clear, lineWidth: 2))
                 }
                 .buttonStyle(.plain)
                 .disabled(currentPage == 0)
+                .focused($prevPageFocused)
+                .focusEffectDisabled()
+                .scaleEffect(prevPageFocused ? 1.05 : 1.0)
+                .animation(.easeOut(duration: 0.12), value: prevPageFocused)
 
                 Text("第 \(currentPage + 1)/\(totalPages) (共\(filteredSongs.count)首)")
-                    .font(.system(size: 18))
+                    .font(.system(size: 20))
                     .foregroundColor(.white)
 
                 Button(action: { if currentPage + 1 < totalPages { currentPage += 1 } }) {
@@ -1105,14 +1080,19 @@ struct OrderSongsPage: View {
                         Text("下一页")
                         Image(systemName: "chevron.right")
                     }
-                    .font(.system(size: 18, weight: .medium))
-                    .padding(.horizontal, 20).padding(.vertical, 8)
+                    .font(.system(size: 20, weight: .medium))
+                    .padding(.horizontal, 22).padding(.vertical, 10)
                     .foregroundColor(currentPage + 1 < totalPages ? .white : WebColors.sub)
                     .background(currentPage + 1 < totalPages ? Color.white.opacity(0.12) : Color.clear)
                     .cornerRadius(999)
+                    .overlay(Capsule().stroke(nextPageFocused && currentPage + 1 < totalPages ? Color.white.opacity(0.9) : .clear, lineWidth: 2))
                 }
                 .buttonStyle(.plain)
                 .disabled(currentPage + 1 >= totalPages)
+                .focused($nextPageFocused)
+                .focusEffectDisabled()
+                .scaleEffect(nextPageFocused ? 1.05 : 1.0)
+                .animation(.easeOut(duration: 0.12), value: nextPageFocused)
             }
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity)
@@ -1171,13 +1151,9 @@ struct OrderSongsPage: View {
             .buttonStyle(.card)
 
             // Favorite
-            Button(action: { api.toggleFavorite(songId: song.id) }) {
-                Image(systemName: api.favorites.contains { $0.id == song.id } ? "heart.fill" : "heart")
-                    .font(.system(size: 30))
-                    .foregroundColor(api.favorites.contains { $0.id == song.id } ? WebColors.pink : Color.white.opacity(0.6))
-                    .frame(width: 64, height: 64)
+            TightFavButton(isFavorite: api.favorites.contains { $0.id == song.id }) {
+                api.toggleFavorite(songId: song.id)
             }
-            .buttonStyle(.plain)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
