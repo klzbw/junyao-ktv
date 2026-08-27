@@ -213,44 +213,44 @@ struct PlayerView: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Text("♪ 已点队列")
-                    .font(.system(size: 19, weight: .bold))
+                    .font(.system(size: 30, weight: .bold))
                     .foregroundColor(WebColors.ac2)
                 Spacer()
                 TVTightButton(action: { showQueue = false }) { focused in
                     Image(systemName: "xmark")
-                        .font(.system(size: 19))
+                        .font(.system(size: 24, weight: .bold))
                         .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
-                        .frame(width: 36, height: 36)
+                        .frame(width: 56, height: 56)
                         .background(focused ? Color.white : Color.white.opacity(0.1))
                         .clipShape(Circle())
                 }
             }
-            .padding(.horizontal, 14)
+            .padding(.horizontal, 20)
             .padding(.vertical, 16)
             .overlay(Rectangle().fill(Color.white.opacity(0.07)).frame(height: 1), alignment: .bottom)
 
             ScrollView {
-                VStack(spacing: 4) {
+                VStack(spacing: 6) {
                     ForEach(Array(api.queue.enumerated()), id: \.element.id) { idx, item in
-                        HStack(spacing: 12) {
+                        HStack(spacing: 14) {
                             if item.isPlaying {
                                 Image(systemName: "play.circle.fill")
                                     .foregroundColor(WebColors.ac2)
-                                    .font(.system(size: 24))
+                                    .font(.system(size: 30))
                             } else {
                                 Text("\(idx + 1)")
-                                    .font(.system(size: 20, weight: .bold))
-                                    .foregroundColor(WebColors.sub)
-                                    .frame(width: 32)
-                            }
-                            VStack(alignment: .leading, spacing: 5) {
-                                Text(item.displayTitle)
                                     .font(.system(size: 24, weight: .bold))
+                                    .foregroundColor(WebColors.sub)
+                                    .frame(width: 40)
+                            }
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(item.displayTitle)
+                                    .font(.system(size: 28, weight: .bold))
                                     .foregroundColor(.white)
                                     .lineLimit(nil)
                                     .fixedSize(horizontal: false, vertical: true)
                                 Text(item.displayArtist)
-                                    .font(.system(size: 18, weight: .medium))
+                                    .font(.system(size: 20, weight: .medium))
                                     .foregroundColor(WebColors.sub)
                                     .lineLimit(nil)
                                     .fixedSize(horizontal: false, vertical: true)
@@ -258,24 +258,24 @@ struct PlayerView: View {
                             Spacer()
                             if item.isPlaying {
                                 Text("播放中")
-                                    .font(.system(size: 18, weight: .bold))
+                                    .font(.system(size: 20, weight: .bold))
                                     .foregroundColor(WebColors.ac2)
                             }
                         }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 16)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 18)
                         .background(item.isPlaying ? WebColors.ac.opacity(0.15) : Color.clear)
-                        .cornerRadius(10)
+                        .cornerRadius(12)
                     }
                 }
-                .padding(.horizontal, 12)
+                .padding(.horizontal, 16)
                 .padding(.vertical, 10)
             }
         }
-        .frame(width: 340)
+        .frame(width: 680)
         .background(Color(red: 5/255, green: 5/255, blue: 20/255).opacity(0.95))
-        .cornerRadius(16)
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.white.opacity(0.1), lineWidth: 1))
+        .cornerRadius(20)
+        .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.white.opacity(0.1), lineWidth: 1))
         .frame(maxWidth: .infinity, alignment: .trailing)
         .padding(.trailing, 20)
         .padding(.vertical, 40)

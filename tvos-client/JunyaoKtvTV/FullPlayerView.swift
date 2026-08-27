@@ -193,46 +193,47 @@ struct FullPlayerView: View {
                 VStack(spacing: 0) {
                     HStack {
                         Text("♪ 已点队列")
-                            .font(.system(size: 22, weight: .bold))
+                            .font(.system(size: 30, weight: .bold))
                             .foregroundColor(WebColors.ac2)
                         Text("\(api.queue.count)首")
-                            .font(.system(size: 14))
+                            .font(.system(size: 20, weight: .medium))
                             .foregroundColor(WebColors.sub)
-                            .padding(.leading, 8)
+                            .padding(.leading, 10)
                         Spacer()
                         TVTightButton(action: { showQueue = false }) { focused in
                             Image(systemName: "xmark")
+                                .font(.system(size: 24, weight: .bold))
                                 .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
-                                .frame(width: 36, height: 36)
+                                .frame(width: 56, height: 56)
                                 .background(focused ? Color.white : Color.white.opacity(0.1))
                                 .clipShape(Circle())
                         }
                     }
-                    .padding(.horizontal, 16).padding(.vertical, 12)
+                    .padding(.horizontal, 20).padding(.vertical, 16)
                     .background(WebColors.topbarBg)
 
                     ScrollView {
-                        VStack(spacing: 4) {
+                        VStack(spacing: 6) {
                             ForEach(Array(api.queue.enumerated()), id: \.element.id) { idx, item in
-                                HStack(spacing: 12) {
+                                HStack(spacing: 14) {
                                     if item.isPlaying {
                                         Image(systemName: "play.circle.fill")
                                             .foregroundColor(WebColors.ac2)
-                                            .font(.system(size: 26))
+                                            .font(.system(size: 30))
                                     } else {
                                         Text("\(idx + 1)")
-                                            .font(.system(size: 20, weight: .bold))
+                                            .font(.system(size: 24, weight: .bold))
                                             .foregroundColor(WebColors.sub)
-                                            .frame(width: 32)
+                                            .frame(width: 40)
                                     }
-                                    VStack(alignment: .leading, spacing: 5) {
+                                    VStack(alignment: .leading, spacing: 6) {
                                         Text(item.displayTitle)
-                                            .font(.system(size: 26, weight: .bold))
+                                            .font(.system(size: 28, weight: .bold))
                                             .foregroundColor(.white)
                                             .lineLimit(nil)
                                             .fixedSize(horizontal: false, vertical: true)
                                         Text(item.displayArtist)
-                                            .font(.system(size: 19, weight: .medium))
+                                            .font(.system(size: 20, weight: .medium))
                                             .foregroundColor(WebColors.sub)
                                             .lineLimit(nil)
                                             .fixedSize(horizontal: false, vertical: true)
@@ -241,33 +242,33 @@ struct FullPlayerView: View {
                                     if !item.isPlaying {
                                         TVTightButton(action: { api.topSong(queueId: item.queue_id) }) { focused in
                                             Image(systemName: "arrow.up.to.line")
-                                                .font(.system(size: 24))
+                                                .font(.system(size: 26))
                                                 .foregroundColor(focused ? Color(hex: 0x1a1a2e) : WebColors.ac2)
-                                                .frame(width: 52, height: 52)
+                                                .frame(width: 56, height: 56)
                                                 .background(focused ? Color.white : Color.clear)
                                                 .cornerRadius(8)
                                         }
                                         TVTightButton(action: { api.removeFromQueue(queueId: item.queue_id) }) { focused in
                                             Image(systemName: "trash")
-                                                .font(.system(size: 24))
+                                                .font(.system(size: 26))
                                                 .foregroundColor(focused ? Color(hex: 0x1a1a2e) : WebColors.pink)
-                                                .frame(width: 52, height: 52)
+                                                .frame(width: 56, height: 56)
                                                 .background(focused ? Color.white : Color.clear)
                                                 .cornerRadius(8)
                                         }
                                     }
                                 }
-                                .padding(.horizontal, 16).padding(.vertical, 16)
+                                .padding(.horizontal, 20).padding(.vertical, 18)
                                 .background(item.isPlaying ? WebColors.ac.opacity(0.15) : Color.clear)
-                                .cornerRadius(10)
+                                .cornerRadius(12)
                             }
                         }
-                        .padding(.vertical, 8)
+                        .padding(.vertical, 10)
                     }
                 }
-                .frame(width: 340)
+                .frame(width: 680)
                 .background(WebColors.panelBg)
-                .cornerRadius(16, corners: [.topLeft, .bottomLeft])
+                .cornerRadius(20, corners: [.topLeft, .bottomLeft])
                 .focusSection()
             }
             .ignoresSafeArea()

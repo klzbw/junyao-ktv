@@ -252,7 +252,7 @@ struct QueuePanel: View {
                     }
                 }
             }
-            .frame(width: 600, height: 560)
+            .frame(width: 680, height: 560)
             .background(WebColors.panelBg)
             .cornerRadius(16)
             .overlay(RoundedRectangle(cornerRadius: 16).stroke(WebColors.cardBorder, lineWidth: 1))
