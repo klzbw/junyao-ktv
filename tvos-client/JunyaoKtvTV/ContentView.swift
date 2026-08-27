@@ -851,7 +851,12 @@ struct OrderSongsPage: View {
         "DEL"
     ]
     private var activeKeys: [String] { keyboardMode == .abc ? abcKeys : numKeys }
-    private func keySpan(_ key: String) -> Int { key == "DEL" ? 2 : 1 }
+    // 最后一排按键延长填满整行：ABC 模式 Z跨2+DEL跨3=5；数字模式 DEL跨5
+    private func keySpan(_ key: String) -> Int {
+        if key == "DEL" { return keyboardMode == .abc ? 3 : 5 }
+        if key == "Z" && keyboardMode == .abc { return 2 }
+        return 1
+    }
 
     private func computePinyinInitials(_ text: String) -> String {
         var result = ""
@@ -1127,53 +1132,54 @@ struct OrderSongsPage: View {
     @ViewBuilder
     private func songRow(_ song: Song, index: Int) -> some View {
         HStack(spacing: 10) {
-            // Number circle
-            ZStack {
-                Circle()
-                    .fill(LinearGradient(colors: [Color(hex: 0x9333ea), Color(hex: 0x6366f1)],
-                                         startPoint: .topLeading, endPoint: .bottomTrailing))
-                    .frame(width: 32, height: 32)
-                Text("\(index + 1)")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(.white)
-            }
+            // 整行大按钮：数字 + 歌名/歌手 + 点歌，焦点区域大，遥控器易选中
+            Button(action: { onAdd(song) }) {
+                HStack(spacing: 10) {
+                    ZStack {
+                        Circle()
+                            .fill(LinearGradient(colors: [Color(hex: 0x9333ea), Color(hex: 0x6366f1)],
+                                                 startPoint: .topLeading, endPoint: .bottomTrailing))
+                            .frame(width: 32, height: 32)
+                        Text("\(index + 1)")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(.white)
+                    }
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(song.displayTitle)
-                    .font(.system(size: 17, weight: .medium))
-                    .foregroundColor(.white)
-                    .lineLimit(1)
-                Text(song.displayArtist)
-                    .font(.system(size: 14))
-                    .foregroundColor(WebColors.sub)
-                    .lineLimit(1)
-            }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(song.displayTitle)
+                            .font(.system(size: 17, weight: .medium))
+                            .foregroundColor(.white)
+                            .lineLimit(1)
+                        Text(song.displayArtist)
+                            .font(.system(size: 14))
+                            .foregroundColor(WebColors.sub)
+                            .lineLimit(1)
+                    }
 
-            Spacer()
+                    Spacer(minLength: 0)
+
+                    Text("点歌")
+                        .font(.system(size: 16, weight: .medium))
+                        .padding(.horizontal, 16).padding(.vertical, 7)
+                        .background(LinearGradient(colors: [Color(hex: 0x9333ea), Color(hex: 0x7c3aed)],
+                                                   startPoint: .leading, endPoint: .trailing))
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                }
+            }
+            .buttonStyle(.card)
 
             // Favorite
             Button(action: { api.toggleFavorite(songId: song.id) }) {
                 Image(systemName: api.favorites.contains { $0.id == song.id } ? "heart.fill" : "heart")
                     .font(.system(size: 18))
                     .foregroundColor(api.favorites.contains { $0.id == song.id } ? WebColors.pink : Color.white.opacity(0.6))
-                    .frame(width: 36, height: 36)
+                    .frame(width: 44, height: 44)
             }
             .buttonStyle(.plain)
-
-            // Add button
-            Button(action: { onAdd(song) }) {
-                Text("点歌")
-                    .font(.system(size: 16, weight: .medium))
-                    .padding(.horizontal, 16).padding(.vertical, 7)
-                    .background(LinearGradient(colors: [Color(hex: 0x9333ea), Color(hex: 0x7c3aed)],
-                                               startPoint: .leading, endPoint: .trailing))
-                    .foregroundColor(.white)
-                    .cornerRadius(8)
-            }
-            .buttonStyle(.card)
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 10)
+        .padding(.vertical, 6)
         .background(Color(hex: 0x1e1e2e))
         .cornerRadius(10)
     }
