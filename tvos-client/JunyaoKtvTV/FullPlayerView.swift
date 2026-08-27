@@ -229,11 +229,13 @@ struct FullPlayerView: View {
                                         Text(item.displayTitle)
                                             .font(.system(size: 26, weight: .bold))
                                             .foregroundColor(.white)
-                                            .lineLimit(1)
+                                            .lineLimit(nil)
+                                            .fixedSize(horizontal: false, vertical: true)
                                         Text(item.displayArtist)
                                             .font(.system(size: 19, weight: .medium))
                                             .foregroundColor(WebColors.sub)
-                                            .lineLimit(1)
+                                            .lineLimit(nil)
+                                            .fixedSize(horizontal: false, vertical: true)
                                     }
                                     Spacer()
                                     if !item.isPlaying {

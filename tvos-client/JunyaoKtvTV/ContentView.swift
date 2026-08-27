@@ -653,11 +653,13 @@ struct ContentView: View {
                     Text(item.displayTitle)
                         .font(.system(size: 28, weight: .bold))
                         .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
-                        .lineLimit(1)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
                     Text(item.displayArtist)
                         .font(.system(size: 20, weight: .medium))
                         .foregroundColor(focused ? Color(hex: 0x1a1a2e).opacity(0.7) : WebColors.sub)
-                        .lineLimit(1)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer()
             }

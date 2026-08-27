@@ -269,8 +269,8 @@ struct QueuePanel: View {
                 Text("\(index + 1)").font(.system(size: 22, weight: .bold)).foregroundColor(WebColors.sub).frame(width: 36)
             }
             VStack(alignment: .leading, spacing: 5) {
-                Text(item.displayTitle).font(.system(size: 28, weight: .bold)).foregroundColor(.white).lineLimit(1)
-                Text(item.displayArtist).font(.system(size: 20, weight: .medium)).foregroundColor(WebColors.sub).lineLimit(1)
+                Text(item.displayTitle).font(.system(size: 28, weight: .bold)).foregroundColor(.white).lineLimit(nil).fixedSize(horizontal: false, vertical: true)
+                Text(item.displayArtist).font(.system(size: 20, weight: .medium)).foregroundColor(WebColors.sub).lineLimit(nil).fixedSize(horizontal: false, vertical: true)
             }
             Spacer()
             if !item.isPlaying {

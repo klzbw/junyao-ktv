@@ -86,10 +86,13 @@ struct QueueRow: View {
                 Text(item.displayTitle)
                     .font(.system(size: 30, weight: .bold))
                     .foregroundColor(item.isPlaying ? .green : theme.text)
-                    .lineLimit(1)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text("\(item.displayArtist) · \(item.nickname ?? "匿名")")
                     .font(.system(size: 22, weight: .medium))
                     .foregroundColor(theme.subText)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             Spacer()
             if !item.isPlaying {
