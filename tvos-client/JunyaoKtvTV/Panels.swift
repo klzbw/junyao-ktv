@@ -262,41 +262,41 @@ struct QueuePanel: View {
 
     @ViewBuilder
     private func queueRow(_ item: QueueItem, index: Int) -> some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 14) {
             if item.isPlaying {
-                Image(systemName: "play.circle.fill").foregroundColor(WebColors.ac2).font(.system(size: 18))
+                Image(systemName: "play.circle.fill").foregroundColor(WebColors.ac2).font(.system(size: 28))
             } else {
-                Text("\(index + 1)").font(.system(size: 14)).foregroundColor(WebColors.sub).frame(width: 24)
+                Text("\(index + 1)").font(.system(size: 22, weight: .bold)).foregroundColor(WebColors.sub).frame(width: 36)
             }
-            VStack(alignment: .leading, spacing: 2) {
-                Text(item.displayTitle).font(.system(size: 16)).foregroundColor(.white).lineLimit(1)
-                Text(item.displayArtist).font(.system(size: 13)).foregroundColor(WebColors.sub).lineLimit(1)
+            VStack(alignment: .leading, spacing: 5) {
+                Text(item.displayTitle).font(.system(size: 28, weight: .bold)).foregroundColor(.white).lineLimit(1)
+                Text(item.displayArtist).font(.system(size: 20, weight: .medium)).foregroundColor(WebColors.sub).lineLimit(1)
             }
             Spacer()
             if !item.isPlaying {
                 TVTightButton(action: { api.topSong(queueId: item.queue_id) }) { focused in
                     Image(systemName: "arrow.up.to.line")
-                        .font(.system(size: 14))
+                        .font(.system(size: 24))
                         .foregroundColor(focused ? Color(hex: 0x1a1a2e) : WebColors.ac2)
-                        .frame(width: 32, height: 32)
+                        .frame(width: 52, height: 52)
                         .background(focused ? Color.white : WebColors.cardBg)
-                        .cornerRadius(6)
+                        .cornerRadius(8)
                 }
                 TVTightButton(action: { api.removeFromQueue(queueId: item.queue_id) }) { focused in
                     Image(systemName: "trash")
-                        .font(.system(size: 14))
+                        .font(.system(size: 24))
                         .foregroundColor(focused ? Color(hex: 0x1a1a2e) : WebColors.pink)
-                        .frame(width: 32, height: 32)
+                        .frame(width: 52, height: 52)
                         .background(focused ? Color.white : WebColors.cardBg)
-                        .cornerRadius(6)
+                        .cornerRadius(8)
                 }
             } else {
-                Text("播放中").font(.system(size: 12)).foregroundColor(WebColors.ac2)
+                Text("播放中").font(.system(size: 20, weight: .bold)).foregroundColor(WebColors.ac2)
             }
         }
-        .padding(.horizontal, 12).padding(.vertical, 8)
+        .padding(.horizontal, 16).padding(.vertical, 16)
         .background(item.isPlaying ? WebColors.ac.opacity(0.15) : WebColors.cardBg)
-        .cornerRadius(10)
+        .cornerRadius(12)
     }
 }
 

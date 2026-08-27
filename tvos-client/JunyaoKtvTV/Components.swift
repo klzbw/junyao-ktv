@@ -72,48 +72,48 @@ struct QueueRow: View {
     @Environment(\.theme) var theme
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 14) {
             if item.isPlaying {
                 Image(systemName: "play.circle.fill")
-                    .font(.system(size: 22))
+                    .font(.system(size: 32))
                     .foregroundColor(.green)
             } else if item.isTop {
                 Image(systemName: "pin.fill")
-                    .font(.system(size: 20))
+                    .font(.system(size: 28))
                     .foregroundColor(theme.accent)
             }
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text(item.displayTitle)
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(.system(size: 30, weight: .bold))
                     .foregroundColor(item.isPlaying ? .green : theme.text)
                     .lineLimit(1)
                 Text("\(item.displayArtist) · \(item.nickname ?? "匿名")")
-                    .font(.system(size: 15))
+                    .font(.system(size: 22, weight: .medium))
                     .foregroundColor(theme.subText)
             }
             Spacer()
             if !item.isPlaying {
                 TVTightButton(action: onTop) { focused in
                     Image(systemName: "arrow.up.to.line")
-                        .font(.system(size: 18))
+                        .font(.system(size: 26))
                         .foregroundColor(focused ? Color(hex: 0x1a1a2e) : theme.subText)
-                        .frame(width: 36, height: 36)
+                        .frame(width: 56, height: 56)
                         .background(focused ? Color.white : Color.clear)
-                        .cornerRadius(6)
+                        .cornerRadius(8)
                 }
                 TVTightButton(action: onDelete) { focused in
                     Image(systemName: "trash")
-                        .font(.system(size: 18))
+                        .font(.system(size: 26))
                         .foregroundColor(focused ? Color(hex: 0x1a1a2e) : theme.pink)
-                        .frame(width: 36, height: 36)
+                        .frame(width: 56, height: 56)
                         .background(focused ? Color.white : Color.clear)
-                        .cornerRadius(6)
+                        .cornerRadius(8)
                 }
             }
         }
-        .padding(.horizontal, 12).padding(.vertical, 8)
+        .padding(.horizontal, 16).padding(.vertical, 18)
         .background(theme.cardBg)
-        .cornerRadius(8)
+        .cornerRadius(10)
     }
 }
 

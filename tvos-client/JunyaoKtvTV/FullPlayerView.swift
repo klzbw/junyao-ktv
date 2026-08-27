@@ -214,24 +214,24 @@ struct FullPlayerView: View {
                     ScrollView {
                         VStack(spacing: 4) {
                             ForEach(Array(api.queue.enumerated()), id: \.element.id) { idx, item in
-                                HStack(spacing: 8) {
+                                HStack(spacing: 12) {
                                     if item.isPlaying {
                                         Image(systemName: "play.circle.fill")
                                             .foregroundColor(WebColors.ac2)
-                                            .font(.system(size: 16))
+                                            .font(.system(size: 26))
                                     } else {
                                         Text("\(idx + 1)")
-                                            .font(.system(size: 13))
+                                            .font(.system(size: 20, weight: .bold))
                                             .foregroundColor(WebColors.sub)
-                                            .frame(width: 20)
+                                            .frame(width: 32)
                                     }
-                                    VStack(alignment: .leading, spacing: 2) {
+                                    VStack(alignment: .leading, spacing: 5) {
                                         Text(item.displayTitle)
-                                            .font(.system(size: 14))
+                                            .font(.system(size: 26, weight: .bold))
                                             .foregroundColor(.white)
                                             .lineLimit(1)
                                         Text(item.displayArtist)
-                                            .font(.system(size: 11))
+                                            .font(.system(size: 19, weight: .medium))
                                             .foregroundColor(WebColors.sub)
                                             .lineLimit(1)
                                     }
@@ -239,25 +239,25 @@ struct FullPlayerView: View {
                                     if !item.isPlaying {
                                         TVTightButton(action: { api.topSong(queueId: item.queue_id) }) { focused in
                                             Image(systemName: "arrow.up.to.line")
-                                                .font(.system(size: 14))
+                                                .font(.system(size: 24))
                                                 .foregroundColor(focused ? Color(hex: 0x1a1a2e) : WebColors.ac2)
-                                                .frame(width: 32, height: 32)
+                                                .frame(width: 52, height: 52)
                                                 .background(focused ? Color.white : Color.clear)
-                                                .cornerRadius(6)
+                                                .cornerRadius(8)
                                         }
                                         TVTightButton(action: { api.removeFromQueue(queueId: item.queue_id) }) { focused in
                                             Image(systemName: "trash")
-                                                .font(.system(size: 14))
+                                                .font(.system(size: 24))
                                                 .foregroundColor(focused ? Color(hex: 0x1a1a2e) : WebColors.pink)
-                                                .frame(width: 32, height: 32)
+                                                .frame(width: 52, height: 52)
                                                 .background(focused ? Color.white : Color.clear)
-                                                .cornerRadius(6)
+                                                .cornerRadius(8)
                                         }
                                     }
                                 }
-                                .padding(.horizontal, 12).padding(.vertical, 8)
+                                .padding(.horizontal, 16).padding(.vertical, 16)
                                 .background(item.isPlaying ? WebColors.ac.opacity(0.15) : Color.clear)
-                                .cornerRadius(8)
+                                .cornerRadius(10)
                             }
                         }
                         .padding(.vertical, 8)

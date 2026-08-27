@@ -637,40 +637,40 @@ struct ContentView: View {
         TVTightButton(action: {
             // Queue item tap - could play this song if API supports it
         }) { focused in
-            HStack(spacing: 8) {
+            HStack(spacing: 12) {
                 if item.isPlaying {
                     Image(systemName: "play.circle.fill")
                         .foregroundColor(WebColors.ac2)
-                        .font(.system(size: 16))
-                        .frame(width: 20)
+                        .font(.system(size: 26))
+                        .frame(width: 32)
                 } else {
                     Text("\(index + 1)")
-                        .font(.system(size: 14, weight: .medium))
+                        .font(.system(size: 22, weight: .bold))
                         .foregroundColor(focused ? Color(hex: 0x1a1a2e) : WebColors.sub)
-                        .frame(width: 20)
+                        .frame(width: 32)
                 }
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 5) {
                     Text(item.displayTitle)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.system(size: 28, weight: .bold))
                         .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
                         .lineLimit(1)
                     Text(item.displayArtist)
-                        .font(.system(size: 13))
+                        .font(.system(size: 20, weight: .medium))
                         .foregroundColor(focused ? Color(hex: 0x1a1a2e).opacity(0.7) : WebColors.sub)
                         .lineLimit(1)
                 }
                 Spacer()
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 16)
             .background(
                 item.isPlaying ? WebColors.ac.opacity(0.3) :
                 focused ? Color.white : Color.clear
             )
-            .cornerRadius(8)
+            .cornerRadius(10)
             .padding(2)
             .background(focused ? Color.white.opacity(0.12) : Color.clear)
-            .cornerRadius(10)
+            .cornerRadius(12)
         }
     }
 

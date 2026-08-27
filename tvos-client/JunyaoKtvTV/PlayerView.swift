@@ -232,37 +232,38 @@ struct PlayerView: View {
             ScrollView {
                 VStack(spacing: 4) {
                     ForEach(Array(api.queue.enumerated()), id: \.element.id) { idx, item in
-                        HStack(spacing: 10) {
+                        HStack(spacing: 12) {
                             if item.isPlaying {
                                 Image(systemName: "play.circle.fill")
                                     .foregroundColor(WebColors.ac2)
+                                    .font(.system(size: 24))
                             } else {
                                 Text("\(idx + 1)")
-                                    .font(.system(size: 14))
+                                    .font(.system(size: 20, weight: .bold))
                                     .foregroundColor(WebColors.sub)
-                                    .frame(width: 24)
+                                    .frame(width: 32)
                             }
-                            VStack(alignment: .leading, spacing: 2) {
+                            VStack(alignment: .leading, spacing: 5) {
                                 Text(item.displayTitle)
-                                    .font(.system(size: 15))
+                                    .font(.system(size: 24, weight: .bold))
                                     .foregroundColor(.white)
                                     .lineLimit(1)
                                 Text(item.displayArtist)
-                                    .font(.system(size: 12))
+                                    .font(.system(size: 18, weight: .medium))
                                     .foregroundColor(WebColors.sub)
                                     .lineLimit(1)
                             }
                             Spacer()
                             if item.isPlaying {
                                 Text("播放中")
-                                    .font(.system(size: 12))
+                                    .font(.system(size: 18, weight: .bold))
                                     .foregroundColor(WebColors.ac2)
                             }
                         }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 16)
                         .background(item.isPlaying ? WebColors.ac.opacity(0.15) : Color.clear)
-                        .cornerRadius(8)
+                        .cornerRadius(10)
                     }
                 }
                 .padding(.horizontal, 12)
