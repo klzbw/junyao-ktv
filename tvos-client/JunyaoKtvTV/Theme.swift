@@ -63,10 +63,9 @@ struct NavButton: View {
     let badge: Int?
     let action: () -> Void
     @Environment(\.theme) var theme
-    @FocusState private var focused: Bool
 
     var body: some View {
-        Button(action: action) {
+        TVTightButton(action: action) { focused in
             HStack(spacing: 4) {
                 Image(systemName: icon).font(.system(size: 16))
                 Text(title).font(.system(size: 16))
@@ -80,15 +79,10 @@ struct NavButton: View {
                 }
             }
             .padding(.horizontal, 10).padding(.vertical, 6)
+            .background(focused ? Color.white : WebColors.nbBg)
+            .foregroundColor(focused ? Color(hex: 0x1a1a2e) : Color.white.opacity(0.85))
+            .cornerRadius(999)
         }
-        .background(focused ? WebColors.ac.opacity(0.4) : WebColors.nbBg)
-        .foregroundColor(focused ? .white : Color.white.opacity(0.85))
-        .cornerRadius(999)
-        .buttonStyle(.plain)
-        .focused($focused)
-        .focusEffectDisabled()
-        .scaleEffect(focused ? 1.08 : 1.0)
-        .animation(.easeOut(duration: 0.2), value: focused)
     }
 }
 
@@ -98,41 +92,28 @@ struct MVButton: View {
     let title: String
     let action: () -> Void
     var isCenter: Bool = false
-    @FocusState private var focused: Bool
 
     var body: some View {
-        Button(action: action) {
+        TVTightButton(action: action) { focused in
             VStack(spacing: 4) {
                 Image(systemName: icon)
                     .font(.system(size: isCenter ? 34 : 28, weight: .medium))
-                    .foregroundColor(focused ? .white : Color.white.opacity(0.9))
+                    .foregroundColor(focused ? Color(hex: 0x1a1a2e) : Color.white.opacity(0.9))
                 Text(title)
                     .font(.system(size: isCenter ? 18 : 17, weight: .semibold))
-                    .foregroundColor(focused ? .white : Color.white.opacity(0.85))
+                    .foregroundColor(focused ? Color(hex: 0x1a1a2e) : Color.white.opacity(0.85))
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(
-                Group {
-                    if focused {
-                        RoundedRectangle(cornerRadius: 14)
-                            .fill(WebColors.ac.opacity(0.25))
-                    } else {
-                        RoundedRectangle(cornerRadius: 14)
-                            .fill(Color.white.opacity(0.08))
-                    }
-                }
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(focused ? Color.white : Color.white.opacity(0.08))
             )
+            .padding(2)
+            .background(focused ? Color.white.opacity(0.15) : Color.clear)
+            .cornerRadius(16)
         }
-        .padding(2)
-        .background(focused ? Color.white.opacity(0.15) : Color.clear)
-        .cornerRadius(16)
-        .buttonStyle(.plain)
-        .focused($focused)
-        .focusEffectDisabled()
-        .scaleEffect(focused ? 1.04 : 1.0)
-        .animation(Animation.easeOut(duration: 0.18), value: focused)
     }
 }
 
@@ -142,25 +123,22 @@ struct MidCard: View {
     let icon: String
     let gradient: LinearGradient
     let action: () -> Void
-    @FocusState private var focused: Bool
 
     var body: some View {
-        Button(action: action) {
+        TVTightButton(action: action) { focused in
             ZStack {
                 RoundedRectangle(cornerRadius: 14)
-                    .fill(gradient)
+                    .fill(focused ? Color.white : gradient)
                     .opacity(focused ? 1.0 : 0.85)
                 VStack(spacing: 6) {
-                    Image(systemName: icon).font(.system(size: 26)).foregroundColor(.white)
-                    Text(title).font(.system(size: 14, weight: .medium)).foregroundColor(.white)
+                    Image(systemName: icon).font(.system(size: 26))
+                        .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
+                    Text(title).font(.system(size: 14, weight: .medium))
+                        .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
                 }
             }
             .frame(height: 80)
-            .scaleEffect(focused ? 1.05 : 1.0)
-            .animation(.easeOut(duration: 0.2), value: focused)
         }
-        .buttonStyle(.plain)
-        .focused($focused)
     }
 }
 
@@ -170,24 +148,22 @@ struct QuickMiniCard: View {
     let icon: String
     let gradient: LinearGradient
     let action: () -> Void
-    @FocusState private var focused: Bool
 
     var body: some View {
-        Button(action: action) {
+        TVTightButton(action: action) { focused in
             HStack(spacing: 10) {
-                Image(systemName: icon).font(.system(size: 22)).foregroundColor(.white)
-                Text(title).font(.system(size: 15, weight: .medium)).foregroundColor(.white)
+                Image(systemName: icon).font(.system(size: 22))
+                    .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
+                Text(title).font(.system(size: 15, weight: .medium))
+                    .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
                 Spacer()
-                Image(systemName: "chevron.right").font(.system(size: 14)).foregroundColor(.white.opacity(0.6))
+                Image(systemName: "chevron.right").font(.system(size: 14))
+                    .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white.opacity(0.6))
             }
             .padding(.horizontal, 16).padding(.vertical, 14)
-            .background(gradient.opacity(focused ? 1.0 : 0.8))
+            .background(focused ? Color.white : gradient.opacity(0.8))
             .cornerRadius(12)
-            .scaleEffect(focused ? 1.03 : 1.0)
-            .animation(.easeOut(duration: 0.2), value: focused)
         }
-        .buttonStyle(.plain)
-        .focused($focused)
     }
 }
 

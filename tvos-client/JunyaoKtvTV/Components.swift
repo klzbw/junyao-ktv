@@ -42,20 +42,21 @@ struct SongRow: View {
                 }
             }
             Spacer()
-            Button(action: onToggleFav) {
+            TVTightButton(action: onToggleFav) { focused in
                 Image(systemName: isFavorite ? "heart.fill" : "heart")
-                    .foregroundColor(isFavorite ? theme.pink : theme.subText)
+                    .foregroundColor(isFavorite ? theme.pink : (focused ? Color(hex: 0x1a1a2e) : theme.subText))
+                    .frame(width: 44, height: 44)
+                    .background(focused ? Color.white : Color.clear)
+                    .cornerRadius(8)
             }
-            .buttonStyle(.plain)
-            Button(action: onAdd) {
+            TVTightButton(action: onAdd) { focused in
                 Text("点歌")
                     .font(.caption)
                     .padding(.horizontal, 12).padding(.vertical, 6)
-                    .background(theme.accent.opacity(0.8))
-                    .foregroundColor(.white)
+                    .background(focused ? Color.white : theme.accent.opacity(0.8))
+                    .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
                     .cornerRadius(6)
             }
-            .buttonStyle(.card)
         }
         .padding(.horizontal, 12).padding(.vertical, 8)
         .background(theme.cardBg)
@@ -92,14 +93,22 @@ struct QueueRow: View {
             }
             Spacer()
             if !item.isPlaying {
-                Button(action: onTop) {
+                TVTightButton(action: onTop) { focused in
                     Image(systemName: "arrow.up.to.line")
                         .font(.system(size: 18))
-                }.buttonStyle(.plain).foregroundColor(theme.subText)
-                Button(action: onDelete) {
+                        .foregroundColor(focused ? Color(hex: 0x1a1a2e) : theme.subText)
+                        .frame(width: 36, height: 36)
+                        .background(focused ? Color.white : Color.clear)
+                        .cornerRadius(6)
+                }
+                TVTightButton(action: onDelete) { focused in
                     Image(systemName: "trash")
                         .font(.system(size: 18))
-                }.buttonStyle(.plain).foregroundColor(theme.pink)
+                        .foregroundColor(focused ? Color(hex: 0x1a1a2e) : theme.pink)
+                        .frame(width: 36, height: 36)
+                        .background(focused ? Color.white : Color.clear)
+                        .cornerRadius(6)
+                }
             }
         }
         .padding(.horizontal, 12).padding(.vertical, 8)
@@ -117,23 +126,22 @@ struct CategoryChip: View {
     @Environment(\.theme) var theme
 
     var body: some View {
-        Button(action: action) {
+        TVTightButton(action: action) { focused in
             VStack(spacing: 8) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 14)
-                        .fill(gradient)
+                        .fill(focused ? Color.white : gradient)
                         .frame(width: 56, height: 56)
                     Image(systemName: icon)
                         .font(.title2)
-                        .foregroundColor(.white)
+                        .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
                 }
                 Text(title)
                     .font(.caption)
-                    .foregroundColor(theme.text)
+                    .foregroundColor(focused ? Color(hex: 0x1a1a2e) : theme.text)
             }
             .frame(width: 80)
         }
-        .buttonStyle(.plain)
     }
 }
 
@@ -212,3 +220,4 @@ struct ConnectionBadge: View {
         }
     }
 }
+

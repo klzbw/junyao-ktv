@@ -285,32 +285,26 @@ struct ContentView: View {
     }
 
     private func quickCard(title: String, icon: String, gradient: LinearGradient, action: @escaping () -> Void) -> some View {
-        @FocusState var focused: Bool
-        return Button(action: action) {
+        TVTightButton(action: action) { focused in
             HStack(spacing: 6) {
                 Text(title)
                     .font(.system(size: 24, weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
                 Spacer()
                 Image(systemName: icon)
                     .font(.system(size: 28, weight: .medium))
-                    .foregroundColor(.white.opacity(0.95))
+                    .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white.opacity(0.95))
             }
             .padding(.horizontal, 14)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(gradient.opacity(focused ? 1.0 : 0.7))
+            .background(focused ? Color.white : gradient.opacity(0.7))
             .cornerRadius(12)
+            .padding(2)
+            .background(focused ? Color.white.opacity(0.15) : Color.clear)
+            .cornerRadius(14)
         }
-        .padding(3)
-        .background(focused ? Color.white.opacity(0.15) : Color.clear)
-        .cornerRadius(15)
-        .buttonStyle(.plain)
-        .focused($focused)
-        .focusEffectDisabled()
-        .scaleEffect(focused ? 1.06 : 1.0)
-        .animation(Animation.easeOut(duration: 0.18), value: focused)
     }
 
     // MARK: - QR Code View (exact #now-qr-code2)
@@ -345,12 +339,11 @@ struct ContentView: View {
 
     // MARK: - Now Panel (exact #now-panel with video preview)
     private var nowPanel: some View {
-        @FocusState var panelFocused: Bool
-        return Button(action: {
+        TVTightButton(action: {
             if api.queue.contains(where: { $0.isPlaying }) {
                 showingPlayer = true
             }
-        }) {
+        }) { focused in
             ZStack {
                 RoundedRectangle(cornerRadius: 16)
                     .fill(Color.black)
@@ -437,15 +430,10 @@ struct ContentView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .cornerRadius(16)
+            .padding(2)
+            .background(focused ? Color.white.opacity(0.15) : Color.clear)
+            .cornerRadius(18)
         }
-        .padding(3)
-        .background(panelFocused ? Color.white.opacity(0.15) : Color.clear)
-        .cornerRadius(19)
-        .buttonStyle(.plain)
-        .focused($panelFocused)
-        .focusEffectDisabled()
-        .scaleEffect(panelFocused ? 1.03 : 1.0)
-        .animation(.easeOut(duration: 0.18), value: panelFocused)
         .onChange(of: api.queue.first(where: { $0.isPlaying })?.song_id) { newId in
             // Reset auto-next guard when song changes
             lastAutoNextQueueId = nil
@@ -623,8 +611,7 @@ struct ContentView: View {
     }
 
     private func bigRequestButton(title: String, icon: String, gradient: LinearGradient, action: @escaping () -> Void) -> some View {
-        @FocusState var focused: Bool
-        return Button(action: action) {
+        TVTightButton(action: action) { focused in
             HStack(spacing: 8) {
                 Text(title)
                     .font(.system(size: 44, weight: .bold))
@@ -640,22 +627,16 @@ struct ContentView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(gradient.opacity(focused ? 1.0 : 0.7))
             .cornerRadius(16)
+            .padding(2)
+            .background(focused ? Color.white : Color.clear)
+            .cornerRadius(18)
         }
-        .padding(2)
-        .background(focused ? Color.white.opacity(0.15) : Color.clear)
-        .cornerRadius(18)
-        .buttonStyle(.plain)
-        .focused($focused)
-        .focusEffectDisabled()
-        .scaleEffect(focused ? 1.05 : 1.0)
-        .animation(Animation.easeOut(duration: 0.18), value: focused)
     }
 
     private func queueRow(item: QueueItem, index: Int) -> some View {
-        @FocusState var focused: Bool
-        return Button(action: {
+        TVTightButton(action: {
             // Queue item tap - could play this song if API supports it
-        }) {
+        }) { focused in
             HStack(spacing: 8) {
                 if item.isPlaying {
                     Image(systemName: "play.circle.fill")
@@ -665,17 +646,17 @@ struct ContentView: View {
                 } else {
                     Text("\(index + 1)")
                         .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(focused ? .white : WebColors.sub)
+                        .foregroundColor(focused ? Color(hex: 0x1a1a2e) : WebColors.sub)
                         .frame(width: 20)
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text(item.displayTitle)
                         .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
                         .lineLimit(1)
                     Text(item.displayArtist)
                         .font(.system(size: 13))
-                        .foregroundColor(focused ? .white.opacity(0.8) : WebColors.sub)
+                        .foregroundColor(focused ? Color(hex: 0x1a1a2e).opacity(0.7) : WebColors.sub)
                         .lineLimit(1)
                 }
                 Spacer()
@@ -684,18 +665,13 @@ struct ContentView: View {
             .padding(.vertical, 8)
             .background(
                 item.isPlaying ? WebColors.ac.opacity(0.3) :
-                focused ? WebColors.ac.opacity(0.25) : Color.clear
+                focused ? Color.white : Color.clear
             )
             .cornerRadius(8)
+            .padding(2)
+            .background(focused ? Color.white.opacity(0.12) : Color.clear)
+            .cornerRadius(10)
         }
-        .padding(2)
-        .background(focused ? Color.white.opacity(0.12) : Color.clear)
-        .cornerRadius(10)
-        .buttonStyle(.plain)
-        .focused($focused)
-        .focusEffectDisabled()
-        .scaleEffect(focused ? 1.03 : 1.0)
-        .animation(Animation.easeOut(duration: 0.15), value: focused)
     }
 
     // MARK: - Right Queue (exact #right-queue)
@@ -834,8 +810,6 @@ struct OrderSongsPage: View {
     @State private var keyboardMode: KeyboardMode = .abc
     @State private var songPinyin: [Int: String] = [:] // Precomputed pinyin initials
     @State private var isCacheReady = false
-    @FocusState private var prevPageFocused: Bool
-    @FocusState private var nextPageFocused: Bool
     private let pageSize = 32
     private enum KeyboardMode { case abc, num }
     // 歌名键盘 ABC 模式：6 行，最后一行 Z 跨 2 列、DEL 跨 3 列，填满整行
@@ -944,18 +918,17 @@ struct OrderSongsPage: View {
                         .foregroundColor(.white)
                 }
                 Spacer()
-                Button(action: onBack) {
+                TVTightButton(action: onBack) { focused in
                     HStack(spacing: 6) {
                         Image(systemName: "chevron.left")
                         Text("返回")
                     }
                     .font(.system(size: 18, weight: .medium))
                     .padding(.horizontal, 20).padding(.vertical, 8)
-                    .foregroundColor(.white)
-                    .background(Color.white.opacity(0.1))
+                    .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
+                    .background(focused ? Color.white : Color.white.opacity(0.1))
                     .cornerRadius(999)
                 }
-                .buttonStyle(.plain)
             }
             .padding(.horizontal, 24).padding(.vertical, 14)
             .background(WebColors.topbarBg)
@@ -992,19 +965,18 @@ struct OrderSongsPage: View {
                             .lineLimit(1)
                         Spacer()
                         // 单按钮切换：ABC 模式显示"123"，123 模式显示"ABC"
-                        Button(action: {
+                        TVTightButton(action: {
                             keyboardMode = (keyboardMode == .abc ? .num : .abc)
                             inputText = ""
                             currentPage = 0
-                        }) {
+                        }) { focused in
                             Text(keyboardMode == .abc ? "123" : "ABC")
                                 .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(.white)
+                                .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
                                 .padding(.horizontal, 18).padding(.vertical, 7)
-                                .background(Color.white.opacity(0.15))
+                                .background(focused ? Color.white : Color.white.opacity(0.15))
                                 .cornerRadius(999)
                         }
-                        .buttonStyle(.plain)
                     }
                     .padding(.horizontal, 16).padding(.vertical, 14)
 
@@ -1052,47 +1024,35 @@ struct OrderSongsPage: View {
 
             // Pagination footer
             HStack(spacing: 20) {
-                Button(action: { if currentPage > 0 { currentPage -= 1 } }) {
+                TVTightButton(action: { if currentPage > 0 { currentPage -= 1 } }) { focused in
                     HStack(spacing: 6) {
                         Image(systemName: "chevron.left")
                         Text("上一页")
                     }
                     .font(.system(size: 20, weight: .medium))
                     .padding(.horizontal, 22).padding(.vertical, 10)
-                    .foregroundColor(currentPage > 0 ? .white : WebColors.sub)
-                    .background(currentPage > 0 ? Color.white.opacity(0.12) : Color.clear)
+                    .foregroundColor(currentPage > 0 ? (focused ? Color(hex: 0x1a1a2e) : .white) : WebColors.sub)
+                    .background(currentPage > 0 ? (focused ? Color.white : Color.white.opacity(0.12)) : Color.clear)
                     .cornerRadius(999)
-                    .overlay(Capsule().stroke(prevPageFocused && currentPage > 0 ? Color.white.opacity(0.9) : .clear, lineWidth: 2))
                 }
-                .buttonStyle(.plain)
                 .disabled(currentPage == 0)
-                .focused($prevPageFocused)
-                .focusEffectDisabled()
-                .scaleEffect(prevPageFocused ? 1.05 : 1.0)
-                .animation(.easeOut(duration: 0.12), value: prevPageFocused)
 
                 Text("第 \(currentPage + 1)/\(totalPages) (共\(filteredSongs.count)首)")
                     .font(.system(size: 20))
                     .foregroundColor(.white)
 
-                Button(action: { if currentPage + 1 < totalPages { currentPage += 1 } }) {
+                TVTightButton(action: { if currentPage + 1 < totalPages { currentPage += 1 } }) { focused in
                     HStack(spacing: 6) {
                         Text("下一页")
                         Image(systemName: "chevron.right")
                     }
                     .font(.system(size: 20, weight: .medium))
                     .padding(.horizontal, 22).padding(.vertical, 10)
-                    .foregroundColor(currentPage + 1 < totalPages ? .white : WebColors.sub)
-                    .background(currentPage + 1 < totalPages ? Color.white.opacity(0.12) : Color.clear)
+                    .foregroundColor(currentPage + 1 < totalPages ? (focused ? Color(hex: 0x1a1a2e) : .white) : WebColors.sub)
+                    .background(currentPage + 1 < totalPages ? (focused ? Color.white : Color.white.opacity(0.12)) : Color.clear)
                     .cornerRadius(999)
-                    .overlay(Capsule().stroke(nextPageFocused && currentPage + 1 < totalPages ? Color.white.opacity(0.9) : .clear, lineWidth: 2))
                 }
-                .buttonStyle(.plain)
                 .disabled(currentPage + 1 >= totalPages)
-                .focused($nextPageFocused)
-                .focusEffectDisabled()
-                .scaleEffect(nextPageFocused ? 1.05 : 1.0)
-                .animation(.easeOut(duration: 0.12), value: nextPageFocused)
             }
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity)
@@ -1114,7 +1074,7 @@ struct OrderSongsPage: View {
     private func songRow(_ song: Song, index: Int) -> some View {
         HStack(spacing: 14) {
             // 整行大按钮：数字 + 歌名/歌手 + 点歌，焦点区域大，遥控器易选中
-            Button(action: { onAdd(song) }) {
+            TVTightButton(action: { onAdd(song) }) { focused in
                 HStack(spacing: 14) {
                     ZStack {
                         Circle()
@@ -1142,13 +1102,15 @@ struct OrderSongsPage: View {
                     Text("点歌")
                         .font(.system(size: 26, weight: .semibold))
                         .padding(.horizontal, 26).padding(.vertical, 12)
-                        .background(LinearGradient(colors: [Color(hex: 0x9333ea), Color(hex: 0x7c3aed)],
+                        .background(focused ? Color.white : LinearGradient(colors: [Color(hex: 0x9333ea), Color(hex: 0x7c3aed)],
                                                    startPoint: .leading, endPoint: .trailing))
-                        .foregroundColor(.white)
+                        .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
                         .cornerRadius(12)
                 }
+                .padding(2)
+                .background(focused ? Color.white.opacity(0.08) : Color.clear)
+                .cornerRadius(12)
             }
-            .buttonStyle(.card)
 
             // Favorite
             TightFavButton(isFavorite: api.favorites.contains { $0.id == song.id }) {

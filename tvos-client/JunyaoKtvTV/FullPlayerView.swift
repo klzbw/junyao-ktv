@@ -15,7 +15,6 @@ struct FullPlayerView: View {
     @State private var hasAutoExited = false
     @State private var showQueue = false
     @State private var showQR = false
-    @FocusState private var playButtonFocused: Bool
 
     enum VoiceMode {
         case original, accompaniment
@@ -70,46 +69,39 @@ struct FullPlayerView: View {
 
                         // 7 control buttons - standard tvOS focusable buttons
                         HStack(spacing: 20) {
-                            Button(action: { onClose() }) {
-                                controlContent(icon: "house", title: "主页")
+                            TVTightButton(action: { onClose() }) { focused in
+                                controlContent(icon: "house", title: "主页", focused: focused)
                             }
-                            .buttonStyle(.card)
 
-                            Button(action: { playerManager.restart(); api.restartSong() }) {
-                                controlContent(icon: "gobackward", title: "重唱")
+                            TVTightButton(action: { playerManager.restart(); api.restartSong() }) { focused in
+                                controlContent(icon: "gobackward", title: "重唱", focused: focused)
                             }
-                            .buttonStyle(.card)
 
-                            Button(action: {
+                            TVTightButton(action: {
                                 playerManager.togglePlayPause()
-                            }) {
+                            }, autoFocus: true) { focused in
                                 controlContent(
                                     icon: playerManager.isPlaying ? "pause.fill" : "play.fill",
-                                    title: playerManager.isPlaying ? "暂停" : "播放"
+                                    title: playerManager.isPlaying ? "暂停" : "播放",
+                                    focused: focused
                                 )
                             }
-                            .buttonStyle(.card)
-                            .focused($playButtonFocused)
 
-                            Button(action: { toggleVoice() }) {
-                                controlContent(icon: "mic.fill", title: voiceMode.label)
+                            TVTightButton(action: { toggleVoice() }) { focused in
+                                controlContent(icon: "mic.fill", title: voiceMode.label, focused: focused)
                             }
-                            .buttonStyle(.card)
 
-                            Button(action: { onNext() }) {
-                                controlContent(icon: "forward.end.fill", title: "切歌")
+                            TVTightButton(action: { onNext() }) { focused in
+                                controlContent(icon: "forward.end.fill", title: "切歌", focused: focused)
                             }
-                            .buttonStyle(.card)
 
-                            Button(action: { showQueue = true }) {
-                                controlContent(icon: "list.bullet", title: "队列")
+                            TVTightButton(action: { showQueue = true }) { focused in
+                                controlContent(icon: "list.bullet", title: "队列", focused: focused)
                             }
-                            .buttonStyle(.card)
 
-                            Button(action: { showQR = true }) {
-                                controlContent(icon: "qrcode", title: "扫码")
+                            TVTightButton(action: { showQR = true }) { focused in
+                                controlContent(icon: "qrcode", title: "扫码", focused: focused)
                             }
-                            .buttonStyle(.card)
                         }
                         .padding(.horizontal, 10)
                     }
@@ -120,11 +112,6 @@ struct FullPlayerView: View {
                                                startPoint: .top, endPoint: .bottom))
                 }
                 .transition(.opacity)
-                .onAppear {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        playButtonFocused = true
-                    }
-                }
             }
 
             // Transparent focusable area to receive select button when controls are hidden
@@ -156,11 +143,6 @@ struct FullPlayerView: View {
                     .zIndex(3)
             }
         }
-        .onChange(of: showControls) { showing in
-            if !showing {
-                playButtonFocused = false
-            }
-        }
         .onPlayPauseCommand {
             playerManager.togglePlayPause()
             showControls = true
@@ -179,17 +161,17 @@ struct FullPlayerView: View {
         }
     }
 
-    private func controlContent(icon: String, title: String) -> some View {
+    private func controlContent(icon: String, title: String, focused: Bool) -> some View {
         VStack(spacing: 6) {
             Image(systemName: icon)
                 .font(.system(size: 30, weight: .medium))
-                .foregroundColor(.white)
+                .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
             Text(title)
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(.white)
+                .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
         }
         .frame(width: 95, height: 95)
-        .background(Color.white.opacity(0.15))
+        .background(focused ? Color.white : Color.white.opacity(0.15))
         .cornerRadius(16)
     }
 
@@ -218,13 +200,13 @@ struct FullPlayerView: View {
                             .foregroundColor(WebColors.sub)
                             .padding(.leading, 8)
                         Spacer()
-                        Button(action: { showQueue = false }) {
+                        TVTightButton(action: { showQueue = false }) { focused in
                             Image(systemName: "xmark")
-                                .foregroundColor(.white)
+                                .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
                                 .frame(width: 36, height: 36)
-                                .background(Color.white.opacity(0.1))
+                                .background(focused ? Color.white : Color.white.opacity(0.1))
                                 .clipShape(Circle())
-                        }.buttonStyle(.plain)
+                        }
                     }
                     .padding(.horizontal, 16).padding(.vertical, 12)
                     .background(WebColors.topbarBg)
@@ -255,18 +237,22 @@ struct FullPlayerView: View {
                                     }
                                     Spacer()
                                     if !item.isPlaying {
-                                        Button(action: { api.topSong(queueId: item.queue_id) }) {
+                                        TVTightButton(action: { api.topSong(queueId: item.queue_id) }) { focused in
                                             Image(systemName: "arrow.up.to.line")
                                                 .font(.system(size: 14))
-                                                .foregroundColor(WebColors.ac2)
+                                                .foregroundColor(focused ? Color(hex: 0x1a1a2e) : WebColors.ac2)
                                                 .frame(width: 32, height: 32)
-                                        }.buttonStyle(.plain)
-                                        Button(action: { api.removeFromQueue(queueId: item.queue_id) }) {
+                                                .background(focused ? Color.white : Color.clear)
+                                                .cornerRadius(6)
+                                        }
+                                        TVTightButton(action: { api.removeFromQueue(queueId: item.queue_id) }) { focused in
                                             Image(systemName: "trash")
                                                 .font(.system(size: 14))
-                                                .foregroundColor(WebColors.pink)
+                                                .foregroundColor(focused ? Color(hex: 0x1a1a2e) : WebColors.pink)
                                                 .frame(width: 32, height: 32)
-                                        }.buttonStyle(.plain)
+                                                .background(focused ? Color.white : Color.clear)
+                                                .cornerRadius(6)
+                                        }
                                     }
                                 }
                                 .padding(.horizontal, 12).padding(.vertical, 8)
@@ -310,14 +296,14 @@ struct FullPlayerView: View {
                 Text("手机扫码即可点歌")
                     .font(.system(size: 16))
                     .foregroundColor(WebColors.sub)
-                Button(action: { showQR = false }) {
+                TVTightButton(action: { showQR = false }, autoFocus: true) { focused in
                     Text("关闭")
                         .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.white)
+                        .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
                         .padding(.horizontal, 24).padding(.vertical, 10)
-                        .background(WebColors.ac)
+                        .background(focused ? Color.white : WebColors.ac)
                         .cornerRadius(999)
-                }.buttonStyle(.plain)
+                }
             }
             .padding(30)
             .background(WebColors.panelBg)
@@ -381,3 +367,4 @@ struct RoundedCorner: Shape {
         return Path(path.cgPath)
     }
 }
+

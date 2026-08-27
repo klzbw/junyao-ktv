@@ -65,16 +65,14 @@ struct PlayerView: View {
                     // Top bar (exact #ov-top)
                     HStack(spacing: 16) {
                         // Back button (exact #ov-back: 56x56 circle)
-                        Button(action: { onClose() }) {
+                        TVTightButton(action: { onClose() }) { focused in
                             Image(systemName: "chevron.left")
                                 .font(.system(size: 26))
-                                .foregroundColor(.white)
+                                .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
                                 .frame(width: 56, height: 56)
-                                .background(Color.black.opacity(0.4))
+                                .background(focused ? Color.white : Color.black.opacity(0.4))
                                 .clipShape(Circle())
-                                .overlay(Circle().stroke(Color.white.opacity(0.5), lineWidth: 2))
                         }
-                        .buttonStyle(.plain)
 
                         // Title + artist (exact #ov-title / #ov-artist)
                         VStack(alignment: .leading, spacing: 2) {
@@ -193,27 +191,21 @@ struct PlayerView: View {
 
     // MARK: - Control Button (exact .ob style)
     private func controlButton(icon: String, title: String, isCenter: Bool = false, action: @escaping () -> Void) -> some View {
-        @FocusState var focused: Bool
-        return Button(action: { action(); resetHideTimer() }) {
+        TVTightButton(action: { action(); resetHideTimer() }) { focused in
             VStack(spacing: 3) {
                 Image(systemName: icon)
                     .font(.system(size: isCenter ? 30 : 26))
-                    .foregroundColor(focused ? .white : Color.white.opacity(0.9))
+                    .foregroundColor(focused ? Color(hex: 0x1a1a2e) : Color.white.opacity(0.9))
                 Text(title)
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(focused ? .white : Color.white.opacity(0.85))
+                    .foregroundColor(focused ? Color(hex: 0x1a1a2e) : Color.white.opacity(0.85))
             }
             .frame(minWidth: 72)
             .padding(.horizontal, 18)
             .padding(.vertical, 10)
-            .background(focused ? WebColors.ac.opacity(0.35) : Color.white.opacity(0.1))
+            .background(focused ? Color.white : Color.white.opacity(0.1))
             .cornerRadius(11)
-            .scaleEffect(focused ? 1.08 : 1.0)
-            .animation(.easeOut(duration: 0.2), value: focused)
         }
-        .buttonStyle(.plain)
-        .focused($focused)
-        .focusEffectDisabled()
     }
 
     // MARK: - Queue Panel
@@ -224,15 +216,14 @@ struct PlayerView: View {
                     .font(.system(size: 19, weight: .bold))
                     .foregroundColor(WebColors.ac2)
                 Spacer()
-                Button(action: { showQueue = false }) {
+                TVTightButton(action: { showQueue = false }) { focused in
                     Image(systemName: "xmark")
                         .font(.system(size: 19))
-                        .foregroundColor(.white)
+                        .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
                         .frame(width: 36, height: 36)
-                        .background(Color.white.opacity(0.1))
+                        .background(focused ? Color.white : Color.white.opacity(0.1))
                         .clipShape(Circle())
                 }
-                .buttonStyle(.plain)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 16)
@@ -399,3 +390,4 @@ struct PlayerView: View {
         return String(format: "%d:%02d", Int(seconds) / 60, Int(seconds) % 60)
     }
 }
+

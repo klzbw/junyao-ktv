@@ -9,9 +9,6 @@ struct FullPageContainer<Content: View>: View {
     let totalPages: Int
     let onPageChange: (Int) -> Void
     @ViewBuilder let content: Content
-    @FocusState private var backFocused: Bool
-    @FocusState private var prevFocused: Bool
-    @FocusState private var nextFocused: Bool
 
     init(title: String, onBack: @escaping () -> Void,
          showPagination: Bool = false, currentPage: Int = 1, totalPages: Int = 1,
@@ -40,24 +37,17 @@ struct FullPageContainer<Content: View>: View {
                         .font(.system(size: 22, weight: .bold))
                         .foregroundColor(.white)
                     Spacer()
-                    Button(action: onBack) {
+                    TVTightButton(action: onBack) { focused in
                         HStack(spacing: 4) {
                             Image(systemName: "chevron.left")
                             Text("返回")
                         }
                         .font(.system(size: 17))
                         .padding(.horizontal, 18).padding(.vertical, 7)
+                        .foregroundColor(focused ? Color(hex: 0x1a1a2e) : Color.white.opacity(0.85))
+                        .background(focused ? Color.white : Color.clear)
+                        .cornerRadius(999)
                     }
-                    .background(backFocused ? WebColors.ac.opacity(0.4) : Color.clear)
-                    .foregroundColor(backFocused ? .white : Color.white.opacity(0.85))
-                    .cornerRadius(999)
-                    .overlay(RoundedRectangle(cornerRadius: 999)
-                        .stroke(backFocused ? WebColors.ac : Color.white.opacity(0.25), lineWidth: 1))
-                    .buttonStyle(.plain)
-                    .focused($backFocused)
-                    .focusEffectDisabled()
-                    .scaleEffect(backFocused ? 1.06 : 1.0)
-                    .animation(.easeOut(duration: 0.2), value: backFocused)
                 }
                 .padding(.horizontal, 20).padding(.vertical, 14)
                 .background(WebColors.topbarBg)
@@ -69,32 +59,28 @@ struct FullPageContainer<Content: View>: View {
                 // Pagination footer (exact .pf-foot)
                 if showPagination {
                     HStack(spacing: 16) {
-                        Button(action: { if currentPage > 1 { onPageChange(currentPage - 1) } }) {
+                        TVTightButton(action: { if currentPage > 1 { onPageChange(currentPage - 1) } }) { focused in
                             Image(systemName: "chevron.left.circle")
                                 .font(.system(size: 32))
-                                .foregroundColor(currentPage > 1 ? WebColors.ac : WebColors.sub)
-                                .frame(width: 44, height: 44)
-                                .overlay(Circle().stroke(prevFocused && currentPage > 1 ? Color.white.opacity(0.9) : .clear, lineWidth: 2))
+                                .foregroundColor(currentPage > 1 ? (focused ? Color(hex: 0x1a1a2e) : WebColors.ac) : WebColors.sub)
+                                .frame(width: 48, height: 48)
+                                .background(focused && currentPage > 1 ? Color.white : Color.clear)
+                                .cornerRadius(24)
                         }
-                        .buttonStyle(.plain).disabled(currentPage <= 1)
-                        .focused($prevFocused).focusEffectDisabled()
-                        .scaleEffect(prevFocused ? 1.1 : 1.0)
-                        .animation(.easeOut(duration: 0.12), value: prevFocused)
+                        .disabled(currentPage <= 1)
 
                         Text("第 \(currentPage) / \(max(1, totalPages)) 页")
                             .font(.system(size: 18)).foregroundColor(WebColors.sub)
 
-                        Button(action: { if currentPage < totalPages { onPageChange(currentPage + 1) } }) {
+                        TVTightButton(action: { if currentPage < totalPages { onPageChange(currentPage + 1) } }) { focused in
                             Image(systemName: "chevron.right.circle")
                                 .font(.system(size: 32))
-                                .foregroundColor(currentPage < totalPages ? WebColors.ac : WebColors.sub)
-                                .frame(width: 44, height: 44)
-                                .overlay(Circle().stroke(nextFocused && currentPage < totalPages ? Color.white.opacity(0.9) : .clear, lineWidth: 2))
+                                .foregroundColor(currentPage < totalPages ? (focused ? Color(hex: 0x1a1a2e) : WebColors.ac) : WebColors.sub)
+                                .frame(width: 48, height: 48)
+                                .background(focused && currentPage < totalPages ? Color.white : Color.clear)
+                                .cornerRadius(24)
                         }
-                        .buttonStyle(.plain).disabled(currentPage >= totalPages)
-                        .focused($nextFocused).focusEffectDisabled()
-                        .scaleEffect(nextFocused ? 1.1 : 1.0)
-                        .animation(.easeOut(duration: 0.12), value: nextFocused)
+                        .disabled(currentPage >= totalPages)
                     }
                     .padding(.vertical, 10).frame(maxWidth: .infinity)
                     .background(WebColors.topbarBg)
@@ -119,7 +105,7 @@ struct WebSongRow: View {
     var body: some View {
         HStack(spacing: 14) {
             // 整行大按钮：序号 + 歌名/歌手 + 点歌
-            Button(action: onAdd) {
+            TVTightButton(action: onAdd) { focused in
                 HStack(spacing: 14) {
                     if showRank {
                         Text("\(index + 1)")
@@ -159,12 +145,14 @@ struct WebSongRow: View {
                     Text("点歌")
                         .font(.system(size: 24, weight: .semibold))
                         .padding(.horizontal, 22).padding(.vertical, 10)
-                        .background(LinearGradient.g6)
-                        .foregroundColor(.white)
+                        .background(focused ? Color.white : LinearGradient.g6)
+                        .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
                         .cornerRadius(10)
                 }
+                .padding(2)
+                .background(focused ? Color.white.opacity(0.08) : Color.clear)
+                .cornerRadius(12)
             }
-            .buttonStyle(.card)
 
             // Favorite button
             TightFavButton(isFavorite: isFavorite, action: onToggleFav)
@@ -316,18 +304,17 @@ struct ArtistsPage: View {
                         .foregroundColor(.white)
                 }
                 Spacer()
-                Button(action: onBack) {
+                TVTightButton(action: onBack) { focused in
                     HStack(spacing: 6) {
                         Image(systemName: "chevron.left")
                         Text("返回")
                     }
                     .font(.system(size: 18, weight: .medium))
                     .padding(.horizontal, 20).padding(.vertical, 8)
-                    .foregroundColor(.white)
-                    .background(Color.white.opacity(0.1))
+                    .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
+                    .background(focused ? Color.white : Color.white.opacity(0.1))
                     .cornerRadius(999)
                 }
-                .buttonStyle(.plain)
             }
             .padding(.horizontal, 24).padding(.vertical, 14)
             .background(WebColors.topbarBg)
@@ -339,7 +326,7 @@ struct ArtistsPage: View {
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 16), count: 6),
                               spacing: 20) {
                         ForEach(Array(pagedArtists.enumerated()), id: \.element.artist) { idx, artist in
-                            Button(action: { onArtistSelect(artist.artist) }) {
+                            TVTightButton(action: { onArtistSelect(artist.artist) }) { focused in
                                 VStack(spacing: 8) {
                                     ZStack {
                                         Circle()
@@ -351,17 +338,17 @@ struct ArtistsPage: View {
                                     }
                                     Text(artist.displayName)
                                         .font(.system(size: 17, weight: .medium))
-                                        .foregroundColor(.white)
+                                        .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
                                         .lineLimit(1)
                                         .frame(maxWidth: .infinity)
                                     Text("\(artist.count)首")
                                         .font(.system(size: 14))
-                                        .foregroundColor(WebColors.sub)
+                                        .foregroundColor(focused ? Color(hex: 0x1a1a2e).opacity(0.7) : WebColors.sub)
                                 }
                                 .frame(maxWidth: .infinity, minHeight: 140)
-                                .background(Color(hex: 0x1e1e2e).opacity(0.001))
+                                .background(focused ? Color.white : Color(hex: 0x1e1e2e).opacity(0.001))
+                                .cornerRadius(12)
                             }
-                            .buttonStyle(.card)
                             .gridCellColumns(
                                 (idx == pagedArtists.count - 1 && pagedArtists.count % 6 != 0)
                                     ? (6 - pagedArtists.count % 6) : 1
@@ -432,36 +419,34 @@ struct ArtistsPage: View {
 
             // Pagination footer
             HStack(spacing: 20) {
-                Button(action: { if currentPage > 1 { currentPage -= 1 } }) {
+                TVTightButton(action: { if currentPage > 1 { currentPage -= 1 } }) { focused in
                     HStack(spacing: 6) {
                         Image(systemName: "chevron.left")
                         Text("上一页")
                     }
                     .font(.system(size: 18, weight: .medium))
                     .padding(.horizontal, 20).padding(.vertical, 8)
-                    .foregroundColor(currentPage > 1 ? .white : WebColors.sub)
-                    .background(currentPage > 1 ? Color.white.opacity(0.12) : Color.clear)
+                    .foregroundColor(currentPage > 1 ? (focused ? Color(hex: 0x1a1a2e) : .white) : WebColors.sub)
+                    .background(currentPage > 1 ? (focused ? Color.white : Color.white.opacity(0.12)) : Color.clear)
                     .cornerRadius(999)
                 }
-                .buttonStyle(.plain)
                 .disabled(currentPage == 1)
 
                 Text("第 \(currentPage)/\(totalPages) (共\(filteredArtists.count)位)")
                     .font(.system(size: 18))
                     .foregroundColor(.white)
 
-                Button(action: { if currentPage < totalPages { currentPage += 1 } }) {
+                TVTightButton(action: { if currentPage < totalPages { currentPage += 1 } }) { focused in
                     HStack(spacing: 6) {
                         Text("下一页")
                         Image(systemName: "chevron.right")
                     }
                     .font(.system(size: 18, weight: .medium))
                     .padding(.horizontal, 20).padding(.vertical, 8)
-                    .foregroundColor(currentPage < totalPages ? .white : WebColors.sub)
-                    .background(currentPage < totalPages ? Color.white.opacity(0.12) : Color.clear)
+                    .foregroundColor(currentPage < totalPages ? (focused ? Color(hex: 0x1a1a2e) : .white) : WebColors.sub)
+                    .background(currentPage < totalPages ? (focused ? Color.white : Color.white.opacity(0.12)) : Color.clear)
                     .cornerRadius(999)
                 }
-                .buttonStyle(.plain)
                 .disabled(currentPage >= totalPages)
             }
             .padding(.vertical, 12)
@@ -489,35 +474,22 @@ struct AlphaKey: View {
     let label: String
     var isDelete: Bool = false
     let action: () -> Void
-    @FocusState private var focused: Bool
 
     var body: some View {
-        Button(action: action) {
+        TVTightButton(action: action) { focused in
             Text(label)
                 .font(.system(size: isDelete ? 14 : 26, weight: .bold))
-                .foregroundColor(focused ? .white : (isDelete ? WebColors.pink : Color.white.opacity(0.8)))
+                .foregroundColor(focused ? Color(hex: 0x1a1a2e) : (isDelete ? WebColors.pink : Color.white.opacity(0.8)))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, isDelete ? 10 : 16)
                 .background(
-                    Group {
-                        if focused {
-                            RoundedRectangle(cornerRadius: 6).fill(WebColors.ac.opacity(0.6))
-                        } else if isDelete {
-                            RoundedRectangle(cornerRadius: 6).fill(WebColors.pink.opacity(0.15))
-                        } else {
-                            RoundedRectangle(cornerRadius: 6).fill(Color.white.opacity(0.08))
-                        }
-                    }
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(focused ? Color.white : (isDelete ? WebColors.pink.opacity(0.15) : Color.white.opacity(0.08)))
                 )
+                .padding(2)
+                .background(focused ? Color.white.opacity(0.15) : Color.clear)
+                .cornerRadius(8)
         }
-        .padding(2)
-        .background(focused ? Color.white.opacity(0.15) : Color.clear)
-        .cornerRadius(8)
-        .buttonStyle(.plain)
-        .focused($focused)
-        .focusEffectDisabled()
-        .scaleEffect(focused ? 1.08 : 1.0)
-        .animation(.easeOut(duration: 0.15), value: focused)
     }
 }
 
@@ -535,14 +507,14 @@ struct AlphaKeyboard: View {
                 Text(input.isEmpty ? "歌星搜索" : input)
                     .font(.system(size: 16)).foregroundColor(.white).lineLimit(1)
                 Spacer()
-                Button(action: { isNumMode.toggle() }) {
+                TVTightButton(action: { isNumMode.toggle() }) { focused in
                     Text(isNumMode ? "ABC" : "123")
-                        .font(.system(size: 14)).foregroundColor(WebColors.ac2)
+                        .font(.system(size: 14))
+                        .foregroundColor(focused ? Color(hex: 0x1a1a2e) : WebColors.ac2)
                         .padding(.horizontal, 8).padding(.vertical, 4)
-                        .background(WebColors.cardBg).cornerRadius(6)
+                        .background(focused ? Color.white : WebColors.cardBg)
+                        .cornerRadius(6)
                 }
-                .buttonStyle(.plain)
-                .focusEffectDisabled()
             }
             .padding(.horizontal, 12).padding(.vertical, 10)
             .background(WebColors.cardBg).cornerRadius(8)
@@ -794,38 +766,53 @@ struct CategoryPage: View {
     }
 }
 
-// MARK: - Tight Focus Chip Button (focus frame only 2px larger than content)
+// MARK: - TV Tight Button (reliable focus: no system card, no scaleEffect)
+// 用普通 View + focusable + onTapGesture 代替 Button，避免 tvOS 内置焦点大白圈
+struct TVTightButton<Label: View>: View {
+    let action: () -> Void
+    var autoFocus: Bool = false
+    @ViewBuilder let label: (Bool) -> Label
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        label(focused)
+            .focusable(true)
+            .focused($focused)
+            .focusEffectDisabled()
+            .onTapGesture { action() }
+            .onAppear {
+                if autoFocus {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                        focused = true
+                    }
+                }
+            }
+    }
+}
+
+// MARK: - Tight Focus Chip Button
 struct TightChipButton: View {
     let title: String
     let isSelected: Bool
     let action: () -> Void
-    @FocusState private var focused: Bool
 
     var body: some View {
-        Button(action: action) {
+        TVTightButton(action: action) { focused in
             Text(title)
                 .font(.system(size: 22, weight: .bold))
-                .foregroundColor(isSelected ? .white : (focused ? .white : WebColors.sub))
+                .foregroundColor(isSelected ? .white : (focused ? Color(hex: 0x1a1a2e) : WebColors.sub))
                 .padding(.horizontal, 24).padding(.vertical, 14)
                 .background {
                     if isSelected {
                         LinearGradient.g6
+                    } else if focused {
+                        Color.white
                     } else {
                         WebColors.cardBg
                     }
                 }
                 .cornerRadius(999)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 999)
-                        .stroke(focused && !isSelected ? Color.white.opacity(0.9) : Color.clear,
-                                lineWidth: 2)
-                )
         }
-        .buttonStyle(.plain)
-        .focused($focused)
-        .focusEffectDisabled()
-        .scaleEffect(focused ? 1.04 : 1.0)
-        .animation(.easeOut(duration: 0.15), value: focused)
     }
 }
 
@@ -835,10 +822,9 @@ struct TightKeyButton: View {
     let width: CGFloat
     let height: CGFloat
     let action: () -> Void
-    @FocusState private var focused: Bool
 
     var body: some View {
-        Button(action: action) {
+        TVTightButton(action: action) { focused in
             Group {
                 if key == "DEL" {
                     HStack(spacing: 8) {
@@ -852,21 +838,15 @@ struct TightKeyButton: View {
                         .font(.system(size: 42, weight: .heavy))
                 }
             }
-            .foregroundColor(.white)
+            .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
             .frame(width: width, height: height)
-            .background(Color(hex: 0x2a2a3a))
+            .background(focused ? Color.white : Color(hex: 0x2a2a3a))
             .cornerRadius(12)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(focused ? Color.white.opacity(0.9) : Color.white.opacity(0.12),
-                            lineWidth: focused ? 2 : 1.5)
+                    .stroke(focused ? Color.clear : Color.white.opacity(0.12), lineWidth: 1.5)
             )
         }
-        .buttonStyle(.plain)
-        .focused($focused)
-        .focusEffectDisabled()
-        .scaleEffect(focused ? 1.03 : 1.0)
-        .animation(.easeOut(duration: 0.12), value: focused)
     }
 }
 
@@ -874,26 +854,16 @@ struct TightKeyButton: View {
 struct TightFavButton: View {
     let isFavorite: Bool
     let action: () -> Void
-    @FocusState private var focused: Bool
 
     var body: some View {
-        Button(action: action) {
+        TVTightButton(action: action) { focused in
             Image(systemName: isFavorite ? "heart.fill" : "heart")
                 .font(.system(size: 30))
-                .foregroundColor(isFavorite ? WebColors.pink : Color.white.opacity(0.6))
+                .foregroundColor(isFavorite ? Color(hex: 0xe91e63) : (focused ? Color(hex: 0x1a1a2e) : Color.white.opacity(0.6)))
                 .frame(width: 64, height: 64)
-                .background(isFavorite ? WebColors.pink.opacity(0.3) : WebColors.cardBg)
+                .background(focused ? Color.white : (isFavorite ? Color(hex: 0xe91e63).opacity(0.3) : WebColors.cardBg))
                 .cornerRadius(10)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(focused ? Color.white.opacity(0.9) : Color.clear, lineWidth: 2)
-                )
         }
-        .buttonStyle(.plain)
-        .focused($focused)
-        .focusEffectDisabled()
-        .scaleEffect(focused ? 1.05 : 1.0)
-        .animation(.easeOut(duration: 0.12), value: focused)
     }
 }
 
@@ -901,30 +871,19 @@ struct TightFavButton: View {
 struct TightClearButton: View {
     let isEmpty: Bool
     let action: () -> Void
-    @FocusState private var focused: Bool
 
     var body: some View {
-        Button(action: action) {
+        TVTightButton(action: action) { focused in
             Text("清空")
                 .font(.system(size: 22, weight: .medium))
-                .foregroundColor(.white)
+                .foregroundColor(focused && !isEmpty ? Color(hex: 0x1a1a2e) : .white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 50)
-                .background(isEmpty ? Color.clear : Color.white.opacity(focused ? 0.2 : 0.1))
+                .background(isEmpty ? Color.clear : (focused ? Color.white : Color.white.opacity(0.1)))
                 .cornerRadius(12)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(focused && !isEmpty ? Color.white.opacity(0.9) : Color.clear,
-                                lineWidth: 2)
-                )
         }
-        .buttonStyle(.plain)
         .disabled(isEmpty)
         .opacity(isEmpty ? 0 : 1)
-        .focused($focused)
-        .focusEffectDisabled()
-        .scaleEffect(focused ? 1.02 : 1.0)
-        .animation(.easeOut(duration: 0.12), value: focused)
     }
 }
 

@@ -16,9 +16,14 @@ struct PanelOverlay<Content: View>: View {
                 HStack {
                     Text(title).font(.headline).foregroundColor(theme.text)
                     Spacer()
-                    Button(action: onClose) {
-                        Image(systemName: "xmark").foregroundColor(theme.subText)
-                    }.buttonStyle(.plain)
+                    TVTightButton(action: onClose) { focused in
+                        Image(systemName: "xmark")
+                            .font(.system(size: 20))
+                            .foregroundColor(focused ? Color(hex: 0x1a1a2e) : theme.subText)
+                            .frame(width: 42, height: 42)
+                            .background(focused ? Color.white : Color.clear)
+                            .clipShape(Circle())
+                    }
                 }
                 .padding()
                 .background(theme.panelBg)
@@ -41,7 +46,6 @@ struct SearchPanel: View {
     let onAdd: (Song) -> Void
     @State private var query = ""
     @State private var currentPage = 0
-    @FocusState private var closeFocused: Bool
     private let pageSize = 40
 
     var filteredSongs: [Song] {
@@ -80,10 +84,14 @@ struct SearchPanel: View {
                     .cornerRadius(999)
                     .frame(width: 280)
 
-                    Button(action: onClose) {
-                        Image(systemName: "xmark").foregroundColor(WebColors.sub)
-                    }.buttonStyle(.plain)
-                    .focused($closeFocused)
+                    TVTightButton(action: onClose, autoFocus: true) { focused in
+                        Image(systemName: "xmark")
+                            .font(.system(size: 20))
+                            .foregroundColor(focused ? Color(hex: 0x1a1a2e) : WebColors.sub)
+                            .frame(width: 42, height: 42)
+                            .background(focused ? Color.white : Color.clear)
+                            .clipShape(Circle())
+                    }
                 }
                 .padding(.horizontal, 20).padding(.vertical, 14)
                 .background(WebColors.topbarBg)
@@ -113,22 +121,29 @@ struct SearchPanel: View {
 
                 // Pagination footer (exact .pf-foot)
                 HStack(spacing: 16) {
-                    Button(action: { if currentPage > 0 { currentPage -= 1 } }) {
+                    TVTightButton(action: { if currentPage > 0 { currentPage -= 1 } }) { focused in
                         Image(systemName: "chevron.left.circle")
-                            .font(.system(size: 28))
-                            .foregroundColor(currentPage > 0 ? WebColors.ac : WebColors.sub)
-                    }.buttonStyle(.plain).disabled(currentPage == 0)
+                            .font(.system(size: 30))
+                            .foregroundColor(currentPage > 0 ? (focused ? Color(hex: 0x1a1a2e) : WebColors.ac) : WebColors.sub)
+                            .frame(width: 44, height: 44)
+                            .background(focused && currentPage > 0 ? Color.white : Color.clear)
+                            .cornerRadius(22)
+                    }
+                    .disabled(currentPage == 0)
 
                     Text("第 \(currentPage + 1) / \(max(1, (filteredSongs.count + pageSize - 1) / pageSize)) 页")
                         .font(.system(size: 15)).foregroundColor(WebColors.sub)
 
-                    Button(action: {
+                    TVTightButton(action: {
                         if (currentPage + 1) * pageSize < filteredSongs.count { currentPage += 1 }
-                    }) {
+                    }) { focused in
                         Image(systemName: "chevron.right.circle")
-                            .font(.system(size: 28))
-                            .foregroundColor((currentPage + 1) * pageSize < filteredSongs.count ? WebColors.ac : WebColors.sub)
-                    }.buttonStyle(.plain)
+                            .font(.system(size: 30))
+                            .foregroundColor((currentPage + 1) * pageSize < filteredSongs.count ? (focused ? Color(hex: 0x1a1a2e) : WebColors.ac) : WebColors.sub)
+                            .frame(width: 44, height: 44)
+                            .background(focused && (currentPage + 1) * pageSize < filteredSongs.count ? Color.white : Color.clear)
+                            .cornerRadius(22)
+                    }
                 }
                 .padding(.vertical, 10).frame(maxWidth: .infinity)
                 .background(WebColors.topbarBg)
@@ -141,16 +156,12 @@ struct SearchPanel: View {
         }
         .onAppear {
             api.fetchSongs(query: "")
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                closeFocused = true
-            }
         }
     }
 
     @ViewBuilder
     private func searchSongRow(_ song: Song, index: Int) -> some View {
-        @FocusState var focused: Bool
-        return Button(action: { onAdd(song); onClose() }) {
+        TVTightButton(action: { onAdd(song); onClose() }) { focused in
             HStack(spacing: 10) {
                 Text("\(index + 1)").font(.system(size: 14)).foregroundColor(WebColors.sub).frame(width: 28)
                 VStack(alignment: .leading, spacing: 3) {
@@ -171,15 +182,10 @@ struct SearchPanel: View {
             .padding(.horizontal, 12).padding(.vertical, 8)
             .background(focused ? WebColors.ac.opacity(0.25) : WebColors.cardBg)
             .cornerRadius(10)
+            .padding(2)
+            .background(focused ? Color.white.opacity(0.12) : Color.clear)
+            .cornerRadius(12)
         }
-        .padding(2)
-        .background(focused ? Color.white.opacity(0.12) : Color.clear)
-        .cornerRadius(12)
-        .buttonStyle(.plain)
-        .focused($focused)
-        .focusEffectDisabled()
-        .scaleEffect(focused ? 1.03 : 1.0)
-        .animation(.easeOut(duration: 0.15), value: focused)
     }
 }
 
@@ -188,7 +194,6 @@ struct QueuePanel: View {
     @ObservedObject var api: KTVAPIClient
     let onClose: () -> Void
     let onPlay: () -> Void
-    @FocusState private var closeFocused: Bool
 
     var body: some View {
         ZStack {
@@ -202,20 +207,26 @@ struct QueuePanel: View {
                     Text("\(api.queue.count)首").font(.system(size: 14)).foregroundColor(WebColors.sub).padding(.leading, 8)
                     Spacer()
                     if api.queue.contains(where: { $0.isPlaying }) {
-                        Button(action: { onClose(); onPlay() }) {
+                        TVTightButton(action: { onClose(); onPlay() }) { focused in
                             HStack(spacing: 4) {
                                 Image(systemName: "play.rectangle.fill")
                                 Text("全屏播放")
                             }
                             .font(.system(size: 15))
                             .padding(.horizontal, 14).padding(.vertical, 6)
-                            .background(LinearGradient.g6).foregroundColor(.white).cornerRadius(8)
-                        }.buttonStyle(.plain)
+                            .background(focused ? Color.white : LinearGradient.g6)
+                            .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
+                            .cornerRadius(8)
+                        }
                     }
-                    Button(action: onClose) {
-                        Image(systemName: "xmark").foregroundColor(WebColors.sub)
-                    }.buttonStyle(.plain)
-                    .focused($closeFocused)
+                    TVTightButton(action: onClose, autoFocus: true) { focused in
+                        Image(systemName: "xmark")
+                            .font(.system(size: 20))
+                            .foregroundColor(focused ? Color(hex: 0x1a1a2e) : WebColors.sub)
+                            .frame(width: 42, height: 42)
+                            .background(focused ? Color.white : Color.clear)
+                            .clipShape(Circle())
+                    }
                 }
                 .padding(.horizontal, 20).padding(.vertical, 14)
                 .background(WebColors.topbarBg)
@@ -247,11 +258,6 @@ struct QueuePanel: View {
             .overlay(RoundedRectangle(cornerRadius: 16).stroke(WebColors.cardBorder, lineWidth: 1))
             .focusSection()
         }
-        .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                closeFocused = true
-            }
-        }
     }
 
     @ViewBuilder
@@ -268,18 +274,22 @@ struct QueuePanel: View {
             }
             Spacer()
             if !item.isPlaying {
-                Button(action: { api.topSong(queueId: item.queue_id) }) {
+                TVTightButton(action: { api.topSong(queueId: item.queue_id) }) { focused in
                     Image(systemName: "arrow.up.to.line")
-                        .font(.system(size: 14)).foregroundColor(WebColors.ac2)
+                        .font(.system(size: 14))
+                        .foregroundColor(focused ? Color(hex: 0x1a1a2e) : WebColors.ac2)
                         .frame(width: 32, height: 32)
-                        .background(WebColors.cardBg).cornerRadius(6)
-                }.buttonStyle(.plain)
-                Button(action: { api.removeFromQueue(queueId: item.queue_id) }) {
+                        .background(focused ? Color.white : WebColors.cardBg)
+                        .cornerRadius(6)
+                }
+                TVTightButton(action: { api.removeFromQueue(queueId: item.queue_id) }) { focused in
                     Image(systemName: "trash")
-                        .font(.system(size: 14)).foregroundColor(WebColors.pink)
+                        .font(.system(size: 14))
+                        .foregroundColor(focused ? Color(hex: 0x1a1a2e) : WebColors.pink)
                         .frame(width: 32, height: 32)
-                        .background(WebColors.cardBg).cornerRadius(6)
-                }.buttonStyle(.plain)
+                        .background(focused ? Color.white : WebColors.cardBg)
+                        .cornerRadius(6)
+                }
             } else {
                 Text("播放中").font(.system(size: 12)).foregroundColor(WebColors.ac2)
             }
@@ -299,7 +309,6 @@ struct SettingsPanel: View {
     @State private var showEQ = false
     @State private var deviceRole: DeviceRole = .player
     @State private var playerLocked = false
-    @FocusState private var closeFocused: Bool
 
     enum DeviceRole { case player, controller
         var label: String { self == .player ? "播放端" : "控制端" }
@@ -321,15 +330,14 @@ struct SettingsPanel: View {
                 HStack {
                     Text("⚙ 设置").font(.system(size: 22, weight: .bold)).foregroundColor(.white)
                     Spacer()
-                    Button(action: onClose) {
+                    TVTightButton(action: onClose, autoFocus: true) { focused in
                         Image(systemName: "xmark")
                             .font(.system(size: 20))
-                            .foregroundColor(.white)
+                            .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
                             .frame(width: 42, height: 42)
-                            .background(Color.white.opacity(0.08))
+                            .background(focused ? Color.white : Color.white.opacity(0.08))
                             .clipShape(Circle())
-                    }.buttonStyle(.plain)
-                    .focused($closeFocused)
+                    }
                 }
                 .padding(.horizontal, 20).padding(.vertical, 14)
                 .background(WebColors.topbarBg)
@@ -343,16 +351,18 @@ struct SettingsPanel: View {
                             settingRow(label: "当前版本", value: api.stats?.appVersion ?? "—")
                             settingRow(label: "服务器", value: api.serverAddress)
                             settingRow(label: "曲库歌曲", value: "\(api.stats?.songCount ?? 0) 首")
-                            Button(action: { api.scanLibrary() }) {
+                            TVTightButton(action: { api.scanLibrary() }) { focused in
                                 HStack {
-                                    Text("重新扫描曲库").font(.system(size: 17)).foregroundColor(.white)
+                                    Text("重新扫描曲库").font(.system(size: 17))
+                                        .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
                                     Spacer()
-                                    Text("▶ 扫描").font(.system(size: 16)).foregroundColor(WebColors.ac2)
+                                    Text("▶ 扫描").font(.system(size: 16))
+                                        .foregroundColor(focused ? Color(hex: 0x1a1a2e) : WebColors.ac2)
                                 }
                                 .padding(.horizontal, 12).padding(.vertical, 10)
-                                .background(WebColors.cardBg)
+                                .background(focused ? Color.white : WebColors.cardBg)
                                 .cornerRadius(8)
-                            }.buttonStyle(.plain)
+                            }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -408,16 +418,18 @@ struct SettingsPanel: View {
                                 }
                             }
                             settingRow(label: "当前播放端", value: "本机")
-                            Button(action: { playerLocked.toggle() }) {
+                            TVTightButton(action: { playerLocked.toggle() }) { focused in
                                 HStack {
-                                    Text("播放端上锁").font(.system(size: 17)).foregroundColor(.white)
+                                    Text("播放端上锁").font(.system(size: 17))
+                                        .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
                                     Spacer()
-                                    Text(playerLocked ? "已上锁" : "未上锁").font(.system(size: 16)).foregroundColor(WebColors.sub)
+                                    Text(playerLocked ? "已上锁" : "未上锁").font(.system(size: 16))
+                                        .foregroundColor(focused ? Color(hex: 0x1a1a2e) : WebColors.sub)
                                 }
                                 .padding(.horizontal, 12).padding(.vertical, 10)
-                                .background(WebColors.cardBg)
+                                .background(focused ? Color.white : WebColors.cardBg)
                                 .cornerRadius(8)
-                            }.buttonStyle(.plain)
+                            }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
@@ -433,9 +445,6 @@ struct SettingsPanel: View {
         .onAppear {
             api.fetchStats()
             api.fetchAutoplaySettings()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                closeFocused = true
-            }
         }
         .sheet(isPresented: $showEQ) { EQPanel { showEQ = false } }
     }
@@ -451,25 +460,22 @@ struct SettingsPanel: View {
     }
 
     private func eqOption(title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
+        TVTightButton(action: action) { focused in
             Text(title)
                 .font(.system(size: 15, weight: .medium))
-                .foregroundColor(.white)
+                .foregroundColor(isSelected || focused ? Color(hex: 0x1a1a2e) : .white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
                 .background {
-                    if isSelected {
-                        LinearGradient(colors: [Color(hex: 0x1a4bff).opacity(0.55), Color(hex: 0x36d9f7).opacity(0.42)],
-                                       startPoint: UnitPoint(x: 0, y: 0), endPoint: UnitPoint(x: 1, y: 1))
+                    if isSelected || focused {
+                        Color.white
                     } else {
                         LinearGradient(colors: [Color(hex: 0xf73669).opacity(0.38), Color(hex: 0xff4f9b).opacity(0.28)],
                                        startPoint: UnitPoint(x: 0, y: 0), endPoint: UnitPoint(x: 1, y: 1))
                     }
                 }
                 .cornerRadius(10)
-                .overlay(RoundedRectangle(cornerRadius: 10)
-                    .stroke(isSelected ? Color.white.opacity(0.25) : Color.white.opacity(0.14), lineWidth: 1))
-        }.buttonStyle(.plain)
+        }
     }
 }
 
@@ -477,7 +483,6 @@ struct SettingsPanel: View {
 struct EQPanel: View {
     let onClose: () -> Void
     @State private var selectedEQ = "flat"
-    @FocusState private var closeFocused: Bool
     let presets = [
         (id: "flat", name: "标准（关闭）"),
         (id: "vocal", name: "人声增强"),
@@ -494,13 +499,14 @@ struct EQPanel: View {
                 HStack {
                     Text("🎚 均衡器").font(.system(size: 22, weight: .bold)).foregroundColor(.white)
                     Spacer()
-                    Button(action: onClose) {
+                    TVTightButton(action: onClose, autoFocus: true) { focused in
                         Image(systemName: "xmark")
-                            .font(.system(size: 20)).foregroundColor(.white)
+                            .font(.system(size: 20))
+                            .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
                             .frame(width: 42, height: 42)
-                            .background(Color.white.opacity(0.08)).clipShape(Circle())
-                    }.buttonStyle(.plain)
-                    .focused($closeFocused)
+                            .background(focused ? Color.white : Color.white.opacity(0.08))
+                            .clipShape(Circle())
+                    }
                 }
                 .padding(.horizontal, 20).padding(.vertical, 14)
                 .background(WebColors.topbarBg)
@@ -508,25 +514,22 @@ struct EQPanel: View {
 
                 VStack(spacing: 10) {
                     ForEach(presets, id: \.id) { preset in
-                        Button(action: { selectedEQ = preset.id }) {
+                        TVTightButton(action: { selectedEQ = preset.id }) { focused in
                             Text(preset.name)
                                 .font(.system(size: 17, weight: .medium))
-                                .foregroundColor(.white)
+                                .foregroundColor(selectedEQ == preset.id || focused ? Color(hex: 0x1a1a2e) : .white)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 16)
                                 .background {
-                                    if selectedEQ == preset.id {
-                                        LinearGradient(colors: [Color(hex: 0x1a4bff).opacity(0.55), Color(hex: 0x36d9f7).opacity(0.42)],
-                                                       startPoint: UnitPoint(x: 0, y: 0), endPoint: UnitPoint(x: 1, y: 1))
+                                    if selectedEQ == preset.id || focused {
+                                        Color.white
                                     } else {
                                         LinearGradient(colors: [Color(hex: 0xf73669).opacity(0.38), Color(hex: 0xff4f9b).opacity(0.28)],
                                                        startPoint: UnitPoint(x: 0, y: 0), endPoint: UnitPoint(x: 1, y: 1))
                                     }
                                 }
                                 .cornerRadius(12)
-                                .overlay(RoundedRectangle(cornerRadius: 12)
-                                    .stroke(selectedEQ == preset.id ? Color.white.opacity(0.25) : Color.white.opacity(0.14), lineWidth: 1))
-                        }.buttonStyle(.plain)
+                        }
                     }
                 }
                 .padding(20)
@@ -538,11 +541,7 @@ struct EQPanel: View {
             .overlay(RoundedRectangle(cornerRadius: 16).stroke(WebColors.cardBorder, lineWidth: 1))
             .focusSection()
         }
-        .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                closeFocused = true
-            }
-        }
     }
 }
+
 
