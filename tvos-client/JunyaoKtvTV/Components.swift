@@ -129,9 +129,14 @@ struct CategoryChip: View {
         TVTightButton(action: action) { focused in
             VStack(spacing: 8) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(focused ? Color.white : gradient)
-                        .frame(width: 56, height: 56)
+                    Group {
+                        if focused {
+                            RoundedRectangle(cornerRadius: 14).fill(Color.white)
+                        } else {
+                            RoundedRectangle(cornerRadius: 14).fill(gradient)
+                        }
+                    }
+                    .frame(width: 56, height: 56)
                     Image(systemName: icon)
                         .font(.title2)
                         .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)

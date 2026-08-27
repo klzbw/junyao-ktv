@@ -299,7 +299,7 @@ struct ContentView: View {
             }
             .padding(.horizontal, 14)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(focused ? Color.white : gradient.opacity(0.7))
+            .background(Group { if focused { Color.white } else { gradient.opacity(0.7) } })
             .cornerRadius(12)
             .padding(2)
             .background(focused ? Color.white.opacity(0.15) : Color.clear)
@@ -1102,8 +1102,14 @@ struct OrderSongsPage: View {
                     Text("点歌")
                         .font(.system(size: 26, weight: .semibold))
                         .padding(.horizontal, 26).padding(.vertical, 12)
-                        .background(focused ? Color.white : LinearGradient(colors: [Color(hex: 0x9333ea), Color(hex: 0x7c3aed)],
-                                                   startPoint: .leading, endPoint: .trailing))
+                        .background(Group {
+                            if focused {
+                                Color.white
+                            } else {
+                                LinearGradient(colors: [Color(hex: 0x9333ea), Color(hex: 0x7c3aed)],
+                                               startPoint: .leading, endPoint: .trailing)
+                            }
+                        })
                         .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
                         .cornerRadius(12)
                 }

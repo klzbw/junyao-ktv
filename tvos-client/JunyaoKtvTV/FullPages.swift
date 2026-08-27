@@ -145,7 +145,7 @@ struct WebSongRow: View {
                     Text("点歌")
                         .font(.system(size: 24, weight: .semibold))
                         .padding(.horizontal, 22).padding(.vertical, 10)
-                        .background(focused ? Color.white : LinearGradient.g6)
+                        .background(Group { if focused { Color.white } else { LinearGradient.g6 } })
                         .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
                         .cornerRadius(10)
                 }

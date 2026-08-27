@@ -127,9 +127,14 @@ struct MidCard: View {
     var body: some View {
         TVTightButton(action: action) { focused in
             ZStack {
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(focused ? Color.white : gradient)
-                    .opacity(focused ? 1.0 : 0.85)
+                Group {
+                    if focused {
+                        RoundedRectangle(cornerRadius: 14).fill(Color.white)
+                    } else {
+                        RoundedRectangle(cornerRadius: 14).fill(gradient)
+                    }
+                }
+                .opacity(focused ? 1.0 : 0.85)
                 VStack(spacing: 6) {
                     Image(systemName: icon).font(.system(size: 26))
                         .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
@@ -161,7 +166,7 @@ struct QuickMiniCard: View {
                     .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white.opacity(0.6))
             }
             .padding(.horizontal, 16).padding(.vertical, 14)
-            .background(focused ? Color.white : gradient.opacity(0.8))
+            .background(Group { if focused { Color.white } else { gradient.opacity(0.8) } })
             .cornerRadius(12)
         }
     }

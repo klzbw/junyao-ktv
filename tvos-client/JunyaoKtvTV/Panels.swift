@@ -214,7 +214,7 @@ struct QueuePanel: View {
                             }
                             .font(.system(size: 15))
                             .padding(.horizontal, 14).padding(.vertical, 6)
-                            .background(focused ? Color.white : LinearGradient.g6)
+                            .background(Group { if focused { Color.white } else { LinearGradient.g6 } })
                             .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
                             .cornerRadius(8)
                         }
