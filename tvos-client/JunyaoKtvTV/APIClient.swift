@@ -19,6 +19,9 @@ class KTVAPIClient: ObservableObject {
     private var baseURL: String
     private var wsTask: URLSessionWebSocketTask?
     private var sessionCookie: String?
+    /// Unique per-app ID; attached to outgoing WS control messages so we can
+    /// ignore our own messages echoed back by the server broadcast.
+    let clientId = UUID().uuidString
 
     var serverAddress: String { baseURL.replacingOccurrences(of: "http://", with: "") }
 
@@ -160,8 +163,13 @@ class KTVAPIClient: ObservableObject {
 
     func nextSong() {
         guard let url = apiURL("/api/queue/next") else { return }
-        var req = URLRequest(url: url); req.httpMethod = "POST"
-        URLSession.shared.dataTask(with: req) { [weak self] _, _, _ in self?.fetchQueue() }.resume()
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        URLSession.shared.dataTask(with: req) { [weak self] _, _, _ in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                self?.fetchQueue()
+            }
+        }.resume()
     }
 
     func restartSong() {
@@ -340,7 +348,7 @@ class KTVAPIClient: ObservableObject {
     }
 
     func sendWSControl(_ type: String, _ payload: [String: Any] = [:]) {
-        var msg = ["type": "control", "action": type] as [String: Any]
+        var msg = ["type": "control", "action": type, "clientId": clientId] as [String: Any]
         msg.merge(payload) { _, new in new }
         guard let data = try? JSONSerialization.data(withJSONObject: msg),
               let text = String(data: data, encoding: .utf8) else { return }
@@ -350,3 +358,4 @@ class KTVAPIClient: ObservableObject {
     func disconnectWebSocket() { wsTask?.cancel(); wsTask = nil }
     deinit { disconnectWebSocket() }
 }
+

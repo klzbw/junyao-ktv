@@ -20,7 +20,13 @@ class PlayerManager: ObservableObject {
 
     private var timeObserver: Any?
     private var statusObserver: NSKeyValueObservation?
+    private var itemStatusObserver: NSKeyValueObservation?
     private var endObserver: NSObjectProtocol?
+
+    /// Voice toggle generation. Every toggle / new song increments it so that
+    /// delayed retry blocks from a previous toggle are invalidated and cannot
+    /// fight the newer selection (root cause of the multi-click + stutter bug).
+    private var voiceGeneration: Int = 0
 
     private init() {}
 
@@ -32,6 +38,10 @@ class PlayerManager: ObservableObject {
         }
 
         cleanup()
+
+        // New song defaults to original voice (track 0), matching web _loadedTrack = 0
+        isOriginalVoice = true
+        voiceGeneration += 1
 
         let playerItem = AVPlayerItem(url: url)
         let player = AVPlayer(playerItem: playerItem)
@@ -62,6 +72,16 @@ class PlayerManager: ObservableObject {
             }
         }
 
+        // Item status observer - apply voice mode when item is ready to play
+        // (HLS audio renditions are not available until the item is ready)
+        itemStatusObserver = playerItem.observe(\.status, options: [.new]) { [weak self] _, _ in
+            if playerItem.status == .readyToPlay {
+                DispatchQueue.main.async {
+                    self?.applyVoiceMode()
+                }
+            }
+        }
+
         // Playback end observer
         endObserver = NotificationCenter.default.addObserver(
             forName: .AVPlayerItemDidPlayToEndTime,
@@ -74,13 +94,9 @@ class PlayerManager: ObservableObject {
         player.play()
         isPlaying = true
 
-        // Apply current voice mode after tracks load
+        // Apply voice mode immediately (may no-op if tracks not loaded yet;
+        // the itemStatusObserver + retries will pick it up)
         applyVoiceMode()
-
-        // Apply voice mode after tracks are loaded
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            self?.applyVoiceMode()
-        }
     }
 
     /// Attach player layer to the current host view
@@ -137,38 +153,48 @@ class PlayerManager: ObservableObject {
 
     func toggleVoice() {
         isOriginalVoice.toggle()
+        voiceGeneration += 1
         applyVoiceMode()
     }
 
     func setVoiceMode(_ original: Bool) {
         isOriginalVoice = original
+        voiceGeneration += 1
         applyVoiceMode()
     }
 
     private func applyVoiceMode() {
         guard let playerItem = player?.currentItem else { return }
+        let gen = voiceGeneration
 
-        // HLS multi-audio-track switching (same as web hls.audioTrack = want)
-        // Try immediately, then retry as tracks load
+        // Try immediately. trySelectAudioTrack reads the current
+        // isOriginalVoice fresh on every call, so it never acts on a stale target.
         trySelectAudioTrack(for: playerItem)
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            guard let self = self, let item = self.player?.currentItem else { return }
-            self.trySelectAudioTrack(for: item)
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
-            guard let self = self, let item = self.player?.currentItem else { return }
-            self.trySelectAudioTrack(for: item)
+        // Retry as HLS audio tracks load asynchronously. Fewer, longer-spaced
+        // attempts than before to avoid re-triggering audio rendition loads
+        // (which caused stutter). Each retry checks voiceGeneration so that a
+        // newer toggle cancels all stale retries.
+        let delays: [Double] = [0.5, 1.5, 3.0]
+        for delay in delays {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                guard let self = self,
+                      self.voiceGeneration == gen,
+                      let item = self.player?.currentItem else { return }
+                self.trySelectAudioTrack(for: item)
+            }
         }
     }
 
     private func trySelectAudioTrack(for playerItem: AVPlayerItem) {
         guard let audioGroup = playerItem.asset.mediaSelectionGroup(forMediaCharacteristic: .audible) else { return }
         let options = audioGroup.options
-        guard options.count >= 2 else { return }
+        guard !options.isEmpty else { return }
 
-        // track 0 = original, track 1 = accompaniment (matches web hls.audioTrack)
+        // track 0 = original, track 1 = accompaniment (matches web hls.audioTrack).
+        // Computed from the CURRENT isOriginalVoice every call — never captured.
         let targetIndex = isOriginalVoice ? 0 : min(1, options.count - 1)
+        guard options.count > targetIndex else { return }
         let targetOption = options[targetIndex]
 
         if playerItem.selectedMediaOption(in: audioGroup) != targetOption {
@@ -183,6 +209,8 @@ class PlayerManager: ObservableObject {
         }
         statusObserver?.invalidate()
         statusObserver = nil
+        itemStatusObserver?.invalidate()
+        itemStatusObserver = nil
         if let endObserver = endObserver {
             NotificationCenter.default.removeObserver(endObserver)
             self.endObserver = nil
