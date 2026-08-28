@@ -1,0 +1,17 @@
+{
+  "layers": [
+    {
+      "filename": "Back.png"
+    },
+    {
+      "filename": "Middle.png"
+    },
+    {
+      "filename": "Front.png"
+    }
+  ],
+  "info": {
+    "author": "xcode",
+    "version": 1
+  }
+}
