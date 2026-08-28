@@ -24,72 +24,72 @@ struct SetupView: View {
                 // Setup card (same style as login .box)
                 VStack(spacing: 0) {
                     Text("墨墨爱K歌")
-                        .font(.system(size: 26, weight: .heavy))
-                        .tracking(1)
+                        .font(.system(size: 48, weight: .heavy))
+                        .tracking(2)
                         .foregroundStyle(LinearGradient(colors: [WebColors.ac2, WebColors.ac, WebColors.pink],
                                                         startPoint: .leading, endPoint: .trailing))
-                        .padding(.bottom, 6)
+                        .padding(.bottom, 12)
 
                     Text("请输入 KTV 服务器地址")
-                        .font(.system(size: 13))
+                        .font(.system(size: 24, weight: .bold))
                         .tracking(1)
-                        .foregroundColor(Color(hex: 0x8888aa))
-                        .padding(.bottom, 26)
+                        .foregroundColor(Color(hex: 0xb8b8d8))
+                        .padding(.bottom, 40)
 
                     // Server address input
                     TextField("例如: 192.168.3.16:8083", text: $inputAddress)
                         .focused($isFocused)
-                        .font(.system(size: 15))
+                        .font(.system(size: 32, weight: .bold))
                         .foregroundColor(Color(hex: 0xf4f4ff))
-                        .padding(.horizontal, 14).padding(.vertical, 13)
+                        .padding(.horizontal, 26).padding(.vertical, 24)
                         .background(Color.white.opacity(0.06))
-                        .cornerRadius(10)
-                        .overlay(RoundedRectangle(cornerRadius: 10)
-                            .stroke(isFocused ? WebColors.ac : Color.white.opacity(0.1), lineWidth: 1))
-                        .padding(.bottom, 14)
+                        .cornerRadius(16)
+                        .overlay(RoundedRectangle(cornerRadius: 16)
+                            .stroke(isFocused ? WebColors.ac : Color.white.opacity(0.1), lineWidth: 2))
+                        .padding(.bottom, 24)
                         .onSubmit { save() }
 
                     // Test result
                     if let result = testResult {
                         Text(result)
-                            .font(.system(size: 12))
+                            .font(.system(size: 22, weight: .semibold))
                             .foregroundColor(result.contains("成功") ? .green : WebColors.pink)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.bottom, 12)
+                            .padding(.bottom, 20)
                     }
 
                     // Connect button (same style as login button)
                     Button(action: save) {
                         Text(testing ? "连接中..." : "连接")
-                            .font(.system(size: 15, weight: .bold))
+                            .font(.system(size: 30, weight: .heavy))
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 13)
+                            .padding(.vertical, 24)
                             .background(LinearGradient(colors: [WebColors.ac, WebColors.ac2],
                                                        startPoint: UnitPoint(x: 0, y: 0), endPoint: UnitPoint(x: 1, y: 1)))
                             .foregroundColor(WebColors.bg)
-                            .cornerRadius(10)
+                            .cornerRadius(16)
                     }
                     .buttonStyle(.plain)
                     .disabled(testing || inputAddress.isEmpty)
                     .opacity(testing || inputAddress.isEmpty ? 0.5 : 1.0)
 
                     // Tip
-                    VStack(spacing: 4) {
+                    VStack(spacing: 8) {
                         Text("服务器运行在飞牛 NAS Docker 中")
-                            .font(.system(size: 12))
-                            .foregroundColor(Color(hex: 0x8888aa))
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundColor(Color(hex: 0x9a9ac0))
                         Text("默认端口 8083，格式: IP:端口")
-                            .font(.system(size: 12))
-                            .foregroundColor(Color(hex: 0x8888aa))
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundColor(Color(hex: 0x9a9ac0))
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.top, 18)
+                    .padding(.top, 28)
                     .overlay(Rectangle().fill(Color.white.opacity(0.07)).frame(height: 1), alignment: .top)
-                    .padding(.top, 16)
+                    .padding(.top, 26)
                 }
-                .padding(.horizontal, 36)
-                .padding(.vertical, 40)
-                .frame(width: 360)
+                .padding(.horizontal, 60)
+                .padding(.vertical, 64)
+                .frame(width: 680)
                 .background(Color(hex: 0x10102a).opacity(0.78))
                 .cornerRadius(20)
                 .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.white.opacity(0.08), lineWidth: 1))
