@@ -42,10 +42,16 @@ struct ContentView: View {
                     setupControlHandler()
                     setupPlaybackEndHandler()
                 })
-            } else if let page = activePage {
-                pageView(page)
             } else {
-                mainContent
+                ZStack {
+                    mainContent
+                        .disabled(activePage != nil)
+
+                    if let page = activePage {
+                        pageView(page)
+                            .zIndex(1)
+                    }
+                }
             }
         }
         .onExitCommand {
@@ -141,6 +147,7 @@ struct ContentView: View {
                 mainGrid
             }
             .allowsHitTesting(activePanel == nil)
+            .disabled(activePanel != nil)
 
             if let panel = activePanel {
                 panelView(panel)
@@ -286,18 +293,18 @@ struct ContentView: View {
 
     private func quickCard(title: String, icon: String, gradient: LinearGradient, action: @escaping () -> Void) -> some View {
         TVTightButton(action: action) { focused in
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 Text(title)
-                    .font(.system(size: 24, weight: .bold))
+                    .font(.system(size: 30, weight: .bold))
                     .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
                 Spacer()
                 Image(systemName: icon)
-                    .font(.system(size: 28, weight: .medium))
+                    .font(.system(size: 34, weight: .bold))
                     .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white.opacity(0.95))
             }
-            .padding(.horizontal, 14)
+            .padding(.horizontal, 16)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Group { if focused { Color.white } else { gradient.opacity(0.7) } })
             .cornerRadius(12)
@@ -612,18 +619,18 @@ struct ContentView: View {
 
     private func bigRequestButton(title: String, icon: String, gradient: LinearGradient, action: @escaping () -> Void) -> some View {
         TVTightButton(action: action) { focused in
-            HStack(spacing: 8) {
+            HStack(spacing: 10) {
                 Text(title)
-                    .font(.system(size: 44, weight: .bold))
+                    .font(.system(size: 52, weight: .bold))
                     .foregroundColor(.white)
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
                 Spacer()
                 Image(systemName: icon)
-                    .font(.system(size: 44, weight: .medium))
+                    .font(.system(size: 52, weight: .bold))
                     .foregroundColor(.white.opacity(0.95))
             }
-            .padding(.horizontal, 18)
+            .padding(.horizontal, 20)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(gradient.opacity(focused ? 1.0 : 0.7))
             .cornerRadius(16)
