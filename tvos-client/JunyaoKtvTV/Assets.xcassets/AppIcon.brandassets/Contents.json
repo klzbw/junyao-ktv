@@ -4,7 +4,7 @@
     "version" : 1
   },
   "properties" : {
-    "app-icon" : "App Icon",
-    "top-shelf-image" : "Top Shelf Image"
+    "app-icon" : "App Icon.imagestack",
+    "top-shelf-image" : "Top Shelf Image.imageset"
   }
 }
