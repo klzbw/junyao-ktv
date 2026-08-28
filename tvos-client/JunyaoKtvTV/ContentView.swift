@@ -295,13 +295,13 @@ struct ContentView: View {
         TVTightButton(action: action) { focused in
             HStack(spacing: 8) {
                 Text(title)
-                    .font(.system(size: 30, weight: .bold))
+                    .font(.system(size: 36, weight: .bold))
                     .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
                 Spacer()
                 Image(systemName: icon)
-                    .font(.system(size: 34, weight: .bold))
+                    .font(.system(size: 40, weight: .bold))
                     .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white.opacity(0.95))
             }
             .padding(.horizontal, 16)
