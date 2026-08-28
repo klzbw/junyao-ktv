@@ -25,11 +25,14 @@ targets:
     platform: tvOS
     sources:
       - path: JunyaoKtvTV
+    resources:
+      - path: App Icon.imagestack
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.junyao.ktv.tv
         PRODUCT_NAME: "JunyaoKtvTV"
         INFOPLIST_KEY_CFBundleDisplayName: "墨墨爱K歌"
+        ASSETCATALOG_COMPILER_APPICON_NAME: ""
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: ""
