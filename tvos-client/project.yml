@@ -29,9 +29,10 @@ targets:
       - name: Set CFBundleDisplayName
         script: |
           PLIST="${CODESIGNING_FOLDER_PATH:-$BUILT_PRODUCTS_DIR/$FULL_PRODUCT_NAME}/Info.plist"
+          DISPLAY_NAME=$(printf '\xe5\xa2\xa8\xe5\xa2\xa8\xe7\x88\xb1K\xe6\xad\x8c')
           /usr/libexec/PlistBuddy -c "Delete :CFBundleDisplayName" "$PLIST" 2>/dev/null
-          /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string 墨墨爱K歌" "$PLIST"
-          echo "CFBundleDisplayName=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$PLIST")"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string $DISPLAY_NAME" "$PLIST"
+          echo "CFBundleDisplayName=$( /usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$PLIST" | xxd | head -1 )"
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.junyao.ktv.tv
