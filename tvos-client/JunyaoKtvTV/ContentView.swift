@@ -21,6 +21,10 @@ struct ContentView: View {
     @State private var showQR = false
     @State private var shouldResumePlaying = true
     @State private var lastAutoNextQueueId: Int? = nil
+    @FocusState private var searchNavFocused: Bool
+    @FocusState private var queueNavFocused: Bool
+    @FocusState private var settingsNavFocused: Bool
+    @State private var lastNavButton: String? = nil
     private let playerManager = PlayerManager.shared
 
     enum PanelType { case search, queue, settings, eq }
@@ -160,6 +164,19 @@ struct ContentView: View {
                 activePanel = nil
             }
         }
+        .onChange(of: activePanel == nil) { closed in
+            // 弹窗关闭后，把焦点恢复到打开它的那个导航按钮
+            if closed, let target = lastNavButton {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    switch target {
+                    case "search": searchNavFocused = true
+                    case "queue": queueNavFocused = true
+                    case "settings": settingsNavFocused = true
+                    default: break
+                    }
+                }
+            }
+        }
         .onPlayPauseCommand {
             if api.queue.contains(where: { $0.isPlaying }) {
                 showingPlayer = true
@@ -182,9 +199,9 @@ struct ContentView: View {
             }
             .padding(.trailing, 4)
 
-            NavButton(icon: "magnifyingglass", title: "搜索", badge: nil) { activePanel = .search }
-            NavButton(icon: "list.bullet", title: "已点", badge: api.queue.count > 0 ? api.queue.count : nil) { activePanel = .queue }
-            NavButton(icon: "gearshape", title: "设置", badge: nil) { activePanel = .settings }
+            NavButton(icon: "magnifyingglass", title: "搜索", badge: nil, externalFocus: $searchNavFocused) { lastNavButton = "search"; activePanel = .search }
+            NavButton(icon: "list.bullet", title: "已点", badge: api.queue.count > 0 ? api.queue.count : nil, externalFocus: $queueNavFocused) { lastNavButton = "queue"; activePanel = .queue }
+            NavButton(icon: "gearshape", title: "设置", badge: nil, externalFocus: $settingsNavFocused) { lastNavButton = "settings"; activePanel = .settings }
 
             Spacer()
 

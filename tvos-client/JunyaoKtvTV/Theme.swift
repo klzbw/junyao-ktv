@@ -61,11 +61,12 @@ struct NavButton: View {
     let icon: String
     let title: String
     let badge: Int?
+    var externalFocus: FocusState<Bool>.Binding? = nil
     let action: () -> Void
     @Environment(\.theme) var theme
 
     var body: some View {
-        TVTightButton(action: action) { focused in
+        TVTightButton(action: action, externalFocus: externalFocus) { focused in
             HStack(spacing: 4) {
                 Image(systemName: icon).font(.system(size: 16))
                 Text(title).font(.system(size: 16))

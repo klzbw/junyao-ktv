@@ -767,23 +767,47 @@ struct CategoryPage: View {
 }
 
 // MARK: - TV Tight Button (reliable focus: no system card, no scaleEffect)
+// 根据是否有外部焦点绑定，选择使用外部或内部 @FocusState
+private struct ConditionalFocusModifier: ViewModifier {
+    let externalFocus: FocusState<Bool>.Binding?
+    let internalFocus: FocusState<Bool>.Binding
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if let ext = externalFocus {
+            content.focused(ext)
+        } else {
+            content.focused(internalFocus)
+        }
+    }
+}
+
 // 用普通 View + focusable + onTapGesture 代替 Button，避免 tvOS 内置焦点大白圈
 struct TVTightButton<Label: View>: View {
     let action: () -> Void
     var autoFocus: Bool = false
+    var externalFocus: FocusState<Bool>.Binding? = nil
     @ViewBuilder let label: (Bool) -> Label
     @FocusState private var focused: Bool
 
+    private var isFocused: Bool {
+        externalFocus?.wrappedValue ?? focused
+    }
+
     var body: some View {
-        label(focused)
+        label(isFocused)
             .focusable(true)
-            .focused($focused)
+            .modifier(ConditionalFocusModifier(externalFocus: externalFocus, internalFocus: $focused))
             .focusEffectDisabled()
             .onTapGesture { action() }
             .onAppear {
                 if autoFocus {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                        focused = true
+                        if let ext = externalFocus {
+                            ext.wrappedValue = true
+                        } else {
+                            focused = true
+                        }
                     }
                 }
             }
