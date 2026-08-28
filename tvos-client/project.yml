@@ -25,39 +25,18 @@ targets:
     platform: tvOS
     sources:
       - path: JunyaoKtvTV
-    resources:
-      - path: App Icon.imagestack
     postBuildScripts:
-      - name: Ensure App Icon imagestack + CFBundleIcons
+      - name: Set CFBundleDisplayName
         script: |
-          APP_DIR="${CODESIGNING_FOLDER_PATH:-$BUILT_PRODUCTS_DIR/$FULL_PRODUCT_NAME}"
-          ICON_DIR="$APP_DIR/App Icon.imagestack"
-          SRC_ICON="$SRCROOT/App Icon.imagestack"
-          PLIST="$APP_DIR/Info.plist"
-          echo "APP_DIR=$APP_DIR"
-          echo "=== App bundle root ==="
-          ls -la "$APP_DIR" | head -30
-          echo "=== imagestack ==="
-          if [ ! -d "$ICON_DIR" ]; then
-            echo "copying from $SRC_ICON"
-            mkdir -p "$ICON_DIR"
-            cp "$SRC_ICON/"*.png "$ICON_DIR/" 2>/dev/null
-            cp "$SRC_ICON/Contents.json" "$ICON_DIR/" 2>/dev/null
-          fi
-          ls -la "$ICON_DIR"
-          echo "=== Setting CFBundleIcons ==="
-          /usr/libexec/PlistBuddy -c "Delete :CFBundleIcons" "$PLIST" 2>/dev/null
-          /usr/libexec/PlistBuddy -c "Add :CFBundleIcons dict" "$PLIST"
-          /usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundlePrimaryIcon dict" "$PLIST"
-          /usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundlePrimaryIcon:CFBundleIconName string App Icon" "$PLIST"
-          echo "=== Verify CFBundleIcons ==="
-          /usr/libexec/PlistBuddy -c "Print :CFBundleIcons" "$PLIST"
+          PLIST="${CODESIGNING_FOLDER_PATH:-$BUILT_PRODUCTS_DIR/$FULL_PRODUCT_NAME}/Info.plist"
+          /usr/libexec/PlistBuddy -c "Delete :CFBundleDisplayName" "$PLIST" 2>/dev/null
+          /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string 墨墨爱K歌" "$PLIST"
+          echo "CFBundleDisplayName=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$PLIST")"
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.junyao.ktv.tv
         PRODUCT_NAME: "JunyaoKtvTV"
-        INFOPLIST_KEY_CFBundleDisplayName: "墨墨爱K歌"
-        ASSETCATALOG_COMPILER_APPICON_NAME: ""
+        ASSETCATALOG_COMPILER_APPICON_NAME: "AppIcon"
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: ""
