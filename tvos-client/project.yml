@@ -32,9 +32,9 @@ targets:
           DISPLAY_NAME=$(printf '\xe5\xa2\xa8\xe5\xa2\xa8\xe7\x88\xb1K\xe6\xad\x8c')
           /usr/libexec/PlistBuddy -c "Delete :CFBundleDisplayName" "$PLIST" 2>/dev/null
           /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string $DISPLAY_NAME" "$PLIST"
-          /usr/libexec/PlistBuddy -c "Delete :CFBundleName" "$PLIST" 2>/dev/null
-          /usr/libexec/PlistBuddy -c "Add :CFBundleName string $DISPLAY_NAME" "$PLIST"
-          # Convert to XML plist to better preserve UTF-8 Chinese during third-party signing
+          # Keep CFBundleName as ASCII (JunyaoKtvTV) to avoid plumesign filtering;
+          # tvOS desktop reads CFBundleDisplayName first when present.
+          # Convert to XML plist to better preserve UTF-8 Chinese.
           plutil -convert xml1 "$PLIST"
           echo "CFBundleName=$( /usr/libexec/PlistBuddy -c 'Print :CFBundleName' "$PLIST" )"
           echo "CFBundleDisplayName=$( /usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$PLIST" )"
