@@ -5,19 +5,13 @@
   },
   "layers" : [
     {
-      "filename" : "Front.png",
-      "idiom" : "tv",
-      "scale" : "2x"
+      "filename" : "Front.png"
     },
     {
-      "filename" : "Middle.png",
-      "idiom" : "tv",
-      "scale" : "2x"
+      "filename" : "Middle.png"
     },
     {
-      "filename" : "Back.png",
-      "idiom" : "tv",
-      "scale" : "2x"
+      "filename" : "Back.png"
     }
   ]
 }

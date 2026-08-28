@@ -5,19 +5,13 @@
   },
   "layers" : [
     {
-      "filename" : "Front.png",
-      "idiom" : "tv-marketing",
-      "scale" : "1x"
+      "filename" : "Front.png"
     },
     {
-      "filename" : "Middle.png",
-      "idiom" : "tv-marketing",
-      "scale" : "1x"
+      "filename" : "Middle.png"
     },
     {
-      "filename" : "Back.png",
-      "idiom" : "tv-marketing",
-      "scale" : "1x"
+      "filename" : "Back.png"
     }
   ]
 }
