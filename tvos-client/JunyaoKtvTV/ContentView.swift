@@ -263,11 +263,11 @@ struct ContentView: View {
                     bottomQuickCards
                         .frame(height: geo.size.height * 0.20)
                 }
-                .frame(width: geo.size.width * 0.52)
+                .frame(width: geo.size.width * 0.54)
 
                 // Middle column: 4 vertical buttons
                 midCards
-                    .frame(width: geo.size.width * 0.28)
+                    .frame(width: geo.size.width * 0.26)
 
                 // Right column: queue (narrow)
                 rightQueue
@@ -281,7 +281,7 @@ struct ContentView: View {
 
     // MARK: - Bottom Quick Cards (hot charts, recent, favorites, newest)
     private var bottomQuickCards: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 6) {
             quickCard(title: "热歌排行", icon: "chart.line.uptrend.xyaxis", gradient: LinearGradient(colors: [Color(hex: 0xff4f9b), Color(hex: 0xff6b6b)], startPoint: .leading, endPoint: .trailing)) { activePage = .charts }
             quickCard(title: "最近唱过", icon: "clock.fill", gradient: LinearGradient(colors: [Color(hex: 0x8e44f7), Color(hex: 0xc736f7)], startPoint: .leading, endPoint: .trailing)) { activePage = .history }
             quickCard(title: "我的收藏", icon: "heart.fill", gradient: LinearGradient(colors: [Color(hex: 0xff8c42), Color(hex: 0xffb347)], startPoint: .leading, endPoint: .trailing)) { activePage = .favorites }
@@ -293,18 +293,18 @@ struct ContentView: View {
 
     private func quickCard(title: String, icon: String, gradient: LinearGradient, action: @escaping () -> Void) -> some View {
         TVTightButton(action: action) { focused in
-            HStack(spacing: 8) {
+            HStack(spacing: 6) {
                 Text(title)
-                    .font(.system(size: 36, weight: .bold))
+                    .font(.system(size: 40, weight: .bold))
                     .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.5)
+                    .minimumScaleFactor(0.6)
                 Spacer()
                 Image(systemName: icon)
-                    .font(.system(size: 40, weight: .bold))
+                    .font(.system(size: 34, weight: .bold))
                     .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white.opacity(0.95))
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 12)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Group { if focused { Color.white } else { gradient.opacity(0.7) } })
             .cornerRadius(12)
