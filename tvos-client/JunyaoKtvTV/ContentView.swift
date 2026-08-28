@@ -298,7 +298,7 @@ struct ContentView: View {
                     .font(.system(size: 40, weight: .bold))
                     .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.6)
+                    .minimumScaleFactor(0.5)
                 Spacer()
                 Image(systemName: icon)
                     .font(.system(size: 34, weight: .bold))
@@ -312,6 +312,7 @@ struct ContentView: View {
             .background(focused ? Color.white.opacity(0.15) : Color.clear)
             .cornerRadius(14)
         }
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - QR Code View (exact #now-qr-code2)
@@ -638,6 +639,7 @@ struct ContentView: View {
             .background(focused ? Color.white : Color.clear)
             .cornerRadius(18)
         }
+        .frame(maxWidth: .infinity)
     }
 
     private func queueRow(item: QueueItem, index: Int) -> some View {
