@@ -202,9 +202,7 @@ struct ConnectConfirmView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 24)
-                        .background(focused ? Color.white :
-                            LinearGradient(colors: [WebColors.ac, WebColors.ac2],
-                                           startPoint: UnitPoint(x: 0, y: 0), endPoint: UnitPoint(x: 1, y: 1)))
+                        .background(focused ? LinearGradient(colors: [Color.white, Color.white], startPoint: .top, endPoint: .bottom) : LinearGradient(colors: [WebColors.ac, WebColors.ac2], startPoint: UnitPoint(x: 0, y: 0), endPoint: UnitPoint(x: 1, y: 1)))
                         .foregroundColor(focused ? Color(hex: 0x1a1a2e) : WebColors.bg)
                         .cornerRadius(16)
                     }
