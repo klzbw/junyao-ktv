@@ -132,3 +132,112 @@ struct SetupView: View {
         }.resume()
     }
 }
+
+// MARK: - 每次进入 App 的服务器连接确认页
+// 记住上次输入的服务器地址：可一键"直接连接"，也可进入"输入新地址"。
+// 冷启动、以及全退后台再次进入 App 时都会先显示这一页（由 ContentView 控制）。
+struct ConnectConfirmView: View {
+    let savedAddress: String
+    let onDirect: () -> Void
+    let onChangeIP: () -> Void
+
+    private var displayAddress: String {
+        savedAddress
+            .replacingOccurrences(of: "http://", with: "")
+            .replacingOccurrences(of: "https://", with: "")
+    }
+
+    var body: some View {
+        ZStack {
+            // 与 SetupView / LoginView 一致的背景
+            WebColors.bg.ignoresSafeArea()
+            RadialGradient(colors: [WebColors.ac.opacity(0.16), .clear],
+                           center: UnitPoint(x: 0.5, y: -0.1), startRadius: 0, endRadius: 500)
+                .ignoresSafeArea()
+            RadialGradient(colors: [WebColors.ac2.opacity(0.12), .clear],
+                           center: UnitPoint(x: 0.9, y: 1.0), startRadius: 0, endRadius: 450)
+                .ignoresSafeArea()
+
+            VStack {
+                Spacer()
+                VStack(spacing: 0) {
+                    Text("墨墨爱K歌")
+                        .font(.system(size: 48, weight: .heavy))
+                        .tracking(2)
+                        .foregroundStyle(LinearGradient(colors: [WebColors.ac2, WebColors.ac, WebColors.pink],
+                                                        startPoint: .leading, endPoint: .trailing))
+                        .padding(.bottom, 14)
+
+                    Text("欢迎回来，请选择服务器连接方式")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(Color(hex: 0xb8b8d8))
+                        .padding(.bottom, 30)
+
+                    // 上次连接地址卡片
+                    VStack(spacing: 10) {
+                        Text("上次连接的服务器")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundColor(Color(hex: 0x9a9ac0))
+                        Text(displayAddress)
+                            .font(.system(size: 36, weight: .heavy))
+                            .foregroundColor(.white)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.6)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 22)
+                    .background(Color.white.opacity(0.06))
+                    .cornerRadius(16)
+                    .overlay(RoundedRectangle(cornerRadius: 16)
+                        .stroke(WebColors.ac.opacity(0.4), lineWidth: 2))
+                    .padding(.bottom, 30)
+
+                    // 直接连接（默认聚焦）
+                    TVTightButton(action: onDirect, autoFocus: true) { focused in
+                        HStack(spacing: 12) {
+                            Image(systemName: "bolt.fill")
+                                .font(.system(size: 30, weight: .bold))
+                            Text("直接连接")
+                                .font(.system(size: 32, weight: .heavy))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 24)
+                        .background(focused ? Color.white :
+                            LinearGradient(colors: [WebColors.ac, WebColors.ac2],
+                                           startPoint: UnitPoint(x: 0, y: 0), endPoint: UnitPoint(x: 1, y: 1)))
+                        .foregroundColor(focused ? Color(hex: 0x1a1a2e) : WebColors.bg)
+                        .cornerRadius(16)
+                    }
+
+                    // 输入新的服务器地址
+                    TVTightButton(action: onChangeIP) { focused in
+                        HStack(spacing: 12) {
+                            Image(systemName: "slider.horizontal.3")
+                                .font(.system(size: 28, weight: .bold))
+                            Text("输入新的服务器地址")
+                                .font(.system(size: 28, weight: .bold))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 22)
+                        .background(focused ? Color.white : Color.white.opacity(0.1))
+                        .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
+                        .cornerRadius(16)
+                    }
+                    .padding(.top, 16)
+
+                    Text("每次打开 App 都会在此确认，服务器地址会自动保留")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundColor(Color(hex: 0x9a9ac0))
+                        .padding(.top, 26)
+                }
+                .padding(.horizontal, 60)
+                .padding(.vertical, 60)
+                .frame(width: 680)
+                .background(Color(hex: 0x10102a).opacity(0.78))
+                .cornerRadius(20)
+                .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.white.opacity(0.08), lineWidth: 1))
+                Spacer()
+            }
+        }
+    }
+}

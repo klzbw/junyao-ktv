@@ -6,7 +6,11 @@ struct ContentView: View {
     @StateObject private var api: KTVAPIClient
     @AppStorage("serverAddress") private var serverAddress: String = ""
     @AppStorage("appTheme") private var appThemeRaw: Int = 1
-    @State private var showingSetup = false
+    // 连接流程：connected=false 时处于"连接确认 / 输入地址"阶段；每次冷启动或从后台返回都会回到该阶段
+    @State private var connected = false
+    @State private var showSetupInput = false
+    @State private var hasBeenBackground = false
+    @Environment(\.scenePhase) private var scenePhase
     @State private var showingPlayer = false
     @State private var activePanel: PanelType? = nil
     @State private var activePage: PageType? = nil
@@ -37,16 +41,7 @@ struct ContentView: View {
 
     var body: some View {
         Group {
-            if showingSetup || serverAddress.isEmpty {
-                SetupView(serverAddress: $serverAddress, onSave: {
-                    api.updateBaseURL(serverAddress)
-                    showingSetup = false
-                    api.fetchAll()
-                    api.connectWebSocket()
-                    setupControlHandler()
-                    setupPlaybackEndHandler()
-                })
-            } else {
+            if connected && !serverAddress.isEmpty {
                 ZStack {
                     mainContent
                         .disabled(activePage != nil)
@@ -56,6 +51,14 @@ struct ContentView: View {
                             .zIndex(1)
                     }
                 }
+            } else if showSetupInput || serverAddress.isEmpty {
+                // 首次使用（无历史地址）或用户选择"输入新地址"：进入 IP 输入页
+                SetupView(serverAddress: $serverAddress, onSave: { connectCurrent() })
+            } else {
+                // 每次进入 App / 从后台返回：先弹连接确认，可一键直连上次地址或改新地址
+                ConnectConfirmView(savedAddress: serverAddress,
+                                   onDirect: { connectCurrent() },
+                                   onChangeIP: { showSetupInput = true })
             }
         }
         .onExitCommand {
@@ -65,13 +68,26 @@ struct ContentView: View {
         }
         .onAppear {
             currentTheme = AppTheme(rawValue: appThemeRaw) ?? .theme1
-            if !serverAddress.isEmpty {
-                api.fetchAll()
-                api.connectWebSocket()
-                setupControlHandler()
-                setupPlaybackEndHandler()
-            } else {
-                showingSetup = true
+            // 不自动连接：有上次地址先弹"直接连接 / 改新地址"确认；没有记录才直接进入输入页
+            connected = false
+            showSetupInput = serverAddress.isEmpty
+        }
+        .onChange(of: scenePhase) { phase in
+            // 全退后台再次进入 App：重新弹出服务器连接确认（保留上次地址，可直连或改新 IP）
+            switch phase {
+            case .background:
+                hasBeenBackground = true
+            case .active:
+                if hasBeenBackground {
+                    hasBeenBackground = false
+                    if !serverAddress.isEmpty {
+                        connected = false
+                        showSetupInput = false
+                        showingPlayer = false
+                    }
+                }
+            default:
+                break
             }
         }
         .onChange(of: showingPlayer) { isPresented in
@@ -87,7 +103,7 @@ struct ContentView: View {
             if let playing = api.queue.first(where: { $0.isPlaying }) {
                 FullPlayerView(
                     song: playing,
-                    onNext: { api.nextSong() },
+                    onNext: { advancePlayback() },
                     onClose: { showingPlayer = false },
                     api: api
                 )
@@ -511,7 +527,7 @@ struct ContentView: View {
                     showToast("音量: \(Int(volume * 100))%")
                 }
             case "next":
-                api.nextSong()
+                advancePlayback()
             default:
                 break
             }
@@ -527,15 +543,53 @@ struct ContentView: View {
                 }
                 // Prevent duplicate next calls for the same song
                 if self.lastAutoNextQueueId == curSong.id { return }
-                let hasMore = self.api.queue.contains(where: { !$0.isPlaying })
-                if hasMore {
-                    self.lastAutoNextQueueId = curSong.id
-                    self.api.nextSong()
-                } else if self.showingPlayer {
-                    self.showingPlayer = false
-                }
+                self.lastAutoNextQueueId = curSong.id
+                // 队列里还有已点就播下一首；已点播完则自动从曲库随机选一首续播，
+                // 不再直接停住 / 退出全屏（修复"已点歌曲播完后无法自动随机播放"）
+                self.advancePlayback()
             }
         }
+    }
+
+    /// 统一推进播放：队列里有待播已点 → 切下一首；已点队列清空 → 自动随机挑一首续播。
+    /// 手动切歌、遥控切歌、自然播完三处都走这里，保证行为一致。
+    private func advancePlayback() {
+        // 1) 还有等待中的已点歌曲，直接切下一首
+        if api.queue.contains(where: { !$0.isPlaying }) {
+            api.nextSong()
+            return
+        }
+        // 2) 已点队列已空：从曲库随机挑一首（尽量不与当前这首重复）
+        let currentId = api.queue.first(where: { $0.isPlaying })?.song_id
+        func pick(from list: [Song]) {
+            let pool = list.filter { $0.id != currentId }
+            guard let song = (pool.isEmpty ? list : pool).randomElement() else {
+                // 曲库确实为空、无歌可续播时才退出全屏
+                if self.showingPlayer { self.showingPlayer = false }
+                return
+            }
+            // 先把随机歌以 waiting 入队，再让当前歌收尾、随机歌顶上成为 playing
+            self.api.addToQueue(songId: song.id) { ok in
+                if ok { self.api.nextSong() }
+            }
+        }
+        if api.songs.isEmpty {
+            // 曲库尚未加载到内存，先拉取再随机挑选
+            api.fetchSongs { pick(from: self.api.songs) }
+        } else {
+            pick(from: api.songs)
+        }
+    }
+
+    /// 用当前 serverAddress 建立连接并进入主界面（"直接连接"与"输入新地址后连接"共用）。
+    private func connectCurrent() {
+        guard !serverAddress.isEmpty else { showSetupInput = true; return }
+        // updateBaseURL 内部会断开旧 WebSocket、用目标地址重连并 fetchAll 拉取全部数据
+        api.updateBaseURL(serverAddress)
+        setupControlHandler()
+        setupPlaybackEndHandler()
+        showSetupInput = false
+        connected = true
     }
 
     // MARK: - Song Intro View (exact #song-intro)
@@ -610,7 +664,7 @@ struct ContentView: View {
                 playerManager.setVolume(volume)
                 showToast("音量: \(Int(volume * 100))%")
             }
-            MVButton(icon: "forward.end.fill", title: "切歌") { api.nextSong() }
+            MVButton(icon: "forward.end.fill", title: "切歌") { advancePlayback() }
             MVButton(icon: "gobackward", title: "重唱") {
                 playerManager.restart()
                 api.restartSong()
