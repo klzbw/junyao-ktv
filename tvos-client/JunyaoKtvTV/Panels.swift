@@ -309,6 +309,7 @@ struct SettingsPanel: View {
     @State private var showEQ = false
     @State private var deviceRole: DeviceRole = .player
     @State private var playerLocked = false
+    @AppStorage("micPublicHost") private var micPublicHost: String = "mktv.klzbw.top"
 
     enum DeviceRole { case player, controller
         var label: String { self == .player ? "播放端" : "控制端" }
@@ -350,6 +351,7 @@ struct SettingsPanel: View {
                         VStack(alignment: .leading, spacing: 10) {
                             settingRow(label: "当前版本", value: api.stats?.appVersion ?? "—")
                             settingRow(label: "服务器", value: api.serverAddress)
+                            settingRow(label: "手机域名", value: micPublicHost)
                             settingRow(label: "曲库歌曲", value: "\(api.stats?.songCount ?? 0) 首")
                             TVTightButton(action: { api.scanLibrary() }) { focused in
                                 HStack {

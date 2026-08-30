@@ -15,11 +15,16 @@ struct FullPlayerView: View {
     @State private var hasAutoExited = false
     @State private var showQueue = false
     @State private var showQR = false
+    @ObservedObject private var mic = MicLink.shared
+    @State private var qrTab: QRTab = .order
+    @AppStorage("micPublicHost") private var micPublicHost: String = "mktv.klzbw.top"
 
     enum VoiceMode {
         case original, accompaniment
         var label: String { self == .original ? "原唱" : "伴唱" }
     }
+
+    enum QRTab { case order, micMode }
 
     var body: some View {
         ZStack {
@@ -180,6 +185,8 @@ struct FullPlayerView: View {
         resetHideTimer()
         hasAutoExited = false
         voiceMode = playerManager.isOriginalVoice ? .original : .accompaniment
+        // 切歌/全屏视图重建时，若麦克风模式仍开着则保持连接不断
+        mic.keepAlive(api.serverAddress)
     }
 
     // MARK: - Queue Panel
@@ -275,44 +282,157 @@ struct FullPlayerView: View {
         }
     }
 
-    // MARK: - QR Panel
+    // MARK: - QR Panel（点歌码 / 手机麦克风码 两个页签）
     private var qrPanel: some View {
         ZStack {
             Color.black.opacity(0.7).ignoresSafeArea()
                 .focusable(false)
                 .onTapGesture { showQR = false }
-            VStack(spacing: 16) {
-                Text("扫码点歌")
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundColor(.white)
-                if let qrImage = generateQRCode(from: "http://\(api.serverAddress)/m") {
-                    Image(uiImage: qrImage)
-                        .interpolation(.none)
-                        .resizable()
-                        .frame(width: 240, height: 240)
-                        .background(Color.white)
-                        .cornerRadius(12)
-                        .padding(12)
-                        .background(Color.white)
-                        .cornerRadius(16)
+            VStack(spacing: 14) {
+                // 顶部页签切换
+                HStack(spacing: 12) {
+                    qrTabButton(tab: .order, icon: "music.note", title: "扫码点歌")
+                    qrTabButton(tab: .micMode, icon: "mic.fill", title: "手机麦克风")
                 }
-                Text("手机扫码即可点歌")
-                    .font(.system(size: 16))
-                    .foregroundColor(WebColors.sub)
-                TVTightButton(action: { showQR = false }, autoFocus: true) { focused in
-                    Text("关闭")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
-                        .padding(.horizontal, 24).padding(.vertical, 10)
-                        .background(focused ? Color.white : WebColors.ac)
-                        .cornerRadius(999)
+
+                if qrTab == .order {
+                    Text("扫码点歌")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundColor(.white)
+                    if let qrImage = generateQRCode(from: "http://\(api.serverAddress)/m") {
+                        qrImageBox(qrImage, size: 220)
+                    }
+                    Text("手机扫码即可点歌")
+                        .font(.system(size: 16))
+                        .foregroundColor(WebColors.sub)
+                    TVTightButton(action: { showQR = false }, autoFocus: true) { focused in
+                        qrCloseLabel(focused)
+                    }
+                } else {
+                    micPanelContent
                 }
             }
-            .padding(30)
+            .padding(26)
+            .frame(width: 580)
             .background(WebColors.panelBg)
             .cornerRadius(20)
             .focusSection()
         }
+    }
+
+    // MARK: 手机麦克风面板
+    private var micPanelContent: some View {
+        VStack(spacing: 12) {
+            Text("手机麦克风")
+                .font(.system(size: 22, weight: .bold))
+                .foregroundColor(.white)
+            if let qrImage = generateQRCode(from: "https://\(micPublicHost)/mic") {
+                qrImageBox(qrImage, size: 208)
+            }
+            Text("手机扫码当无线麦克风 · \(micPublicHost)")
+                .font(.system(size: 14))
+                .foregroundColor(WebColors.sub)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+
+            // 连接状态
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(mic.phoneCount > 0 ? Color.green :
+                          (mic.socketConnected && mic.isOn ? Color.orange : Color.gray))
+                    .frame(width: 10, height: 10)
+                Text(micStatusText)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(.white)
+            }
+
+            // 电视端总开关
+            TVTightButton(action: { mic.toggle(api.serverAddress) }, autoFocus: true) { focused in
+                Text(mic.isOn ? "■ 关闭麦克风（电视端）" : "▶ 开启麦克风（电视端）")
+                    .font(.system(size: 18, weight: .heavy))
+                    .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(focused ? Color.white :
+                                (mic.isOn ? WebColors.ac : Color.white.opacity(0.12)))
+                    .cornerRadius(12)
+            }
+
+            // 人声音量加减
+            HStack(spacing: 14) {
+                TVTightButton(action: { mic.nudgeGain(-0.2) }) { focused in
+                    Image(systemName: "minus")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
+                        .frame(width: 52, height: 40)
+                        .background(focused ? Color.white : Color.white.opacity(0.12))
+                        .cornerRadius(10)
+                }
+                Text("人声音量 \(Int(mic.gain * 100))%")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(width: 170)
+                TVTightButton(action: { mic.nudgeGain(0.2) }) { focused in
+                    Image(systemName: "plus")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
+                        .frame(width: 52, height: 40)
+                        .background(focused ? Color.white : Color.white.opacity(0.12))
+                        .cornerRadius(10)
+                }
+            }
+
+            TVTightButton(action: { showQR = false }) { focused in
+                qrCloseLabel(focused)
+            }
+            Text("手机与电视需连同一 WiFi；手机页必须用 https 加密域名打开")
+                .font(.system(size: 12))
+                .foregroundColor(WebColors.sub)
+                .multilineTextAlignment(.center)
+        }
+    }
+
+    private var micStatusText: String {
+        if !mic.isOn { return "电视端未开启" }
+        if mic.phoneCount > 0 { return "手机已连接，正在传输人声" }
+        if mic.socketConnected { return "已就绪，请用手机扫码点“开始唱歌”" }
+        return "正在连接服务器…"
+    }
+
+    private func qrTabButton(tab: QRTab, icon: String, title: String) -> some View {
+        TVTightButton(action: { qrTab = tab }) { focused in
+            HStack(spacing: 6) {
+                Image(systemName: icon).font(.system(size: 16, weight: .bold))
+                Text(title).font(.system(size: 16, weight: .bold))
+            }
+            .padding(.horizontal, 18).padding(.vertical, 10)
+            .background(qrTab == tab ? WebColors.ac :
+                        (focused ? Color.white : Color.white.opacity(0.1)))
+            .foregroundColor(qrTab == tab ? Color.white :
+                             (focused ? Color(hex: 0x1a1a2e) : WebColors.sub))
+            .cornerRadius(999)
+        }
+    }
+
+    private func qrImageBox(_ img: UIImage, size: CGFloat) -> some View {
+        Image(uiImage: img)
+            .interpolation(.none)
+            .resizable()
+            .frame(width: size, height: size)
+            .background(Color.white)
+            .cornerRadius(12)
+            .padding(10)
+            .background(Color.white)
+            .cornerRadius(16)
+    }
+
+    private func qrCloseLabel(_ focused: Bool) -> some View {
+        Text("关闭")
+            .font(.system(size: 16, weight: .medium))
+            .foregroundColor(focused ? Color(hex: 0x1a1a2e) : .white)
+            .padding(.horizontal, 24).padding(.vertical, 10)
+            .background(focused ? Color.white : WebColors.ac)
+            .cornerRadius(999)
     }
 
     private func generateQRCode(from string: String) -> UIImage? {

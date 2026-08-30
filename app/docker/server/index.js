@@ -156,6 +156,10 @@ app.use('/tv',    express.static(path.join(__dirname, '../web/tv')));
 app.use('/m',     express.static(path.join(__dirname, '../web/mobile')));
 app.use('/admin', express.static(path.join(__dirname, '../web/admin')));
 app.use('/cover', express.static('/data/covers'));
+// 手机麦克风页：手机扫码打开后当无线麦克风。浏览器 getUserMedia 必须在 HTTPS
+// 安全上下文下才能调用麦克风，因此手机走 Lucky 反代的 https 域名接入(wss)，
+// Apple TV 在局域网用 ws 直连本服务，两端在本进程会合、由下面的 /mic 通道转发。
+app.use('/mic',   express.static(path.join(__dirname, '../web/mic')));
 
 // ---------- HLS 播放 (音轨切换不中断播放、进度可寻址) ----------
 // 取代了旧的"?track=0/1 现场 ffmpeg 重新封装"方案：那个方案吐出的新流没有
@@ -474,6 +478,82 @@ wss.on('connection', ws => {
     } catch(e) {}
   });
 });
+
+// ---------- 手机麦克风实时音频通道 (/mic) ----------
+// role=mic：手机，采集麦克风后把 PCM 二进制帧上行；role=tv：Apple TV，接收并播放。
+// 手机经 Lucky 的 https 域名(wss)接入以满足浏览器安全上下文要求，电视在局域网
+// 用 ws 直连；二者最终落在同一个 Node 进程，由这里把手机音频转发给电视。
+// 当前版本只支持一部手机当麦（第二部分机收到 busy），保证电视端单路解码最简单可靠。
+const micWss = new WebSocketServer({ server, path: '/mic' });
+let activeMic = null; // 当前唯一在推流的手机连接
+
+function micSendJSON(ws, obj) {
+  if (ws && ws.readyState === 1) { try { ws.send(JSON.stringify(obj)); } catch (e) {} }
+}
+function micPresence() {
+  let tvs = 0;
+  micWss.clients.forEach(c => { if (c._role === 'tv' && c.readyState === 1) tvs++; });
+  const payload = JSON.stringify({ type: 'presence', phones: activeMic ? 1 : 0, tvs });
+  micWss.clients.forEach(c => { if (c.readyState === 1) { try { c.send(payload); } catch (e) {} } });
+}
+
+micWss.on('connection', (ws, req) => {
+  let role = 'mic';
+  try {
+    const u = new URL(req.url, 'http://localhost');
+    if (u.searchParams.get('role') === 'tv') role = 'tv';
+  } catch (e) {}
+  ws._role = role;
+  ws.isAlive = true;
+  ws.on('pong', () => { ws.isAlive = true; });
+
+  if (role === 'mic') {
+    if (activeMic && activeMic !== ws && activeMic.readyState === 1) {
+      // 已有手机在当麦：告诉新连接当前忙碌（保持连接用于展示状态，但不转发其音频）
+      micSendJSON(ws, { type: 'busy', message: '已有一部手机正在使用麦克风' });
+    } else {
+      activeMic = ws;
+    }
+  }
+
+  micSendJSON(ws, { type: 'hello', role, phones: activeMic ? 1 : 0 });
+  micPresence();
+
+  ws.on('message', (data, isBinary) => {
+    if (ws._role !== 'mic' || activeMic !== ws) return; // 只转发当前活动手机
+    if (isBinary) {
+      // PCM 音频帧：原样转发给所有电视端
+      micWss.clients.forEach(c => {
+        if (c._role === 'tv' && c.readyState === 1) { try { c.send(data); } catch (e) {} }
+      });
+    } else {
+      // 信令 JSON（config 采样率、level 电平、stop 等）：转发给电视端
+      try {
+        const p = JSON.parse(data.toString());
+        const s = JSON.stringify(p);
+        micWss.clients.forEach(c => {
+          if (c._role === 'tv' && c.readyState === 1) { try { c.send(s); } catch (e) {} }
+        });
+      } catch (e) {}
+    }
+  });
+
+  ws.on('close', () => {
+    if (activeMic === ws) activeMic = null;
+    micPresence();
+  });
+  ws.on('error', () => { try { ws.terminate(); } catch (e) {} });
+});
+
+// 心跳：30s 一轮清理半开连接，避免手机杀后台后电视端一直误显示"手机在线"
+const micPing = setInterval(() => {
+  micWss.clients.forEach(ws => {
+    if (ws.isAlive === false) { try { ws.terminate(); } catch (e) {} return; }
+    ws.isAlive = false;
+    try { ws.ping(); } catch (e) {}
+  });
+}, 30000);
+micWss.on('close', () => clearInterval(micPing));
 
 server.listen(PORT, () => {
   log.info('SERVER', `KTV 服务已启动: http://0.0.0.0:${PORT}`);
